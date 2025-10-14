@@ -41,4 +41,10 @@ return [
         'jwt_secret' => env('SUPABASE_JWT_SECRET'),
     ],
 
+    'ez_cards' => [
+        'base_url' => env('EZ_CARDS_BASE_URL', 'https://api.ezcards.io'),
+        'api_key' => env('EZ_CARDS_API_KEY'),
+        'access_token' => env('EZ_CARDS_ACCESS_TOKEN'),
+    ],
+
 ];
