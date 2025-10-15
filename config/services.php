@@ -47,4 +47,8 @@ return [
         'access_token' => env('EZ_CARDS_ACCESS_TOKEN'),
     ],
 
+    'irewardify' => [
+        'base_url' => env('IREWARDIFY_BASE_URL', 'https://api.irewardify.com'),
+    ],
+
 ];
