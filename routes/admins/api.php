@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\SupplierController;
+use App\Http\Controllers\Admin\ProductBatchController;
+use App\Http\Controllers\Admin\ProductController;
 
 // Other admin controllers can be imported here as needed
 Route::middleware(['auth:supabase', 'role:admin'])->group(function () {
@@ -21,6 +23,11 @@ Route::middleware(['auth:supabase', 'role:admin'])->group(function () {
             Route::get('/{supplier}', 'show');
             Route::post('/{supplier}', 'update');
             Route::delete('/{supplier}', 'destroy');
+        });
+
+        Route::prefix('/products')->group(function () {
+            Route::post('/batch', [ProductBatchController::class, 'store']);
+            Route::post('/{product}', [ProductController::class, 'update']);
         });
     });
 });
