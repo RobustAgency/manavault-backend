@@ -21,12 +21,11 @@ class ProductControllerTest extends TestCase
 
         $updateData = [
             'name' => 'Updated Product Name',
-            'sku' => 'SKU-1234',
             'description' => 'Updated product description',
             'price' => 200.00,
         ];
 
-        $response = $this->putJson("/api/admin/products/{$product->id}", $updateData);
+        $response = $this->postJson("/api/admin/products/{$product->id}", $updateData);
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -48,7 +47,6 @@ class ProductControllerTest extends TestCase
         $this->assertDatabaseHas('products', [
             'id' => $product->id,
             'name' => $updateData['name'],
-            'sku' => $updateData['sku'],
             'description' => $updateData['description'],
             'price' => $updateData['price'],
         ]);
