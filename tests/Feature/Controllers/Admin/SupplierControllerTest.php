@@ -3,6 +3,7 @@
 namespace Tests\Feature\Controllers\Admin;
 
 use App\Models\User;
+use App\Models\Supplier;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
@@ -11,8 +12,9 @@ class SupplierControllerTest extends TestCase
 {
     use RefreshDatabase, WithFaker;
 
-    public function test_user_get_paginated_suppliers(): void
+    public function test_admin_get_paginated_suppliers(): void
     {
+        $suppliers = Supplier::factory()->count(5)->create();
         $user = User::factory()->create(['role' => 'admin']);
         $this->actingAs($user);
         $response = $this->getJson('/api/admin/suppliers');
@@ -48,5 +50,88 @@ class SupplierControllerTest extends TestCase
                 ],
                 'message',
             ]);
+    }
+
+    public function test_admin_create_supplier(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        $this->actingAs($user);
+        $supplierData = [
+            'name' => $this->faker->company,
+            'type' => $this->faker->randomElement(['internal', 'external']),
+            'contact_email' => $this->faker->unique()->safeEmail,
+            'contact_phone' => $this->faker->phoneNumber,
+            'status' => $this->faker->randomElement(['active', 'inactive']),
+        ];
+
+        $response = $this->postJson('/api/admin/suppliers', $supplierData);
+
+        $response->assertStatus(201)
+            ->assertJsonStructure([
+                'error',
+                'data' => [
+                    'id',
+                    'name',
+                    'type',
+                    'contact_email',
+                    'contact_phone',
+                    'status',
+                    'created_at',
+                    'updated_at',
+                ],
+                'message',
+            ]);
+
+        $this->assertDatabaseHas('suppliers', [
+            'name' => $supplierData['name'],
+            'contact_email' => $supplierData['contact_email'],
+        ]);
+    }
+
+    public function test_admin_update_supplier(): void
+    {
+        $supplier = Supplier::factory()->create();
+        $user = User::factory()->create(['role' => 'admin']);
+        $this->actingAs($user);
+        $updateData = [
+            'name' => $this->faker->company,
+            'type' => $this->faker->randomElement(['internal', 'external']),
+            'status' => $this->faker->randomElement(['active', 'inactive']),
+        ];
+
+        $response = $this->postJson("/api/admin/suppliers/{$supplier->id}", $updateData);
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'error',
+                'data',
+                'message',
+            ]);
+
+        $this->assertDatabaseHas('suppliers', [
+            'id' => $supplier->id,
+            'name' => $updateData['name'],
+            'type' => $updateData['type'],
+        ]);
+    }
+
+    public function test_admin_delete_supplier(): void
+    {
+        $supplier = Supplier::factory()->create();
+        $user = User::factory()->create(['role' => 'admin']);
+        $this->actingAs($user);
+
+        $response = $this->deleteJson("/api/admin/suppliers/{$supplier->id}");
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'error',
+                'data',
+                'message',
+            ]);
+
+        $this->assertDatabaseMissing('suppliers', [
+            'id' => $supplier->id,
+        ]);
     }
 }

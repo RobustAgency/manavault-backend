@@ -14,13 +14,13 @@ Route::middleware(['auth:supabase', 'role:admin'])->group(function () {
             Route::post('/{user}/approve', 'approve');
             Route::post('/{user}/revoke-approval', 'revokeApproval');
         });
-    });
 
-    Route::prefix('/suppliers')->controller(SupplierController::class)->group(function () {
-        Route::get('', 'index');
-        Route::post('', 'store');
-        Route::get('/{supplier}', 'show');
-        Route::post('/{supplier}', 'update');
-        Route::delete('/{supplier}', 'destroy');
+        Route::prefix('/suppliers')->controller(SupplierController::class)->group(function () {
+            Route::get('', 'index');
+            Route::post('', 'store');
+            Route::get('/{supplier}', 'show');
+            Route::post('/{supplier}', 'update');
+            Route::delete('/{supplier}', 'destroy');
+        });
     });
 });

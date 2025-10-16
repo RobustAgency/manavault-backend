@@ -33,7 +33,7 @@ class SupplierController extends Controller
             'error' => false,
             'data' => $supplier,
             'message' => 'Supplier created successfully.',
-        ]);
+        ], 201);
     }
 
     public function show(Supplier $supplier): JsonResponse
