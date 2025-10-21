@@ -3,7 +3,6 @@
 namespace App\Repositories;
 
 use App\Models\Product;
-use App\Models\ProductBatch;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class ProductRepository
@@ -19,6 +18,10 @@ class ProductRepository
 
         if (isset($filters['name'])) {
             $query->where('name', 'like', '%' . $filters['name'] . '%');
+        }
+
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
         }
 
         $per_page = $filters['per_page'] ?? 10;
