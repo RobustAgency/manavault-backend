@@ -20,29 +20,47 @@ class ProductRepositoryTest extends TestCase
         $this->repository = app(ProductRepository::class);
     }
 
-    public function test_create_product_batch(): void
+    public function test_create_product(): void
     {
         $data = [
             'name' => $this->faker->word(),
             'sku' => $this->faker->unique()->bothify('SKU-####'),
             'description' => $this->faker->sentence(),
             'price' => $this->faker->randomFloat(2, 1, 100),
-            'supplier_id' => \App\Models\Supplier::factory()->create()->id,
-            'purchase_price' => $this->faker->randomFloat(2, 1, 100),
-            'quantity' => $this->faker->numberBetween(1, 100),
         ];
 
-        $product = $this->repository->createProductBatch($data);
+        $product = $this->repository->createProduct($data);
 
+        $this->assertInstanceOf(Product::class, $product);
         $this->assertDatabaseHas('products', [
-            'name' => $product['name'],
-            'sku' => $product['sku'],
+            'name' => $data['name'],
+            'sku' => $data['sku'],
+            'description' => $data['description'],
+            'price' => $data['price'],
         ]);
-        $this->assertDatabaseHas('product_batches', [
-            'supplier_id' => $data['supplier_id'],
-            'purchase_price' => $data['purchase_price'],
-            'quantity' => $data['quantity'],
-        ]);
+    }
+
+    public function test_get_filtered_products(): void
+    {
+        Product::factory()->count(5)->create(['name' => 'Jet to Holiday']);
+        Product::factory()->count(3)->create(['name' => '20% Off Sale']);
+
+        $activeProducts = $this->repository->getFilteredProducts(['name' => 'Jet to Holiday']);
+        $allProducts = $this->repository->getFilteredProducts();
+
+        $this->assertCount(5, $activeProducts->items());
+        $this->assertCount(8, $allProducts->items());
+    }
+
+    public function test_get_filtered_products_by_name(): void
+    {
+        Product::factory()->create(['name' => 'Test Product']);
+        Product::factory()->create(['name' => 'Another Product']);
+        Product::factory()->create(['name' => 'Different Item']);
+
+        $results = $this->repository->getFilteredProducts(['name' => 'Product']);
+
+        $this->assertCount(2, $results->items());
     }
 
     public function test_update_product(): void
@@ -69,6 +87,18 @@ class ProductRepositoryTest extends TestCase
             'sku' => 'Updated-SKU-1234',
             'description' => 'Updated description',
             'price' => 150.00,
+        ]);
+    }
+
+    public function test_delete_product(): void
+    {
+        $product = Product::factory()->create();
+
+        $result = $this->repository->deleteProduct($product);
+
+        $this->assertTrue($result);
+        $this->assertDatabaseMissing('products', [
+            'id' => $product->id,
         ]);
     }
 }
