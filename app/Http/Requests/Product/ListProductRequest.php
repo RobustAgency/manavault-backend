@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Product;
 
+use App\Enums\Product\Lifecycle;
+use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ListProductRequest extends FormRequest
@@ -23,6 +25,7 @@ class ListProductRequest extends FormRequest
     {
         return [
             'name' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', 'string', Rule::in(array_map(fn($c) => $c->value, Lifecycle::cases()))],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }

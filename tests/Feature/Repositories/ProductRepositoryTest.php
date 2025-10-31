@@ -4,6 +4,7 @@ namespace Tests\Feature\Repositories;
 
 use App\Repositories\ProductRepository;
 use App\Models\Product;
+use App\Enums\Product\Lifecycle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
@@ -27,6 +28,7 @@ class ProductRepositoryTest extends TestCase
             'sku' => $this->faker->unique()->bothify('SKU-####'),
             'description' => $this->faker->sentence(),
             'price' => $this->faker->randomFloat(2, 1, 100),
+            'status' => $this->faker->randomElement(array_map(fn($c) => $c->value, Lifecycle::cases())),
         ];
 
         $product = $this->repository->createProduct($data);
@@ -37,6 +39,7 @@ class ProductRepositoryTest extends TestCase
             'sku' => $data['sku'],
             'description' => $data['description'],
             'price' => $data['price'],
+            'status' => $data['status'],
         ]);
     }
 
@@ -59,6 +62,17 @@ class ProductRepositoryTest extends TestCase
         Product::factory()->create(['name' => 'Different Item']);
 
         $results = $this->repository->getFilteredProducts(['name' => 'Product']);
+
+        $this->assertCount(2, $results->items());
+    }
+
+    public function test_get_filtered_products_by_status(): void
+    {
+        Product::factory()->create(['status' => Lifecycle::ACTIVE->value]);
+        Product::factory()->create(['status' => Lifecycle::IN_ACTIVE->value]);
+        Product::factory()->create(['status' => Lifecycle::ACTIVE->value]);
+
+        $results = $this->repository->getFilteredProducts(['status' => Lifecycle::ACTIVE->value]);
 
         $this->assertCount(2, $results->items());
     }

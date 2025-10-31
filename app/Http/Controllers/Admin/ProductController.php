@@ -7,7 +7,7 @@ use App\Http\Requests\Product\ListProductRequest;
 use App\Models\Product;
 use App\Repositories\ProductRepository;
 use App\Http\Requests\Product\UpdateProductRequest;
-use App\Http\Requests\StoreProductRequest;
+use App\Http\Requests\Product\StoreProductRequest;
 use App\Http\Resources\ProductResource;
 use Illuminate\Http\JsonResponse;
 
@@ -20,7 +20,7 @@ class ProductController extends Controller
         $products = $this->repository->getFilteredProducts($request->validated());
         return response()->json([
             'error' => false,
-            'data' => ProductResource::collection($products),
+            'data' => $products,
             'message' => 'Products retrieved successfully.',
         ]);
     }
@@ -42,7 +42,7 @@ class ProductController extends Controller
             'error' => false,
             'data' => new ProductResource($product),
             'message' => 'Product created successfully.',
-        ]);
+        ], 201);
     }
 
     public function update(UpdateProductRequest $request, Product $product): JsonResponse

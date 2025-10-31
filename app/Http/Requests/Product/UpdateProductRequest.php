@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Product;
 
+use App\Enums\Product\Lifecycle;
+use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateProductRequest extends FormRequest
@@ -25,6 +27,7 @@ class UpdateProductRequest extends FormRequest
             'name' => ['sometimes', 'string', 'max:255'],
             'description' => ['sometimes', 'string'],
             'price' => ['sometimes', 'numeric', 'min:0'],
+            'status' => ['sometimes', 'string', Rule::in(array_map(fn($c) => $c->value, Lifecycle::cases()))],
         ];
     }
 }
