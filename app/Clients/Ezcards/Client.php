@@ -29,9 +29,9 @@ class Client
 
     public function __construct()
     {
-        $this->baseUrl = config('services.ezcards.base_url');
-        $this->apiKey = config('services.ezcards.api_key');
-        $this->accessToken = config('services.ezcards.access_token');
+        $this->baseUrl = config('services.ez_cards.base_url');
+        $this->apiKey = config('services.ez_cards.api_key');
+        $this->accessToken = config('services.ez_cards.access_token');
     }
 
     private function getHeaders(): array
