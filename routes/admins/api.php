@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\PurchaseOrderController;
+use App\Http\Controllers\Admin\VoucherController;
 
 // Other admin controllers can be imported here as needed
 Route::middleware(['auth:supabase', 'role:admin'])->group(function () {
@@ -37,6 +38,10 @@ Route::middleware(['auth:supabase', 'role:admin'])->group(function () {
             Route::get('', 'index');
             Route::post('', 'store');
             Route::get('/{purchaseOrder}', 'show');
+        });
+
+        Route::prefix('/vouchers')->controller(VoucherController::class)->group(function () {
+            Route::post('import', 'importVouchers');
         });
     });
 });
