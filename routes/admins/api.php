@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\SupplierController;
+use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\PurchaseOrderController;
 
 // Other admin controllers can be imported here as needed
 Route::middleware(['auth:supabase', 'role:admin'])->group(function () {
@@ -21,6 +23,20 @@ Route::middleware(['auth:supabase', 'role:admin'])->group(function () {
             Route::get('/{supplier}', 'show');
             Route::post('/{supplier}', 'update');
             Route::delete('/{supplier}', 'destroy');
+        });
+
+        Route::prefix('/products')->group(function () {
+            Route::get('', [ProductController::class, 'index']);
+            Route::post('', [ProductController::class, 'store']);
+            Route::get('/{product}', [ProductController::class, 'show']);
+            Route::post('/{product}', [ProductController::class, 'update']);
+            Route::delete('/{product}', [ProductController::class, 'destroy']);
+        });
+
+        Route::prefix('/purchase-orders')->controller(PurchaseOrderController::class)->group(function () {
+            Route::get('', 'index');
+            Route::post('', 'store');
+            Route::get('/{purchaseOrder}', 'show');
         });
     });
 });

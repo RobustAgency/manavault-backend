@@ -145,7 +145,7 @@ class BillingControllerTest extends TestCase
             'message' => 'Upcoming invoice retrieved successfully.',
             'data' => [
                 'invoice_number' => 'INV-UPCOMING-001',
-                'amount_due' => 1500,
+                'amount_due' => 15,
                 'status' => 'open',
             ],
         ]);
