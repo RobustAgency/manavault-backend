@@ -12,12 +12,8 @@ class VoucherImportService
 {
     private function importVoucherFromSpreadsheet(string $filePath, int $purchaseOrderID): bool
     {
-        try {
-            Excel::import(new VoucherImport($purchaseOrderID), $filePath);
-            return true;
-        } catch (Exception $e) {
-            return false;
-        }
+        Excel::import(new VoucherImport($purchaseOrderID), $filePath);
+        return true;
     }
 
     private function extractFilesFromZipAndImportVouchers(string $zipPath, int $purchaseOrderID): bool
@@ -61,15 +57,24 @@ class VoucherImportService
 
     public function processFile(array $data): bool
     {
-        $filePath = $data['filePath'];
-        $purchaseOrderID = $data['purchaseOrderID'];
+        $file = $data['file'];
+        $purchaseOrderID = $data['purchase_order_id'];
 
-        $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+        $extension = $file->getClientOriginalExtension();
+        $originalName = $file->getClientOriginalName();
+
+        // Create a temporary file with the correct extension
+        $tempPath = sys_get_temp_dir() . '/' . uniqid() . '_' . $originalName;
+        $file->move(sys_get_temp_dir(), basename($tempPath));
 
         if ($extension === 'zip') {
-            return $this->extractFilesFromZipAndImportVouchers($filePath, $purchaseOrderID);
+            $result = $this->extractFilesFromZipAndImportVouchers($tempPath, $purchaseOrderID);
+            unlink($tempPath);
+            return $result;
         }
 
-        return $this->importVoucherFromSpreadsheet($filePath, $purchaseOrderID);
+        $result = $this->importVoucherFromSpreadsheet($tempPath, $purchaseOrderID);
+        unlink($tempPath);
+        return $result;
     }
 }

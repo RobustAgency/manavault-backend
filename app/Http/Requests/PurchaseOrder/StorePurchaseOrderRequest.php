@@ -24,7 +24,6 @@ class StorePurchaseOrderRequest extends FormRequest
         return [
             'product_id' => ['required', 'exists:products,id'],
             'supplier_id' => ['required', 'exists:suppliers,id'],
-            'purchase_price' => ['required', 'numeric', 'min:0'],
             'quantity' => ['required', 'integer', 'min:1'],
         ];
     }

@@ -1,32 +1,12 @@
 {
 	"info": {
-		"_postman_id": "manavault-api-collection",
+		"_postman_id": "ccc6b5a8-61d8-4731-a442-51d4b56a62bc",
 		"name": "Manavault Backend API",
 		"description": "Complete API collection for Manavault Backend application",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "18376010",
+		"_collection_link": "https://codexteam100.postman.co/workspace/Team-Workspace~ca88f11e-aeec-47a7-8e14-5e0bcea25e7a/collection/18376010-ccc6b5a8-61d8-4731-a442-51d4b56a62bc?action=share&source=collection_link&creator=18376010"
 	},
-	"auth": {
-		"type": "bearer",
-		"bearer": [
-			{
-				"key": "token",
-				"value": "{{access_token}}",
-				"type": "string"
-			}
-		]
-	},
-	"variable": [
-		{
-			"key": "base_url",
-			"value": "http://localhost:8000/api",
-			"type": "string"
-		},
-		{
-			"key": "access_token",
-			"value": "",
-			"type": "string"
-		}
-	],
 	"item": [
 		{
 			"name": "Authentication",
@@ -50,7 +30,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"email\": \"admin@example.com\",  // Required: valid email format\n    \"password\": \"password123\"  // Required\n}"
+							"raw": "{\n    \"email\": \"robust_dev@mailinator.com\",  // Required: valid email format\n    \"password\": \"1234567890\"  // Required\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/auth/login",
@@ -286,7 +266,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Supplier Name\",  // Required: max 255 characters\n    \"type\": \"internal\",  // Required: Enum values: internal, external\n    \"contact_email\": \"supplier@example.com\",  // Optional: valid email, max 255 characters\n    \"contact_phone\": \"+1234567890\",  // Optional: max 20 characters\n    \"status\": \"active\"  // Optional: Enum values: active, inactive\n}"
+							"raw": "{\n    \"name\": \"Supplier Name\",  // Required: max 255 characters\n    \"slug\": \"supplier_name\",  // Required: lowercase with underscores, must be unique\n    \"type\": \"internal\",  // Required: Enum values: internal, external\n    \"contact_email\": \"supplier@example.com\",  // Optional: valid email, max 255 characters\n    \"contact_phone\": \"+1234567890\",  // Optional: max 20 characters\n    \"status\": \"active\"  // Optional: Enum values: active, inactive\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/admin/suppliers",
@@ -350,7 +330,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Updated Supplier Name\",  // Optional: if provided, required, max 255 characters\n    \"type\": \"external\",  // Optional: if provided, required, Enum values: internal, external\n    \"contact_email\": \"newsupplier@example.com\",  // Optional: valid email, max 255 characters\n    \"contact_phone\": \"+9876543210\",  // Optional: max 20 characters\n    \"status\": \"inactive\"  // Optional: Enum values: active, inactive\n}"
+							"raw": "{\n    \"name\": \"Updated Supplier Name\",  // Optional: if provided, required, max 255 characters\n    \"slug\": \"updated_supplier_name\",  // Optional: lowercase with underscores, must be unique\n    \"type\": \"external\",  // Optional: if provided, required, Enum values: internal, external\n    \"contact_email\": \"newsupplier@example.com\",  // Optional: valid email, max 255 characters\n    \"contact_phone\": \"+9876543210\",  // Optional: max 20 characters\n    \"status\": \"inactive\"  // Optional: Enum values: active, inactive\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/admin/suppliers/:supplier_id",
@@ -469,7 +449,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Product Name\",  // Required: max 255 characters\n    \"description\": \"Product description\",  // Optional\n    \"sku\": \"PROD-001\",  // Required: max 100 characters, must be unique\n    \"price\": 99.99,  // Required: numeric, min 0\n    \"status\": \"active\"  // Required: Enum values: in_active, active, archived\n}"
+							"raw": "{\n    \"supplier_id\": 1,  // Required: must exist in suppliers table\n    \"name\": \"Addidas Gift Card $25 (USA)\",  // Required: max 255 characters\n    \"description\": \"Digital gift card for Addidas stores\",  // Optional\n    \"sku\": \"AAU-QB-Q1J\",  // Required: max 100 characters, must be unique\n    \"purchase_price\": 20.00,  // Required: numeric, min 0\n    \"selling_price\": 22.88,  // Required: numeric, min 0\n    \"status\": \"active\"  // Required: Enum values: in_active, active, archived\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/admin/products",
@@ -482,6 +462,58 @@
 							]
 						},
 						"description": "Create a new product. Requires admin role."
+					},
+					"response": []
+				},
+				{
+					"name": "List Third-Party Products",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/products/third-party?slug=ez_cards&limit=15&offset=1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"products",
+								"third-party"
+							],
+							"query": [
+								{
+									"key": "slug",
+									"value": "ez_cards",
+									"description": "Required: Supplier slug (e.g., ez_cards, gift2games)"
+								},
+								{
+									"key": "limit",
+									"value": "15",
+									"description": "Optional: Number of items to return (min: 1, default: 15)"
+								},
+								{
+									"key": "offset",
+									"value": "1",
+									"description": "Optional: Number of items to skip (min: 0, default: 0)"
+								}
+							]
+						},
+						"description": "Retrieve products from third-party suppliers (external APIs). Requires admin role."
 					},
 					"response": []
 				},
@@ -533,7 +565,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Updated Product Name\",  // Optional: max 255 characters\n    \"description\": \"Updated description\",  // Optional\n    \"price\": 149.99,  // Optional: numeric, min 0\n    \"status\": \"archived\"  // Optional: Enum values: in_active, active, archived\n}"
+							"raw": "{\n    \"name\": \"Updated Product Name\",  // Optional: max 255 characters\n    \"description\": \"Updated description\",  // Optional\n    \"purchase_price\": 18.00,  // Optional: numeric, min 0\n    \"selling_price\": 25.99,  // Optional: numeric, min 0\n    \"status\": \"archived\"  // Optional: Enum values: in_active, active, archived\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/admin/products/:product_id",
@@ -642,7 +674,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"product_id\": 1,  // Required: must exist in products table\n    \"supplier_id\": 1,  // Required: must exist in suppliers table\n    \"purchase_price\": 50.00,  // Required: numeric, min 0\n    \"quantity\": 100  // Required: integer, min 1\n}"
+							"raw": "{\n    \"product_id\": 1,  // Required: must exist in products table\n    \"supplier_id\": 1,  // Required: must exist in suppliers table\n    \"purchase_price\": 22.88,  // Required: numeric, min 0\n    \"quantity\": 2  // Required: integer, min 1\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/admin/purchase-orders",
@@ -711,15 +743,15 @@
 							"formdata": [
 								{
 									"key": "file",
-									"type": "file",
-									"src": "",
-									"description": "Required: CSV, Excel (xlsx/xls), or ZIP file. Max size: 10MB"
+									"value": "",
+									"description": "Required: CSV, Excel (xlsx/xls), or ZIP file. Max size: 10MB",
+									"type": "file"
 								},
 								{
 									"key": "purchase_order_id",
 									"value": "1",
-									"type": "text",
-									"description": "Required: integer, must exist in purchase_orders table"
+									"description": "Required: integer, must exist in purchase_orders table",
+									"type": "text"
 								}
 							]
 						},
@@ -932,6 +964,28 @@
 				}
 			],
 			"description": "User endpoints for profile management"
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{access_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000/api",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
 		}
 	]
 }

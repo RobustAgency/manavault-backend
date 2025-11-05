@@ -2,11 +2,13 @@
 
 namespace App\Repositories;
 
+use App\Actions\Ezcards\GetProducts as EzCardsGetProducts;
 use App\Models\Product;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class ProductRepository
 {
+    public function __construct(private EzCardsGetProducts $ezGetProducts) {}
     /**
      * Get paginated products filtered by the provided criteria.
      * @param array $filters
@@ -22,6 +24,10 @@ class ProductRepository
 
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
+        }
+
+        if (isset($filters['supplier_id'])) {
+            $query->where('supplier_id', $filters['supplier_id']);
         }
 
         $per_page = $filters['per_page'] ?? 10;
@@ -43,5 +49,23 @@ class ProductRepository
     public function deleteProduct(Product $product): bool
     {
         return $product->delete();
+    }
+
+    /**
+     * Fetch products from third-party services based on slug.
+     *
+     * @param string $slug
+     * @param int $limit
+     * @param int $offset
+     * @return array
+     */
+    public function listThirdPartyProducts(string $slug, int $limit, int $offset): array
+    {
+        switch ($slug) {
+            case 'ez_cards':
+                return $this->ezGetProducts->execute($limit, $offset);
+            default:
+                return [];
+        }
     }
 }

@@ -14,12 +14,8 @@ class VoucherController extends Controller
     public function importVouchers(ImportVoucherRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        $data = [
-            'filePath' => $validated['file']->getRealPath(),
-            'purchaseOrderID' => $validated['purchase_order_id'],
-        ];
 
-        $vouchers = $this->voucherRepository->importVouchers($data);
+        $vouchers = $this->voucherRepository->importVouchers($validated);
 
         if (! $vouchers) {
             return response()->json([
