@@ -23,6 +23,7 @@ class PurchaseOrderFactory extends Factory
             'supplier_id' => Supplier::factory(),
             'purchase_price' => $this->faker->randomFloat(2, 10, 500),
             'quantity' => $this->faker->numberBetween(1, 100),
+            'order_number' => $this->faker->uuid()
         ];
     }
 
