@@ -16,6 +16,7 @@ class PurchaseOrder extends Model
         'supplier_id',
         'purchase_price',
         'quantity',
+        'order_number'
     ];
 
     /**

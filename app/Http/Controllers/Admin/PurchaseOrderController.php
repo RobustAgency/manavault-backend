@@ -8,6 +8,7 @@ use App\Http\Requests\PurchaseOrder\StorePurchaseOrderRequest;
 use App\Http\Resources\PurchaseOrderResource;
 use App\Repositories\PurchaseOrderRepository;
 use Illuminate\Http\JsonResponse;
+use Ramsey\Uuid\Uuid;
 
 class PurchaseOrderController extends Controller
 {
@@ -31,6 +32,7 @@ class PurchaseOrderController extends Controller
     public function store(StorePurchaseOrderRequest $request): JsonResponse
     {
         $validated = $request->validated();
+        $validated['order_number'] = Uuid::uuid4()->toString();
         $purchaseOrder = $this->repository->createPurchaseOrder($validated);
 
         return response()->json([
