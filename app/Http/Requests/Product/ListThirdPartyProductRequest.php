@@ -2,11 +2,9 @@
 
 namespace App\Http\Requests\Product;
 
-use App\Enums\Product\Lifecycle;
-use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
 
-class ListProductRequest extends FormRequest
+class ListThirdPartyProductRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -24,10 +22,9 @@ class ListProductRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'supplier_id' => ['nullable', 'exists:suppliers,id'],
-            'name' => ['nullable', 'string', 'max:255'],
-            'status' => ['nullable', 'string', Rule::in(array_map(fn($c) => $c->value, Lifecycle::cases()))],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'slug' => ['required', 'string'],
+            'limit' => ['nullable', 'integer', 'min:1'],
+            'offset' => ['nullable', 'integer', 'min:0'],
         ];
     }
 }

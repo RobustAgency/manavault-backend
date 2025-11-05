@@ -28,7 +28,8 @@ class SupplierController extends Controller
 
     public function store(StoreSupplierRequest $request): JsonResponse
     {
-        $supplier = $this->repository->createSupplier($request->validated());
+        $validated = $request->validated();
+        $supplier = $this->repository->createSupplier($validated);
         return response()->json([
             'error' => false,
             'data' => $supplier,

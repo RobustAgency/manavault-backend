@@ -10,5 +10,13 @@ class Product extends Model
     /** @use HasFactory<\Database\Factories\ProductFactory> */
     use HasFactory;
 
-    protected $fillable = ['name', 'sku', 'description', 'price', 'status'];
+    protected $fillable = [
+        'supplier_id',
+        'name',
+        'sku',
+        'description',
+        'purchase_price',
+        'selling_price',
+        'status'
+    ];
 }

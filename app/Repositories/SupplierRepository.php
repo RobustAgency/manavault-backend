@@ -21,6 +21,8 @@ class SupplierRepository
 
     public function createSupplier(array $data): Supplier
     {
+        $data['slug'] = strtolower(str_replace(' ', '_', $data['name']));
+
         return Supplier::create($data);
     }
 
