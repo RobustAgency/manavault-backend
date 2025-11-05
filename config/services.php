@@ -51,4 +51,9 @@ return [
         'base_url' => env('IREWARDIFY_BASE_URL', 'https://api.irewardify.com'),
     ],
 
+    'gift2games' => [
+        'base_url' => env('GIFT_2_GAMES_BASE_URL', 'https://gift2games.net/api/'),
+        'access_token' => env('GIFT_2_GAMES_ACCESS_TOKEN'),
+    ],
+
 ];
