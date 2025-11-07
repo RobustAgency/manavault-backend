@@ -75,7 +75,7 @@ class User extends Authenticatable
             'name' => $attributes['name'],
             'email' => $attributes['email'],
             'supabase_id' => $attributes['supabase_id'],
-            'is_approved' => $attributes['role'] === 'admin' ? true : false,
+            'is_approved' => true,
             'role' => UserRole::tryFrom(strtolower($attributes['role'] ?? '')) ?? UserRole::USER,
         ]);
 
