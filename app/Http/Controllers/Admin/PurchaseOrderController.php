@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\PurchaseOrder\ListPurchaseOrderRequest;
 use App\Http\Requests\PurchaseOrder\StorePurchaseOrderRequest;
 use App\Http\Resources\PurchaseOrderResource;
+use App\Models\PurchaseOrder;
 use App\Repositories\PurchaseOrderRepository;
 use Illuminate\Http\JsonResponse;
 
@@ -45,5 +46,15 @@ class PurchaseOrderController extends Controller
             'data' => new PurchaseOrderResource($purchaseOrder),
             'message' => 'Purchase order created successfully.',
         ], 201);
+    }
+
+    public function show(PurchaseOrder $purchaseOrder): JsonResponse
+    {
+        $purchaseOrder->load(['product', 'supplier']);
+        return response()->json([
+            'error' => false,
+            'data' => new PurchaseOrderResource($purchaseOrder),
+            'message' => 'Purchase order retrieved successfully.',
+        ]);
     }
 }
