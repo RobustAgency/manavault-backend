@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             EzCardSupplierSeeder::class,
+            Gift2GamesSupplierSeeder::class,
         ]);
     }
 }
