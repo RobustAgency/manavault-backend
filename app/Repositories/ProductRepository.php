@@ -3,12 +3,16 @@
 namespace App\Repositories;
 
 use App\Actions\Ezcards\GetProducts as EzCardsGetProducts;
+use App\Actions\Gift2Games\GetProducts as Gift2GamesGetProducts;
 use App\Models\Product;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class ProductRepository
 {
-    public function __construct(private EzCardsGetProducts $ezGetProducts) {}
+    public function __construct(
+        private EzCardsGetProducts $ezGetProducts,
+        private Gift2GamesGetProducts $gift2GamesGetProducts
+    ) {}
     /**
      * Get paginated products filtered by the provided criteria.
      * @param array $filters
@@ -64,6 +68,8 @@ class ProductRepository
         switch ($slug) {
             case 'ez_cards':
                 return $this->ezGetProducts->execute($limit, $offset);
+            case 'gift2games':
+                return $this->gift2GamesGetProducts->execute();
             default:
                 return [];
         }
