@@ -69,7 +69,7 @@ class ProductRepository
             case 'ez_cards':
                 return $this->ezGetProducts->execute($limit, $offset);
             case 'gift2games':
-                return $this->gift2GamesGetProducts->execute();
+                return $this->gift2GamesGetProducts->execute($offset, $limit);
             default:
                 return [];
         }

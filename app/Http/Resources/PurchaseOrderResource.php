@@ -22,10 +22,12 @@ class PurchaseOrderResource extends JsonResource
             'id' => $this->id,
             'product_id' => $this->product_id,
             'supplier_id' => $this->supplier_id,
-            'purchase_price' => $this->purchase_price,
+            'total_price' => $this->total_price,
             'quantity' => $this->quantity,
             'created_at' => $this->created_at->toDateTimeString(),
             'updated_at' => $this->updated_at->toDateTimeString(),
+            'product' => new ProductResource($this->whenLoaded('product')),
+            'supplier' => new SupplierResource($this->whenLoaded('supplier')),
         ];
     }
 }

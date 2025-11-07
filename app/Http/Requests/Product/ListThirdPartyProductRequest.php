@@ -23,8 +23,8 @@ class ListThirdPartyProductRequest extends FormRequest
     {
         return [
             'slug' => ['required', 'string'],
-            'limit' => ['nullable', 'integer', 'min:1'],
-            'offset' => ['nullable', 'integer', 'min:0'],
+            'limit' => ['required', 'integer', 'min:1'],
+            'offset' => ['required', 'integer', 'min:1'],
         ];
     }
 }

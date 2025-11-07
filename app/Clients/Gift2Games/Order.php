@@ -4,10 +4,16 @@ namespace App\Clients\Gift2Games;
 
 class Order extends Client
 {
-    public function placeOrder(array $orderData): array
+    public function createOrder(array $orderData): array
     {
         $response = $this->getClient()->post('/create_order', $orderData);
 
-        return $this->handleResponse($response);
+        $response = $this->handleResponse($response);
+
+        if (!$response['status']) {
+            throw new \RuntimeException('Order creation failed: ' . $response['error']['message']);
+        }
+
+        return $response;
     }
 }
