@@ -75,7 +75,11 @@ class ProductController extends Controller
         );
         return response()->json([
             'error' => false,
-            'data' => $products,
+            'data' => [
+                'data' => $products,
+                'limit' => $request->input('limit', 15),
+                'offset' => $request->input('offset', 1),
+            ],
             'message' => 'Third-party products retrieved successfully.',
         ]);
     }

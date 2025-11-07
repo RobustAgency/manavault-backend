@@ -12,13 +12,17 @@ class Products extends Client
      * @return array The list of products
      * @throws \Exception
      */
-    public function fetchList(array $queryParams = []): array
+    public function fetchList(int $offset, int $limit, array $queryParams = []): array
     {
         $response = $this->getClient()->get('products', $queryParams);
 
         $response = $this->handleResponse($response);
 
-        return $this->formatProductsResponse($response);
+        $offset = $offset - 1; // Adjust for zero-based index
+
+        $pagedData = array_slice($response['data'], $offset, $limit, true);
+
+        return $this->formatProductsResponse($pagedData);
     }
 
     /**
@@ -29,10 +33,6 @@ class Products extends Client
      */
     private function formatProductsResponse(array $response): array
     {
-        if (!isset($response['data']) || !is_array($response['data'])) {
-            return [];
-        }
-
         return array_map(function ($item) {
             // Use sellPrice as the primary price
             $price = isset($item['sellPrice']) ? (float) $item['sellPrice'] : 0.0;
@@ -65,6 +65,6 @@ class Products extends Client
                 'description' => $description ?: null,
                 'price' => $price,
             ];
-        }, $response['data']);
+        }, $response);
     }
 }

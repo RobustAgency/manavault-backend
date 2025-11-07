@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Actions\Ezcards\PlaceOrder as EzcardsPlaceOrder;
+use App\Actions\Gift2Games\CreateOrder as Gift2GamesCreateOrder;
 use App\Models\PurchaseOrder;
 use App\Models\Supplier;
 use App\Models\Product;
@@ -11,7 +12,10 @@ use Ramsey\Uuid\Uuid;
 
 class PurchaseOrderRepository
 {
-    public function __construct(private EzcardsPlaceOrder $ezcardsPlaceOrder) {}
+    public function __construct(
+        private EzcardsPlaceOrder $ezcardsPlaceOrder,
+        private Gift2GamesCreateOrder $gift2GamesCreateOrder
+    ) {}
     /**
      * Get paginated purchase orders filtered by the provided criteria.
      * @param array $filters
@@ -48,6 +52,9 @@ class PurchaseOrderRepository
             switch ($supplier->slug) {
                 case 'ez_cards':
                     $this->ezcardsPlaceOrder->execute($placeOrderData);
+                    break;
+                case 'gift2games':
+                    $this->gift2GamesCreateOrder->execute($placeOrderData);
                     break;
             }
         } catch (\Exception $e) {
