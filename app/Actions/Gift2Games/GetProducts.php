@@ -9,8 +9,8 @@ class GetProducts
 
     public function __construct(private Products $productsClient) {}
 
-    public function execute(array $queryParams = []): array
+    public function execute(int $offset, int $limit, array $queryParams = [],): array
     {
-        return $this->productsClient->fetchList($queryParams);
+        return $this->productsClient->fetchList($offset, $limit, $queryParams);
     }
 }
