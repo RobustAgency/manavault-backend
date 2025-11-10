@@ -28,6 +28,7 @@ class ProductController extends Controller
 
     public function show(Product $product): JsonResponse
     {
+        $product->load('supplier');
         return response()->json([
             'error' => false,
             'data' => new ProductResource($product),

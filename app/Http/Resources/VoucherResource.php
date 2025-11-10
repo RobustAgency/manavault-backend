@@ -2,14 +2,13 @@
 
 namespace App\Http\Resources;
 
-use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin Product
+ * @mixin \App\Models\Voucher
  */
-class ProductResource extends JsonResource
+class VoucherResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -20,15 +19,10 @@ class ProductResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'name' => $this->name,
-            'sku' => $this->sku,
-            'description' => $this->description,
-            'purchase_price' => $this->purchase_price,
-            'selling_price' => $this->selling_price,
-            'status' => $this->status,
+            'code' => $this->code,
+            'purchase_order_id' => $this->purchase_order_id,
             'created_at' => $this->created_at->toDateTimeString(),
             'updated_at' => $this->updated_at->toDateTimeString(),
-            'supplier' => new SupplierResource($this->whenLoaded('supplier')),
         ];
     }
 }
