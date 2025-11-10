@@ -6,7 +6,9 @@ use App\Clients\Ezcards\Orders;
 
 class PlaceOrder
 {
-    public function __construct(private Orders $ezcardsOrders) {}
+    public function __construct(
+        private Orders $ezcardsOrders
+    ) {}
 
     /**
      * Place an order with EZ Cards.
@@ -27,7 +29,8 @@ class PlaceOrder
                     ],
                 ],
             ];
-            return $this->ezcardsOrders->placeOrder($data);
+            $orderResponse = $this->ezcardsOrders->placeOrder($data);
+            return $orderResponse;
         } catch (\RuntimeException $e) {
             throw new \RuntimeException($e->getMessage());
         }

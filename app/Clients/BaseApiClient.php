@@ -102,6 +102,20 @@ abstract class BaseApiClient
     }
 
     /**
+     * Get configured HTTP client with form-urlencoded content type.
+     */
+    protected function getFormClient(): PendingRequest
+    {
+        return Http::asForm()
+            ->withHeaders(array_diff_key($this->getHeaders(), ['Content-Type' => '']))
+            ->retry($this->getRetryAttempts(), $this->getRetryDelay(), function ($exception) {
+                // Don't retry for client errors (4xx), only for server errors (5xx) or connection issues
+                return $exception instanceof RequestException && $exception->response->status() >= 500;
+            })
+            ->baseUrl($this->baseUrl);
+    }
+
+    /**
      * Handle API response and extract data or throw exception.
      */
     protected function handleResponse(Response $response): array

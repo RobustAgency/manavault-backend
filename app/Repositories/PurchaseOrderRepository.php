@@ -9,6 +9,7 @@ use App\Models\Supplier;
 use App\Models\Product;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Ramsey\Uuid\Uuid;
+use App\Models\Voucher;
 
 class PurchaseOrderRepository
 {
@@ -32,38 +33,61 @@ class PurchaseOrderRepository
 
     /**
      * Create a new purchase order.
+     *
      * @param array $data
-     * @return PurchaseOrder|array
+     * @return PurchaseOrder
+     *
+     * @throws \RuntimeException
      */
-    public function createPurchaseOrder(array $data): PurchaseOrder|array
+    public function createPurchaseOrder(array $data): PurchaseOrder
     {
+        // Fetch supplier and product
+        /** @var Supplier $supplier */
         $supplier = Supplier::findOrFail($data['supplier_id']);
+        /** @var Product $product */
         $product = Product::findOrFail($data['product_id']);
-        $uuid = Uuid::uuid4()->toString();
 
+        // Generate unique order number
+        $orderNumber = Uuid::uuid4()->toString();
 
         $placeOrderData = [
             'product_sku' => $product->sku,
-            'quantity' => $data['quantity'],
-            'order_number' => $uuid,
+            'quantity'    => $data['quantity'],
+            'order_number' => $orderNumber,
         ];
 
         try {
             switch ($supplier->slug) {
                 case 'ez_cards':
-                    $this->ezcardsPlaceOrder->execute($placeOrderData);
+                    $orderResponse = $this->ezcardsPlaceOrder->execute($placeOrderData);
+                    $data['transaction_id'] = $orderResponse['data']['transactionId'] ?? null;
                     break;
+
                 case 'gift2games':
-                    $this->gift2GamesCreateOrder->execute($placeOrderData);
+                    $orderResponse = $this->gift2GamesCreateOrder->execute($placeOrderData);
                     break;
+
+                default:
+                    throw new \RuntimeException("Unsupported supplier: {$supplier->slug}");
             }
         } catch (\Exception $e) {
-            throw new \RuntimeException($e->getMessage());
+            throw new \RuntimeException("Failed to place order with supplier {$supplier->slug}: " . $e->getMessage(), 0, $e);
         }
 
-        $data['order_number'] = $uuid;
+        $data['order_number'] = $orderNumber;
         $data['total_price'] = $product->purchase_price * $data['quantity'];
 
-        return PurchaseOrder::create($data);
+        $purchase_order = PurchaseOrder::create($data);
+
+        if ($supplier->slug === 'gift2games') {
+            Voucher::create([
+                'purchase_order_id' => $purchase_order->id,
+                'code' => $orderResponse['data']['serialCode'],
+                'serial_number' => $orderResponse['data']['serialNumber'],
+                'status' => 'COMPLETED',
+            ]);
+        }
+
+        return $purchase_order;
     }
 }

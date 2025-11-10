@@ -6,7 +6,7 @@ class Order extends Client
 {
     public function createOrder(array $orderData): array
     {
-        $response = $this->getClient()->post('/create_order', $orderData);
+        $response = $this->getFormClient()->post('/create_order', $orderData);
 
         $response = $this->handleResponse($response);
 
