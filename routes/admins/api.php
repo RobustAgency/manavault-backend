@@ -42,6 +42,7 @@ Route::middleware(['auth:supabase', 'role:super_admin,admin'])->prefix('/admin')
     });
 
     Route::prefix('/vouchers')->controller(VoucherController::class)->group(function () {
+        Route::get('', 'index');
         Route::post('import', 'importVouchers');
     });
 });

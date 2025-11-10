@@ -3,6 +3,7 @@
 namespace App\Actions\Gift2Games;
 
 use App\Clients\Gift2Games\Order;
+use App\Models\Voucher;
 
 class CreateOrder
 {
@@ -11,10 +12,15 @@ class CreateOrder
     public function execute(array $orderData): array
     {
         $data = [
-            'productId' => $orderData['product_sku'],
+            'productId' => (int) $orderData['product_sku'],
             'referenceNumber' => $orderData['order_number'],
         ];
 
-        return $this->order->createOrder($data);
+        try {
+            $orderResponse = $this->order->createOrder($data);
+        } catch (\RuntimeException $e) {
+            throw new \RuntimeException($e->getMessage());
+        }
+        return $orderResponse;
     }
 }
