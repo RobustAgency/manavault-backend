@@ -17,7 +17,10 @@ class PurchaseOrder extends Model
         'supplier_id',
         'total_price',
         'quantity',
-        'order_number'
+        'order_number',
+        'transaction_id',
+        'voucher_codes_processed',
+        'voucher_codes_processed_at',
     ];
 
     /**

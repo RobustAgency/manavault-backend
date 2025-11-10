@@ -16,6 +16,10 @@ class Voucher extends Model
     protected $fillable = [
         'code',
         'purchase_order_id',
+        'serial_number',
+        'status',
+        'pin_code',
+        'stock_id',
     ];
 
     /**

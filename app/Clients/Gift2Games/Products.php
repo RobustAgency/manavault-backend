@@ -20,7 +20,7 @@ class Products extends Client
 
         $offset = $offset - 1; // Adjust for zero-based index
 
-        $pagedData = array_slice($response['data'], $offset, $limit, true);
+        $pagedData = array_slice($response['data'], $offset, $limit);
 
         return $this->formatProductsResponse($pagedData);
     }
