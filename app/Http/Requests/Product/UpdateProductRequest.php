@@ -25,7 +25,7 @@ class UpdateProductRequest extends FormRequest
     {
         return [
             'name' => ['sometimes', 'string', 'max:255'],
-            'description' => ['sometimes', 'string'],
+            'description' => ['sometimes', 'nullable', 'string'],
             'purchase_price' => ['sometimes', 'numeric', 'min:0'],
             'selling_price' => ['sometimes', 'numeric', 'min:0'],
             'status' => ['sometimes', 'string', Rule::in(array_map(fn($c) => $c->value, Lifecycle::cases()))],
