@@ -28,6 +28,7 @@ class ProductResource extends JsonResource
             'status' => $this->status,
             'created_at' => $this->created_at->toDateTimeString(),
             'updated_at' => $this->updated_at->toDateTimeString(),
+            'supplier' => new SupplierResource($this->whenLoaded('supplier')),
         ];
     }
 }
