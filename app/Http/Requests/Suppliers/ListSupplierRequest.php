@@ -22,7 +22,10 @@ class ListSupplierRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'per_page' => ['integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1'],
+            'name' => ['nullable', 'string', 'max:255'],
+            'type' => ['nullable', 'string', 'max:100'],
+            'status' => ['nullable', 'in:active,inactive'],
         ];
     }
 }

@@ -12,9 +12,24 @@ class SupplierRepository
      *
      * @return LengthAwarePaginator<int, Supplier>
      */
-    public function getPaginatedSuppliers(int $per_page = 10): LengthAwarePaginator
+    public function getFilteredSuppliers(array $filters = []): LengthAwarePaginator
     {
         $query = Supplier::query();
+
+        // Apply filters to the query
+        if (!empty($filters['name'])) {
+            $query->where('name', 'like', '%' . $filters['name'] . '%');
+        }
+
+        if (!empty($filters['type'])) {
+            $query->where('type', $filters['type']);
+        }
+
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        $per_page = $filters['per_page'] ?? 10;
 
         return $query->paginate($per_page);
     }
