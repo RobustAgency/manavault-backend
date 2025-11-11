@@ -45,8 +45,6 @@ class PurchaseOrderRepository
 
     /**
      * Create a new purchase order.
-     *
-     * @param array $data
      * @return PurchaseOrder
      *
      * @throws \RuntimeException
