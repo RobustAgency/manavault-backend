@@ -23,9 +23,21 @@ class PurchaseOrderRepository
      *
      * @return LengthAwarePaginator<int, PurchaseOrder>
      */
-    public function getPaginatedPurchaseOrders(array $filters = []): LengthAwarePaginator
+    public function getFilteredPurchaseOrders(array $filters = []): LengthAwarePaginator
     {
         $query = PurchaseOrder::query()->with(['product', 'supplier']);
+
+        if (!empty($filters['supplier_name'])) {
+            $query->whereHas('supplier', fn($q) => $q->where('name', 'like', '%' . $filters['supplier_name'] . '%'));
+        }
+
+        if (!empty($filters['product_name'])) {
+            $query->whereHas('product', fn($q) => $q->where('name', 'like', '%' . $filters['product_name'] . '%'));
+        }
+
+        if (!empty($filters['order_number'])) {
+            $query->where('order_number', 'like', '%' . $filters['order_number'] . '%');
+        }
 
         $perPage = $filters['per_page'] ?? 10;
 
@@ -54,6 +66,8 @@ class PurchaseOrderRepository
             'order_number' => $orderNumber,
         ];
 
+        $orderResponse = null;
+
         try {
             switch ($supplier->slug) {
                 case 'ez_cards':
@@ -64,9 +78,6 @@ class PurchaseOrderRepository
                 case 'gift2games':
                     $orderResponse = $this->gift2GamesCreateOrder->execute($placeOrderData);
                     break;
-
-                default:
-                    throw new \RuntimeException("Unsupported supplier: {$supplier->slug}");
             }
         } catch (\Exception $e) {
             throw new \RuntimeException("Failed to place order with supplier {$supplier->slug}: ".$e->getMessage(), 0, $e);

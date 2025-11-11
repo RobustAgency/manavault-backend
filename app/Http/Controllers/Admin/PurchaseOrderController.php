@@ -20,7 +20,7 @@ class PurchaseOrderController extends Controller
     public function index(ListPurchaseOrderRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        $purchaseOrders = $this->repository->getPaginatedPurchaseOrders($validated);
+        $purchaseOrders = $this->repository->getFilteredPurchaseOrders($validated);
 
         return response()->json([
             'error' => false,
