@@ -68,6 +68,8 @@ class PurchaseOrderRepository
             'order_number' => $orderNumber,
         ];
 
+        $orderResponse = null;
+
         try {
             switch ($supplier->slug) {
                 case 'ez_cards':
@@ -78,9 +80,6 @@ class PurchaseOrderRepository
                 case 'gift2games':
                     $orderResponse = $this->gift2GamesCreateOrder->execute($placeOrderData);
                     break;
-
-                default:
-                    throw new \RuntimeException("Unsupported supplier: {$supplier->slug}");
             }
         } catch (\Exception $e) {
             throw new \RuntimeException("Failed to place order with supplier {$supplier->slug}: " . $e->getMessage(), 0, $e);
