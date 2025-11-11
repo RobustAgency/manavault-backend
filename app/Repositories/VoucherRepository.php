@@ -2,8 +2,8 @@
 
 namespace App\Repositories;
 
-use App\Services\VoucherImportService;
 use App\Models\Voucher;
+use App\Services\VoucherImportService;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class VoucherRepository
@@ -12,7 +12,7 @@ class VoucherRepository
 
     /**
      * Get paginated vouchers filtered by the provided criteria.
-     * @param array $filters
+     *
      * @return LengthAwarePaginator<int, Voucher>
      */
     public function getFilteredVouchers(array $filters): LengthAwarePaginator
@@ -35,6 +35,7 @@ class VoucherRepository
         } catch (\RuntimeException $e) {
             throw new \RuntimeException($e->getMessage());
         }
+
         return true;
     }
 }

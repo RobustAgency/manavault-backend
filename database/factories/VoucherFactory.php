@@ -28,6 +28,6 @@ class VoucherFactory extends Factory
      */
     private function generateVoucherCode(): string
     {
-        return 'VCH-' . strtoupper($this->faker->bothify('??##-####-??##'));
+        return 'VCH-'.strtoupper($this->faker->bothify('??##-####-??##'));
     }
 }

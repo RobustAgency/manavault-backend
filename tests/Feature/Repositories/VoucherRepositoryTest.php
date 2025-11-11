@@ -2,22 +2,23 @@
 
 namespace Tests\Feature\Repositories;
 
+use Tests\TestCase;
 use App\Models\PurchaseOrder;
 use App\Repositories\VoucherRepository;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
-use Tests\TestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class VoucherRepositoryTest extends TestCase
 {
     use RefreshDatabase, WithFaker;
 
     private VoucherRepository $voucherRepository;
+
     private PurchaseOrder $purchaseOrder;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
         $this->voucherRepository = app(VoucherRepository::class);
@@ -94,7 +95,7 @@ class VoucherRepositoryTest extends TestCase
      */
     private function createValidVoucherCsv(array $voucherCodes): string
     {
-        $csvFile = tempnam(sys_get_temp_dir(), 'voucher_test_') . '.csv';
+        $csvFile = tempnam(sys_get_temp_dir(), 'voucher_test_').'.csv';
 
         $handle = fopen($csvFile, 'w');
 
@@ -113,9 +114,9 @@ class VoucherRepositoryTest extends TestCase
 
     private function createValidVoucherXlsx(array $voucherCodes): string
     {
-        $xlsxFile = tempnam(sys_get_temp_dir(), 'voucher_test_') . '.xlsx';
+        $xlsxFile = tempnam(sys_get_temp_dir(), 'voucher_test_').'.xlsx';
 
-        $spreadsheet = new Spreadsheet();
+        $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
 
         // Write header

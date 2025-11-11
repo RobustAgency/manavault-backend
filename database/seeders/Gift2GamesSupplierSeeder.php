@@ -28,7 +28,7 @@ class Gift2GamesSupplierSeeder extends Seeder
             ->where('slug', 'gift2games')
             ->exists();
 
-        if (!$exists) {
+        if (! $exists) {
             DB::table('suppliers')->insert($supplier);
             $this->command->info('Gift2Games supplier created successfully.');
         } else {

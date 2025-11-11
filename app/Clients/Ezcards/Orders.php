@@ -15,22 +15,23 @@ class Orders extends Client
     /**
      * Validate order data according to EZ Cards API specifications.
      *
-     * @param array $orderData The order data to validate
+     * @param  array  $orderData  The order data to validate
      * @return array The validated order data
+     *
      * @throws \InvalidArgumentException
      */
     private function validateOrderData(array $orderData): array
     {
         $validated = [];
         if (isset($orderData['clientOrderNumber'])) {
-            if (!is_string($orderData['clientOrderNumber'])) {
+            if (! is_string($orderData['clientOrderNumber'])) {
                 throw new \InvalidArgumentException('The "clientOrderNumber" must be a string.');
             }
             $validated['clientOrderNumber'] = $orderData['clientOrderNumber'];
         }
 
         if (isset($orderData['enableClientOrderNumberDupCheck'])) {
-            if (!is_bool($orderData['enableClientOrderNumberDupCheck'])) {
+            if (! is_bool($orderData['enableClientOrderNumberDupCheck'])) {
                 throw new \InvalidArgumentException('The "enableClientOrderNumberDupCheck" must be a boolean.');
             }
             $validated['enableClientOrderNumberDupCheck'] = $orderData['enableClientOrderNumberDupCheck'];
@@ -38,11 +39,11 @@ class Orders extends Client
             $validated['enableClientOrderNumberDupCheck'] = false;
         }
 
-        if (!isset($orderData['products'])) {
+        if (! isset($orderData['products'])) {
             throw new \InvalidArgumentException('The "products" field is required.');
         }
 
-        if (!is_array($orderData['products']) || empty($orderData['products'])) {
+        if (! is_array($orderData['products']) || empty($orderData['products'])) {
             throw new \InvalidArgumentException('The "products" must be a non-empty array.');
         }
 
@@ -54,8 +55,6 @@ class Orders extends Client
     /**
      * Validate products array.
      *
-     * @param array $products
-     * @return array
      * @throws \InvalidArgumentException
      */
     private function validateProducts(array $products): array
@@ -63,7 +62,7 @@ class Orders extends Client
         $validated = [];
 
         foreach ($products as $index => $product) {
-            if (!is_array($product)) {
+            if (! is_array($product)) {
                 throw new \InvalidArgumentException("Product at index {$index} must be an array.");
             }
 

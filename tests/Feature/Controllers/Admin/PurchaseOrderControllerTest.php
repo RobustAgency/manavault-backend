@@ -2,13 +2,13 @@
 
 namespace Tests\Feature\Controllers\Admin;
 
-use App\Models\Product;
-use App\Models\PurchaseOrder;
-use App\Models\Supplier;
-use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
+use App\Models\User;
+use App\Models\Product;
+use App\Models\Supplier;
+use App\Models\PurchaseOrder;
+use Illuminate\Foundation\Testing\WithFaker;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class PurchaseOrderControllerTest extends TestCase
 {
@@ -16,7 +16,7 @@ class PurchaseOrderControllerTest extends TestCase
 
     private User $admin;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
         $this->admin = User::factory()->create(['role' => 'admin']);
@@ -44,7 +44,7 @@ class PurchaseOrderControllerTest extends TestCase
                             'quantity',
                             'created_at',
                             'updated_at',
-                        ]
+                        ],
                     ],
                     'per_page',
                     'total',

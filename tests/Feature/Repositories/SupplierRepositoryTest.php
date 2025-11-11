@@ -2,11 +2,11 @@
 
 namespace Tests\Feature\Repositories;
 
+use Tests\TestCase;
 use App\Models\Supplier;
 use App\Repositories\SupplierRepository;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 
 class SupplierRepositoryTest extends TestCase
 {
@@ -149,7 +149,7 @@ class SupplierRepositoryTest extends TestCase
                     'contact_email' => 'internal@company.com',
                     'contact_phone' => '+1111111111',
                     'status' => 'active',
-                ]
+                ],
             ],
             'external supplier' => [
                 [
@@ -158,7 +158,7 @@ class SupplierRepositoryTest extends TestCase
                     'contact_email' => 'partner@external.com',
                     'contact_phone' => '+2222222222',
                     'status' => 'inactive',
-                ]
+                ],
             ],
         ];
     }

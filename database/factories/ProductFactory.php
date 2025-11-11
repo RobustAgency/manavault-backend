@@ -22,7 +22,7 @@ class ProductFactory extends Factory
             'sku' => $this->faker->unique()->bothify('SKU-####'),
             'description' => $this->faker->sentence(),
             'price' => $this->faker->randomFloat(2, 1, 100),
-            'status' => $this->faker->randomElement(array_map(fn($c) => $c->value, Lifecycle::cases())),
+            'status' => $this->faker->randomElement(array_map(fn ($c) => $c->value, Lifecycle::cases())),
         ];
     }
 }

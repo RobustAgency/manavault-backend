@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use ZipArchive;
-use Exception;
 use App\Models\Voucher;
 use App\Imports\VoucherImport;
 use Maatwebsite\Excel\Facades\Excel;
@@ -13,6 +12,7 @@ class VoucherImportService
     private function importVoucherFromSpreadsheet(string $filePath, int $purchaseOrderID): bool
     {
         Excel::import(new VoucherImport($purchaseOrderID), $filePath);
+
         return true;
     }
 
@@ -39,7 +39,7 @@ class VoucherImportService
                 continue;
             }
 
-            $tempPath = sys_get_temp_dir() . '/' . basename($entryName);
+            $tempPath = sys_get_temp_dir().'/'.basename($entryName);
 
             // Extract and process
             if (copy("zip://{$zipPath}#{$entryName}", $tempPath)) {
@@ -64,17 +64,19 @@ class VoucherImportService
         $originalName = $file->getClientOriginalName();
 
         // Create a temporary file with the correct extension
-        $tempPath = sys_get_temp_dir() . '/' . uniqid() . '_' . $originalName;
+        $tempPath = sys_get_temp_dir().'/'.uniqid().'_'.$originalName;
         $file->move(sys_get_temp_dir(), basename($tempPath));
 
         if ($extension === 'zip') {
             $result = $this->extractFilesFromZipAndImportVouchers($tempPath, $purchaseOrderID);
             unlink($tempPath);
+
             return $result;
         }
 
         $result = $this->importVoucherFromSpreadsheet($tempPath, $purchaseOrderID);
         unlink($tempPath);
+
         return $result;
     }
 }

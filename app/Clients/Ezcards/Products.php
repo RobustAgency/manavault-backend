@@ -12,13 +12,14 @@ class Products extends Client
      * - page: Integer (default: 1) - Page number
      * - sku: String (optional) - Filter by SKU
      *
-     * @param array $params Query parameters
+     * @param  array  $params  Query parameters
      * @return array The list of products
+     *
      * @throws \Exception
      */
     public function fetchList(array $params = []): array
     {
-        if (!empty($params)) {
+        if (! empty($params)) {
             $params = $this->validateQueryParams($params);
         }
 
@@ -32,12 +33,12 @@ class Products extends Client
     /**
      * Format the products response to a simplified structure.
      *
-     * @param array $response The raw API response
+     * @param  array  $response  The raw API response
      * @return array Formatted products array
      */
     private function formatProductsResponse(array $response): array
     {
-        if (!isset($response['data']['items']) || !is_array($response['data']['items'])) {
+        if (! isset($response['data']['items']) || ! is_array($response['data']['items'])) {
             return [];
         }
 
@@ -48,23 +49,23 @@ class Products extends Client
             // Build description from available fields
             $descriptionParts = [];
 
-            if (!empty($item['brand'])) {
+            if (! empty($item['brand'])) {
                 $descriptionParts[] = "Brand: {$item['brand']}";
             }
 
-            if (!empty($item['faceValue'])) {
+            if (! empty($item['faceValue'])) {
                 $descriptionParts[] = "Face Value: {$item['currency']} {$item['faceValue']}";
             }
 
-            if (!empty($item['percentageOffFaceValue'])) {
+            if (! empty($item['percentageOffFaceValue'])) {
                 $descriptionParts[] = "Discount: {$item['percentageOffFaceValue']}%";
             }
 
-            if (!empty($item['country'])) {
+            if (! empty($item['country'])) {
                 $descriptionParts[] = "Country: {$item['country']}";
             }
 
-            if (!empty($item['format'])) {
+            if (! empty($item['format'])) {
                 $format = $item['format'] === 'D' ? 'Digital' : $item['format'];
                 $descriptionParts[] = "Format: {$format}";
             }

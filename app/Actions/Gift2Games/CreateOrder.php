@@ -3,7 +3,6 @@
 namespace App\Actions\Gift2Games;
 
 use App\Clients\Gift2Games\Order;
-use App\Models\Voucher;
 
 class CreateOrder
 {
@@ -21,6 +20,7 @@ class CreateOrder
         } catch (\RuntimeException $e) {
             throw new \RuntimeException($e->getMessage());
         }
+
         return $orderResponse;
     }
 }

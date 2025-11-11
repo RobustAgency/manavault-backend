@@ -2,22 +2,25 @@
 
 namespace App\Imports;
 
+use RuntimeException;
 use App\Models\Voucher;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Concerns\ToCollection;
+use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithBatchInserts;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
-use RuntimeException;
 
-class VoucherImport implements ToCollection, WithHeadingRow, WithBatchInserts, WithChunkReading
+class VoucherImport implements ToCollection, WithBatchInserts, WithChunkReading, WithHeadingRow
 {
     protected int $purchaseOrderID;
+
     protected array $errors = [];
+
     protected int $successCount = 0;
+
     protected int $failureCount = 0;
 
     public function __construct(int $purchaseOrderID)
@@ -26,7 +29,7 @@ class VoucherImport implements ToCollection, WithHeadingRow, WithBatchInserts, W
     }
 
     /**
-     * @param Collection<int, \Illuminate\Support\Collection<string,mixed>> $rows
+     * @param  Collection<int, \Illuminate\Support\Collection<string,mixed>>  $rows
      */
     public function collection(Collection $rows): void
     {

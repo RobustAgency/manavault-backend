@@ -2,9 +2,9 @@
 
 namespace App\Http\Requests\Product;
 
+use Illuminate\Validation\Rule;
 use App\Enums\Product\Lifecycle;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class StoreProductRequest extends FormRequest
 {
@@ -30,7 +30,7 @@ class StoreProductRequest extends FormRequest
             'sku' => ['required', 'string', 'max:100', 'unique:products,sku'],
             'purchase_price' => ['required', 'numeric', 'min:0'],
             'selling_price' => ['required', 'numeric', 'min:0'],
-            'status' => ['required', 'string', Rule::in(array_map(fn($c) => $c->value, Lifecycle::cases()))],
+            'status' => ['required', 'string', Rule::in(array_map(fn ($c) => $c->value, Lifecycle::cases()))],
         ];
     }
 }

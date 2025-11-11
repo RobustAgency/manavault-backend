@@ -2,22 +2,23 @@
 
 namespace Tests\Feature\Controllers\Admin;
 
-use App\Models\PurchaseOrder;
+use Tests\TestCase;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
+use App\Models\PurchaseOrder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Tests\TestCase;
+use Illuminate\Foundation\Testing\WithFaker;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class VoucherControllerTest extends TestCase
 {
     use RefreshDatabase, WithFaker;
 
     private User $admin;
+
     private User $user;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
         $this->admin = User::factory()->create(['role' => 'admin']);

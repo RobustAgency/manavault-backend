@@ -23,7 +23,7 @@ class PurchaseOrderFactory extends Factory
             'supplier_id' => Supplier::factory(),
             'purchase_price' => $this->faker->randomFloat(2, 10, 500),
             'quantity' => $this->faker->numberBetween(1, 100),
-            'order_number' => $this->faker->uuid()
+            'order_number' => $this->faker->uuid(),
         ];
     }
 
@@ -32,7 +32,7 @@ class PurchaseOrderFactory extends Factory
      */
     public function pending(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'status' => 'pending',
         ]);
     }
@@ -42,7 +42,7 @@ class PurchaseOrderFactory extends Factory
      */
     public function approved(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'status' => 'approved',
         ]);
     }
@@ -52,7 +52,7 @@ class PurchaseOrderFactory extends Factory
      */
     public function received(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'status' => 'received',
         ]);
     }
@@ -62,7 +62,7 @@ class PurchaseOrderFactory extends Factory
      */
     public function cancelled(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'status' => 'cancelled',
         ]);
     }
@@ -72,7 +72,7 @@ class PurchaseOrderFactory extends Factory
      */
     public function forProduct(Product $product): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'product_id' => $product->id,
         ]);
     }
@@ -82,7 +82,7 @@ class PurchaseOrderFactory extends Factory
      */
     public function forSupplier(Supplier $supplier): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'supplier_id' => $supplier->id,
         ]);
     }
@@ -92,7 +92,7 @@ class PurchaseOrderFactory extends Factory
      */
     public function largeQuantity(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'quantity' => $this->faker->numberBetween(100, 1000),
         ]);
     }
@@ -102,7 +102,7 @@ class PurchaseOrderFactory extends Factory
      */
     public function expensive(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'purchase_price' => $this->faker->randomFloat(2, 500, 2000),
         ]);
     }

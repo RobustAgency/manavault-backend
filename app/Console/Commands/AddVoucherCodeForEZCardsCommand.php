@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Services\EzCardsVoucherCodeService;
 use Illuminate\Console\Command;
+use App\Services\EzCardsVoucherCodeService;
 
 class AddVoucherCodeForEZCardsCommand extends Command
 {
@@ -48,7 +48,7 @@ class AddVoucherCodeForEZCardsCommand extends Command
             );
 
             // Display errors if any
-            if (!empty($summary['errors'])) {
+            if (! empty($summary['errors'])) {
                 $this->newLine();
                 $this->error('Errors encountered:');
                 $this->newLine();
@@ -67,14 +67,17 @@ class AddVoucherCodeForEZCardsCommand extends Command
 
             if ($summary['failed_orders'] > 0) {
                 $this->warn('Processing completed with some errors. Check the logs for details.');
+
                 return Command::FAILURE;
             }
 
             $this->info('All orders processed successfully!');
+
             return Command::SUCCESS;
         } catch (\Exception $e) {
-            $this->error('Fatal error: ' . $e->getMessage());
-            $this->error('Stack trace: ' . $e->getTraceAsString());
+            $this->error('Fatal error: '.$e->getMessage());
+            $this->error('Stack trace: '.$e->getTraceAsString());
+
             return Command::FAILURE;
         }
     }

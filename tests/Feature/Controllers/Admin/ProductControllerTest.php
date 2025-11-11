@@ -2,11 +2,11 @@
 
 namespace Tests\Feature\Controllers\Admin;
 
+use Tests\TestCase;
 use App\Models\User;
 use App\Models\Product;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
-use Tests\TestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class ProductControllerTest extends TestCase
 {
@@ -14,7 +14,7 @@ class ProductControllerTest extends TestCase
 
     private User $admin;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
         $this->admin = User::factory()->create(['role' => 'admin']);
@@ -43,7 +43,7 @@ class ProductControllerTest extends TestCase
                             'status',
                             'created_at',
                             'updated_at',
-                        ]
+                        ],
                     ],
                     'per_page',
                     'total',
@@ -226,7 +226,6 @@ class ProductControllerTest extends TestCase
             'price' => 199.99,
         ]);
     }
-
 
     public function test_admin_delete_product(): void
     {
