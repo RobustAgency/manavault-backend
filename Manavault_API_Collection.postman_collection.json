@@ -230,7 +230,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/admin/suppliers?per_page=10",
+							"raw": "{{base_url}}/admin/suppliers?per_page=10&name=&type=&status=",
 							"host": [
 								"{{base_url}}"
 							],
@@ -243,10 +243,25 @@
 									"key": "per_page",
 									"value": "10",
 									"description": "Optional: Items per page (min: 1)"
+								},
+								{
+									"key": "name",
+									"value": "",
+									"description": "Optional: Filter by supplier name (max: 255 characters)"
+								},
+								{
+									"key": "type",
+									"value": "",
+									"description": "Optional: Filter by supplier type (max: 100 characters) - e.g., internal, external"
+								},
+								{
+									"key": "status",
+									"value": "",
+									"description": "Optional: Filter by status - Enum values: active, inactive"
 								}
 							]
 						},
-						"description": "Retrieve paginated list of suppliers. Requires admin role."
+						"description": "Retrieve paginated list of suppliers with optional filters. Requires admin role.\n\nQuery Parameters:\n- per_page: Number of items per page (min: 1)\n- name: Filter by supplier name (partial match, max: 255 characters)\n- type: Filter by supplier type (e.g., internal, external, max: 100 characters)\n- status: Filter by status (Enum: active, inactive)"
 					},
 					"response": []
 				},
@@ -266,7 +281,12 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Supplier Name\",  // Required: max 255 characters\n    \"slug\": \"supplier_name\",  // Required: lowercase with underscores, must be unique\n    \"type\": \"internal\",  // Required: Enum values: internal, external\n    \"contact_email\": \"supplier@example.com\",  // Optional: valid email, max 255 characters\n    \"contact_phone\": \"+1234567890\",  // Optional: max 20 characters\n    \"status\": \"active\"  // Optional: Enum values: active, inactive\n}"
+							"raw": "{\n    \"name\": \"Supplier Name\",\n    \"type\": \"internal\",\n    \"contact_email\": \"supplier@example.com\",\n    \"contact_phone\": \"+1234567890\",\n    \"status\": \"active\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
 						},
 						"url": {
 							"raw": "{{base_url}}/admin/suppliers",
@@ -278,7 +298,7 @@
 								"suppliers"
 							]
 						},
-						"description": "Create a new supplier. Requires admin role."
+						"description": "Create a new supplier. Requires admin role.\n\n**Required Fields:**\n- `name` (string, max: 255)\n- `type` (string, enum: internal, external)\n\n**Optional Fields:**\n- `contact_email` (string, email, max: 255)\n- `contact_phone` (string, max: 20)\n- `status` (string, enum: active, inactive)\n\n**Response (201):**\n```json\n{\n    \"error\": false,\n    \"data\": {\n        \"id\": 1,\n        \"name\": \"Supplier Name\",\n        \"slug\": \"supplier_name\",\n        \"type\": \"internal\",\n        \"contact_email\": \"supplier@example.com\",\n        \"contact_phone\": \"+1234567890\",\n        \"status\": \"active\",\n        \"created_at\": \"2025-11-11T10:00:00.000000Z\",\n        \"updated_at\": \"2025-11-11T10:00:00.000000Z\"\n    },\n    \"message\": \"Supplier created successfully.\"\n}\n```"
 					},
 					"response": []
 				},
@@ -310,7 +330,7 @@
 								}
 							]
 						},
-						"description": "Get details of a specific supplier. Requires admin role."
+						"description": "Get details of a specific supplier. Requires admin role.\n\n**URL Parameters:**\n- `supplier_id` (integer, required) - The ID of the supplier\n\n**Response (200):**\n```json\n{\n    \"error\": false,\n    \"data\": {\n        \"id\": 1,\n        \"name\": \"Supplier Name\",\n        \"slug\": \"supplier_name\",\n        \"type\": \"internal\",\n        \"contact_email\": \"supplier@example.com\",\n        \"contact_phone\": \"+1234567890\",\n        \"status\": \"active\",\n        \"created_at\": \"2025-11-11T10:00:00.000000Z\",\n        \"updated_at\": \"2025-11-11T10:00:00.000000Z\"\n    },\n    \"message\": \"Supplier retrieved successfully.\"\n}\n```"
 					},
 					"response": []
 				},
@@ -330,7 +350,12 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Updated Supplier Name\",  // Optional: if provided, required, max 255 characters\n    \"slug\": \"updated_supplier_name\",  // Optional: lowercase with underscores, must be unique\n    \"type\": \"external\",  // Optional: if provided, required, Enum values: internal, external\n    \"contact_email\": \"newsupplier@example.com\",  // Optional: valid email, max 255 characters\n    \"contact_phone\": \"+9876543210\",  // Optional: max 20 characters\n    \"status\": \"inactive\"  // Optional: Enum values: active, inactive\n}"
+							"raw": "{\n    \"name\": \"Updated Supplier Name\",\n    \"type\": \"external\",\n    \"contact_email\": \"newsupplier@example.com\",\n    \"contact_phone\": \"+9876543210\",\n    \"status\": \"inactive\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
 						},
 						"url": {
 							"raw": "{{base_url}}/admin/suppliers/:supplier_id",
@@ -350,7 +375,7 @@
 								}
 							]
 						},
-						"description": "Update an existing supplier. All fields are optional but if name or type is provided, it's required. Requires admin role."
+						"description": "Update an existing supplier. All fields are optional, but if `name` or `type` is provided, it must meet validation requirements. Requires admin role.\n\n**URL Parameters:**\n- `supplier_id` (integer, required) - The ID of the supplier to update\n\n**Optional Fields:**\n- `name` (string, max: 255) - If provided, it's required\n- `type` (string, enum: internal, external) - If provided, it's required\n- `contact_email` (string, email, max: 255)\n- `contact_phone` (string, max: 20)\n- `status` (string, enum: active, inactive)\n\n**Response (200):**\n```json\n{\n    \"error\": false,\n    \"data\": null,\n    \"message\": \"Supplier updated successfully.\"\n}\n```"
 					},
 					"response": []
 				},
@@ -382,7 +407,7 @@
 								}
 							]
 						},
-						"description": "Delete a supplier. Requires admin role."
+						"description": "Delete a supplier. Requires admin role.\n\n**URL Parameters:**\n- `supplier_id` (integer, required) - The ID of the supplier to delete\n\n**Response (200):**\n```json\n{\n    \"error\": false,\n    \"data\": null,\n    \"message\": \"Supplier deleted successfully.\"\n}\n```"
 					},
 					"response": []
 				}
@@ -638,7 +663,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/admin/purchase-orders?per_page=10",
+							"raw": "{{base_url}}/admin/purchase-orders?per_page=10&order_number=&supplier_name=&product_name=",
 							"host": [
 								"{{base_url}}"
 							],
@@ -651,10 +676,25 @@
 									"key": "per_page",
 									"value": "10",
 									"description": "Optional: Items per page (min: 1, max: 100)"
+								},
+								{
+									"key": "order_number",
+									"value": "",
+									"description": "Optional: Filter by order number (partial match, max: 244 characters)"
+								},
+								{
+									"key": "supplier_name",
+									"value": "",
+									"description": "Optional: Filter by supplier name (partial match, max: 255 characters)"
+								},
+								{
+									"key": "product_name",
+									"value": "",
+									"description": "Optional: Filter by product name (partial match, max: 255 characters)"
 								}
 							]
 						},
-						"description": "Retrieve paginated list of purchase orders. Requires admin role."
+						"description": "Retrieve paginated list of purchase orders with optional filters. Requires admin role.\n\n**Query Parameters:**\n- `per_page` (integer, optional) - Number of items per page (min: 1, max: 100)\n- `order_number` (string, optional) - Filter by order number (partial match, max: 244 characters)\n- `supplier_name` (string, optional) - Filter by supplier name (partial match, max: 255 characters)\n- `product_name` (string, optional) - Filter by product name (partial match, max: 255 characters)\n\n**Response (200):**\n```json\n{\n    \"error\": false,\n    \"data\": {\n        \"current_page\": 1,\n        \"data\": [\n            {\n                \"id\": 1,\n                \"order_number\": \"550e8400-e29b-41d4-a716-446655440000\",\n                \"product_id\": 1,\n                \"supplier_id\": 1,\n                \"quantity\": 10,\n                \"total_price\": \"100.00\",\n                \"transaction_id\": \"12345\",\n                \"created_at\": \"2025-11-11T10:00:00.000000Z\",\n                \"product\": { \"id\": 1, \"name\": \"Product Name\", \"sku\": \"SKU123\" },\n                \"supplier\": { \"id\": 1, \"name\": \"Supplier Name\", \"slug\": \"ez_cards\" }\n            }\n        ],\n        \"per_page\": 10,\n        \"total\": 50\n    },\n    \"message\": \"Purchase orders retrieved successfully.\"\n}\n```"
 					},
 					"response": []
 				},
@@ -674,7 +714,12 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"product_id\": 1,  // Required: must exist in products table\n    \"supplier_id\": 1,  // Required: must exist in suppliers table\n    \"purchase_price\": 22.88,  // Required: numeric, min 0\n    \"quantity\": 2  // Required: integer, min 1\n}"
+							"raw": "{\n    \"product_id\": 1,\n    \"supplier_id\": 1,\n    \"quantity\": 10\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
 						},
 						"url": {
 							"raw": "{{base_url}}/admin/purchase-orders",
@@ -686,7 +731,7 @@
 								"purchase-orders"
 							]
 						},
-						"description": "Create a new purchase order. Order number is auto-generated. Requires admin role."
+						"description": "Create a new purchase order. The order is automatically placed with the external supplier (EZ Cards or Gift2Games) based on the supplier configuration. Order number and total price are auto-generated. Requires admin role.\n\n**Required Fields:**\n- `product_id` (integer, required) - Must exist in products table\n- `supplier_id` (integer, required) - Must exist in suppliers table\n- `quantity` (integer, required) - Minimum: 1\n\n**Auto-Generated Fields:**\n- `order_number` - UUID v4 format\n- `total_price` - Calculated as: product.purchase_price × quantity\n- `transaction_id` - Returned from EZ Cards API (for EZ Cards orders only)\n\n**Supplier-Specific Behavior:**\n- **EZ Cards**: Order placed via API, transaction_id stored, voucher codes fetched later\n- **Gift2Games**: Order placed via API, voucher code immediately created and stored\n\n**Response (201):**\n```json\n{\n    \"error\": false,\n    \"data\": {\n        \"id\": 1,\n        \"order_number\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"product_id\": 1,\n        \"supplier_id\": 1,\n        \"quantity\": 10,\n        \"total_price\": \"100.00\",\n        \"transaction_id\": \"12345\",\n        \"created_at\": \"2025-11-11T10:00:00.000000Z\",\n        \"updated_at\": \"2025-11-11T10:00:00.000000Z\",\n        \"product\": {\n            \"id\": 1,\n            \"name\": \"Product Name\",\n            \"sku\": \"SKU123\"\n        },\n        \"supplier\": {\n            \"id\": 1,\n            \"name\": \"EZ Cards\",\n            \"slug\": \"ez_cards\"\n        },\n        \"vouchers\": []\n    },\n    \"message\": \"Purchase order created successfully.\"\n}\n```\n\n**Error Response (500):**\n```json\n{\n    \"error\": true,\n    \"message\": \"Failed to create purchase order: [error details]\"\n}\n```"
 					},
 					"response": []
 				},
@@ -718,7 +763,7 @@
 								}
 							]
 						},
-						"description": "Get details of a specific purchase order. Requires admin role."
+						"description": "Get details of a specific purchase order including associated product, supplier, and vouchers. Requires admin role.\n\n**URL Parameters:**\n- `purchase_order_id` (integer, required) - The ID of the purchase order\n\n**Response (200):**\n```json\n{\n    \"error\": false,\n    \"data\": {\n        \"id\": 1,\n        \"order_number\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"product_id\": 1,\n        \"supplier_id\": 1,\n        \"quantity\": 10,\n        \"total_price\": \"100.00\",\n        \"transaction_id\": \"12345\",\n        \"voucher_codes_processed\": false,\n        \"voucher_codes_processed_at\": null,\n        \"created_at\": \"2025-11-11T10:00:00.000000Z\",\n        \"updated_at\": \"2025-11-11T10:00:00.000000Z\",\n        \"product\": {\n            \"id\": 1,\n            \"name\": \"Product Name\",\n            \"sku\": \"SKU123\",\n            \"description\": \"Product description\",\n            \"purchase_price\": \"10.00\",\n            \"selling_price\": \"15.00\"\n        },\n        \"supplier\": {\n            \"id\": 1,\n            \"name\": \"EZ Cards\",\n            \"slug\": \"ez_cards\",\n            \"type\": \"external\",\n            \"status\": \"active\"\n        },\n        \"vouchers\": [\n            {\n                \"id\": 1,\n                \"code\": \"ABC123-DEF456\",\n                \"serial_number\": \"SN123456\",\n                \"pin_code\": \"1234\",\n                \"status\": \"COMPLETED\",\n                \"stock_id\": 1,\n                \"purchase_order_id\": 1,\n                \"created_at\": \"2025-11-11T10:05:00.000000Z\"\n            }\n        ]\n    },\n    \"message\": \"Purchase order retrieved successfully.\"\n}\n```"
 					},
 					"response": []
 				}

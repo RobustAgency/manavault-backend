@@ -18,7 +18,7 @@ class SupplierController extends Controller
     public function index(ListSupplierRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        $suppliers = $this->repository->getPaginatedSuppliers($validated['per_page'] ?? 10);
+        $suppliers = $this->repository->getFilteredSuppliers($validated);
         return response()->json([
             'error' => false,
             'data' => $suppliers,
