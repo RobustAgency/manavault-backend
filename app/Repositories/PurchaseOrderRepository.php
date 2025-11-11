@@ -22,9 +22,21 @@ class PurchaseOrderRepository
      * @param array $filters
      * @return LengthAwarePaginator<int, PurchaseOrder>
      */
-    public function getPaginatedPurchaseOrders(array $filters = []): LengthAwarePaginator
+    public function getFilteredPurchaseOrders(array $filters = []): LengthAwarePaginator
     {
         $query = PurchaseOrder::query()->with(['product', 'supplier']);
+
+        if (!empty($filters['supplier_name'])) {
+            $query->whereHas('supplier', fn($q) => $q->where('name', 'like', '%' . $filters['supplier_name'] . '%'));
+        }
+
+        if (!empty($filters['product_name'])) {
+            $query->whereHas('product', fn($q) => $q->where('name', 'like', '%' . $filters['product_name'] . '%'));
+        }
+
+        if (!empty($filters['order_number'])) {
+            $query->where('order_number', 'like', '%' . $filters['order_number'] . '%');
+        }
 
         $perPage = $filters['per_page'] ?? 10;
 
