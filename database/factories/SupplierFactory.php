@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Supplier>
@@ -16,12 +17,25 @@ class SupplierFactory extends Factory
      */
     public function definition(): array
     {
+        $name = $this->faker->company();
+
         return [
-            'name' => $this->faker->company,
-            'type' => $this->faker->randomElement(['internal', 'external']),
-            'contact_email' => $this->faker->unique()->safeEmail,
-            'contact_phone' => $this->faker->phoneNumber,
-            'status' => $this->faker->randomElement(['active', 'inactive']),
+            'name' => $name,
+            'slug' => str_replace(' ', '_', strtolower($name)),
+            'type' => 'internal',
+            'contact_email' => $this->faker->safeEmail(),
+            'contact_phone' => $this->faker->phoneNumber(),
+            'status' => 'active',
         ];
+    }
+
+    /**
+     * Indicate that the supplier is external.
+     */
+    public function external(): static
+    {
+        return $this->state(fn(array $attributes) => [
+            'type' => 'external',
+        ]);
     }
 }

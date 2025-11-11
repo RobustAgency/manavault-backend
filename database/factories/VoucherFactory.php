@@ -18,16 +18,24 @@ class VoucherFactory extends Factory
     public function definition(): array
     {
         return [
-            'code' => $this->generateVoucherCode(),
+            'code' => strtoupper($this->faker->bothify('??##-??##-??##-??##')),
             'purchase_order_id' => PurchaseOrder::factory(),
+            'serial_number' => $this->faker->bothify('SN-######'),
+            'status' => 'COMPLETED',
+            'pin_code' => $this->faker->numerify('####'),
+            'stock_id' => $this->faker->numberBetween(1, 1000),
         ];
     }
 
     /**
-     * Generate a unique voucher code
+     * Indicate that the voucher is still processing.
      */
-    private function generateVoucherCode(): string
+    public function processing(): static
     {
-        return 'VCH-' . strtoupper($this->faker->bothify('??##-####-??##'));
+        return $this->state(fn(array $attributes) => [
+            'status' => 'PROCESSING',
+            'code' => null,
+            'pin_code' => null,
+        ]);
     }
 }
