@@ -30,6 +30,11 @@ class VoucherRepository
 
     public function importVouchers(array $data): bool
     {
-        return $this->voucherImportService->processFile($data);
+        try {
+            $this->voucherImportService->processFile($data);
+        } catch (\RuntimeException $e) {
+            throw new \RuntimeException($e->getMessage());
+        }
+        return true;
     }
 }

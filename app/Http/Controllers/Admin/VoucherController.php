@@ -27,18 +27,17 @@ class VoucherController extends Controller
     {
         $validated = $request->validated();
 
-        $vouchers = $this->voucherRepository->importVouchers($validated);
-
-        if (! $vouchers) {
+        try {
+            $this->voucherRepository->importVouchers($validated);
+            return response()->json([
+                'error' => false,
+                'message' => 'Vouchers imported successfully.',
+            ]);
+        } catch (\RuntimeException $e) {
             return response()->json([
                 'error' => true,
-                'message' => 'Failed to import vouchers.',
+                'message' => 'Failed to import vouchers: ' . $e->getMessage(),
             ]);
         }
-        return response()->json([
-            'error' => false,
-            'message' => 'Vouchers imported successfully.',
-            'data' => $vouchers,
-        ]);
     }
 }

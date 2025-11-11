@@ -25,7 +25,7 @@ class ImportVoucherRequest extends FormRequest
             'file' => [
                 'required',
                 'file',
-                'mimes:csv,xlsx,xls,zip',
+                'mimes:csv,txt,xlsx,xls,zip',
                 'max:10240',
             ],
             'purchase_order_id' => ['required', 'integer', 'exists:purchase_orders,id'],
