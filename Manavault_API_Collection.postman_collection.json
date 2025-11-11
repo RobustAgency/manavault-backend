@@ -230,7 +230,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/admin/suppliers?per_page=10",
+							"raw": "{{base_url}}/admin/suppliers?per_page=10&name=&type=&status=",
 							"host": [
 								"{{base_url}}"
 							],
@@ -243,10 +243,25 @@
 									"key": "per_page",
 									"value": "10",
 									"description": "Optional: Items per page (min: 1)"
+								},
+								{
+									"key": "name",
+									"value": "",
+									"description": "Optional: Filter by supplier name (max: 255 characters)"
+								},
+								{
+									"key": "type",
+									"value": "",
+									"description": "Optional: Filter by supplier type (max: 100 characters) - e.g., internal, external"
+								},
+								{
+									"key": "status",
+									"value": "",
+									"description": "Optional: Filter by status - Enum values: active, inactive"
 								}
 							]
 						},
-						"description": "Retrieve paginated list of suppliers. Requires admin role."
+						"description": "Retrieve paginated list of suppliers with optional filters. Requires admin role.\n\nQuery Parameters:\n- per_page: Number of items per page (min: 1)\n- name: Filter by supplier name (partial match, max: 255 characters)\n- type: Filter by supplier type (e.g., internal, external, max: 100 characters)\n- status: Filter by status (Enum: active, inactive)"
 					},
 					"response": []
 				},
@@ -266,7 +281,12 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Supplier Name\",  // Required: max 255 characters\n    \"slug\": \"supplier_name\",  // Required: lowercase with underscores, must be unique\n    \"type\": \"internal\",  // Required: Enum values: internal, external\n    \"contact_email\": \"supplier@example.com\",  // Optional: valid email, max 255 characters\n    \"contact_phone\": \"+1234567890\",  // Optional: max 20 characters\n    \"status\": \"active\"  // Optional: Enum values: active, inactive\n}"
+							"raw": "{\n    \"name\": \"Supplier Name\",\n    \"type\": \"internal\",\n    \"contact_email\": \"supplier@example.com\",\n    \"contact_phone\": \"+1234567890\",\n    \"status\": \"active\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
 						},
 						"url": {
 							"raw": "{{base_url}}/admin/suppliers",
@@ -278,7 +298,7 @@
 								"suppliers"
 							]
 						},
-						"description": "Create a new supplier. Requires admin role."
+						"description": "Create a new supplier. Requires admin role.\n\n**Required Fields:**\n- `name` (string, max: 255)\n- `type` (string, enum: internal, external)\n\n**Optional Fields:**\n- `contact_email` (string, email, max: 255)\n- `contact_phone` (string, max: 20)\n- `status` (string, enum: active, inactive)\n\n**Response (201):**\n```json\n{\n    \"error\": false,\n    \"data\": {\n        \"id\": 1,\n        \"name\": \"Supplier Name\",\n        \"slug\": \"supplier_name\",\n        \"type\": \"internal\",\n        \"contact_email\": \"supplier@example.com\",\n        \"contact_phone\": \"+1234567890\",\n        \"status\": \"active\",\n        \"created_at\": \"2025-11-11T10:00:00.000000Z\",\n        \"updated_at\": \"2025-11-11T10:00:00.000000Z\"\n    },\n    \"message\": \"Supplier created successfully.\"\n}\n```"
 					},
 					"response": []
 				},
@@ -310,7 +330,7 @@
 								}
 							]
 						},
-						"description": "Get details of a specific supplier. Requires admin role."
+						"description": "Get details of a specific supplier. Requires admin role.\n\n**URL Parameters:**\n- `supplier_id` (integer, required) - The ID of the supplier\n\n**Response (200):**\n```json\n{\n    \"error\": false,\n    \"data\": {\n        \"id\": 1,\n        \"name\": \"Supplier Name\",\n        \"slug\": \"supplier_name\",\n        \"type\": \"internal\",\n        \"contact_email\": \"supplier@example.com\",\n        \"contact_phone\": \"+1234567890\",\n        \"status\": \"active\",\n        \"created_at\": \"2025-11-11T10:00:00.000000Z\",\n        \"updated_at\": \"2025-11-11T10:00:00.000000Z\"\n    },\n    \"message\": \"Supplier retrieved successfully.\"\n}\n```"
 					},
 					"response": []
 				},
@@ -330,7 +350,12 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Updated Supplier Name\",  // Optional: if provided, required, max 255 characters\n    \"slug\": \"updated_supplier_name\",  // Optional: lowercase with underscores, must be unique\n    \"type\": \"external\",  // Optional: if provided, required, Enum values: internal, external\n    \"contact_email\": \"newsupplier@example.com\",  // Optional: valid email, max 255 characters\n    \"contact_phone\": \"+9876543210\",  // Optional: max 20 characters\n    \"status\": \"inactive\"  // Optional: Enum values: active, inactive\n}"
+							"raw": "{\n    \"name\": \"Updated Supplier Name\",\n    \"type\": \"external\",\n    \"contact_email\": \"newsupplier@example.com\",\n    \"contact_phone\": \"+9876543210\",\n    \"status\": \"inactive\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
 						},
 						"url": {
 							"raw": "{{base_url}}/admin/suppliers/:supplier_id",
@@ -350,7 +375,7 @@
 								}
 							]
 						},
-						"description": "Update an existing supplier. All fields are optional but if name or type is provided, it's required. Requires admin role."
+						"description": "Update an existing supplier. All fields are optional, but if `name` or `type` is provided, it must meet validation requirements. Requires admin role.\n\n**URL Parameters:**\n- `supplier_id` (integer, required) - The ID of the supplier to update\n\n**Optional Fields:**\n- `name` (string, max: 255) - If provided, it's required\n- `type` (string, enum: internal, external) - If provided, it's required\n- `contact_email` (string, email, max: 255)\n- `contact_phone` (string, max: 20)\n- `status` (string, enum: active, inactive)\n\n**Response (200):**\n```json\n{\n    \"error\": false,\n    \"data\": null,\n    \"message\": \"Supplier updated successfully.\"\n}\n```"
 					},
 					"response": []
 				},
@@ -382,7 +407,7 @@
 								}
 							]
 						},
-						"description": "Delete a supplier. Requires admin role."
+						"description": "Delete a supplier. Requires admin role.\n\n**URL Parameters:**\n- `supplier_id` (integer, required) - The ID of the supplier to delete\n\n**Response (200):**\n```json\n{\n    \"error\": false,\n    \"data\": null,\n    \"message\": \"Supplier deleted successfully.\"\n}\n```"
 					},
 					"response": []
 				}
