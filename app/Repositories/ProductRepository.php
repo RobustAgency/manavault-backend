@@ -2,10 +2,10 @@
 
 namespace App\Repositories;
 
-use App\Actions\Ezcards\GetProducts as EzCardsGetProducts;
-use App\Actions\Gift2Games\GetProducts as Gift2GamesGetProducts;
 use App\Models\Product;
 use Illuminate\Pagination\LengthAwarePaginator;
+use App\Actions\Ezcards\GetProducts as EzCardsGetProducts;
+use App\Actions\Gift2Games\GetProducts as Gift2GamesGetProducts;
 
 class ProductRepository
 {
@@ -13,9 +13,10 @@ class ProductRepository
         private EzCardsGetProducts $ezGetProducts,
         private Gift2GamesGetProducts $gift2GamesGetProducts
     ) {}
+
     /**
      * Get paginated products filtered by the provided criteria.
-     * @param array $filters
+     *
      * @return LengthAwarePaginator<int, Product>
      */
     public function getFilteredProducts(array $filters = []): LengthAwarePaginator
@@ -23,7 +24,7 @@ class ProductRepository
         $query = Product::with('supplier');
 
         if (isset($filters['name'])) {
-            $query->where('name', 'like', '%' . $filters['name'] . '%');
+            $query->where('name', 'like', '%'.$filters['name'].'%');
         }
 
         if (isset($filters['status'])) {
@@ -47,6 +48,7 @@ class ProductRepository
     public function updateProduct(Product $product, array $data): Product
     {
         $product->update($data);
+
         return $product;
     }
 
@@ -57,11 +59,6 @@ class ProductRepository
 
     /**
      * Fetch products from third-party services based on slug.
-     *
-     * @param string $slug
-     * @param int $limit
-     * @param int $offset
-     * @return array
      */
     public function listThirdPartyProducts(string $slug, int $limit, int $offset): array
     {

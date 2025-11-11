@@ -2,14 +2,14 @@
 
 namespace App\Repositories;
 
+use Ramsey\Uuid\Uuid;
+use App\Models\Product;
+use App\Models\Voucher;
+use App\Models\Supplier;
+use App\Models\PurchaseOrder;
+use Illuminate\Pagination\LengthAwarePaginator;
 use App\Actions\Ezcards\PlaceOrder as EzcardsPlaceOrder;
 use App\Actions\Gift2Games\CreateOrder as Gift2GamesCreateOrder;
-use App\Models\PurchaseOrder;
-use App\Models\Supplier;
-use App\Models\Product;
-use Illuminate\Pagination\LengthAwarePaginator;
-use Ramsey\Uuid\Uuid;
-use App\Models\Voucher;
 
 class PurchaseOrderRepository
 {
@@ -17,9 +17,10 @@ class PurchaseOrderRepository
         private EzcardsPlaceOrder $ezcardsPlaceOrder,
         private Gift2GamesCreateOrder $gift2GamesCreateOrder
     ) {}
+
     /**
      * Get paginated purchase orders filtered by the provided criteria.
-     * @param array $filters
+     *
      * @return LengthAwarePaginator<int, PurchaseOrder>
      */
     public function getFilteredPurchaseOrders(array $filters = []): LengthAwarePaginator
@@ -45,7 +46,6 @@ class PurchaseOrderRepository
 
     /**
      * Create a new purchase order.
-     * @return PurchaseOrder
      *
      * @throws \RuntimeException
      */
@@ -62,7 +62,7 @@ class PurchaseOrderRepository
 
         $placeOrderData = [
             'product_sku' => $product->sku,
-            'quantity'    => $data['quantity'],
+            'quantity' => $data['quantity'],
             'order_number' => $orderNumber,
         ];
 
@@ -80,7 +80,7 @@ class PurchaseOrderRepository
                     break;
             }
         } catch (\Exception $e) {
-            throw new \RuntimeException("Failed to place order with supplier {$supplier->slug}: " . $e->getMessage(), 0, $e);
+            throw new \RuntimeException("Failed to place order with supplier {$supplier->slug}: ".$e->getMessage(), 0, $e);
         }
 
         $data['order_number'] = $orderNumber;

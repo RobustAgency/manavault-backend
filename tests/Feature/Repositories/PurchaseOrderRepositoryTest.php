@@ -2,13 +2,13 @@
 
 namespace Tests\Feature\Repositories;
 
+use Tests\TestCase;
 use App\Models\Product;
-use App\Models\PurchaseOrder;
 use App\Models\Supplier;
+use App\Models\PurchaseOrder;
+use Illuminate\Foundation\Testing\WithFaker;
 use App\Repositories\PurchaseOrderRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
-use Tests\TestCase;
 
 class PurchaseOrderRepositoryTest extends TestCase
 {
@@ -16,7 +16,7 @@ class PurchaseOrderRepositoryTest extends TestCase
 
     private PurchaseOrderRepository $repository;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
         $this->repository = app(PurchaseOrderRepository::class);

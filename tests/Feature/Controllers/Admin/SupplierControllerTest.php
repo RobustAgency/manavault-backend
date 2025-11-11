@@ -2,11 +2,11 @@
 
 namespace Tests\Feature\Controllers\Admin;
 
+use Tests\TestCase;
 use App\Models\User;
 use App\Models\Supplier;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
-use Tests\TestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class SupplierControllerTest extends TestCase
 {

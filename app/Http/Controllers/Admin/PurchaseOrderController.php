@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Models\PurchaseOrder;
+use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PurchaseOrderResource;
+use App\Repositories\PurchaseOrderRepository;
 use App\Http\Requests\PurchaseOrder\ListPurchaseOrderRequest;
 use App\Http\Requests\PurchaseOrder\StorePurchaseOrderRequest;
-use App\Http\Resources\PurchaseOrderResource;
-use App\Models\PurchaseOrder;
-use App\Repositories\PurchaseOrderRepository;
-use Illuminate\Http\JsonResponse;
 
 class PurchaseOrderController extends Controller
 {
@@ -37,7 +37,7 @@ class PurchaseOrderController extends Controller
         } catch (\RuntimeException $e) {
             return response()->json([
                 'error' => true,
-                'message' => 'Failed to create purchase order: ' . $e->getMessage(),
+                'message' => 'Failed to create purchase order: '.$e->getMessage(),
             ], 500);
         }
 
@@ -51,6 +51,7 @@ class PurchaseOrderController extends Controller
     public function show(PurchaseOrder $purchaseOrder): JsonResponse
     {
         $purchaseOrder->load(['product', 'supplier', 'vouchers']);
+
         return response()->json([
             'error' => false,
             'data' => new PurchaseOrderResource($purchaseOrder),

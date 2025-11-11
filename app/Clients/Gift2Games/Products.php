@@ -2,14 +2,14 @@
 
 namespace App\Clients\Gift2Games;
 
-
 class Products extends Client
 {
     /**
      * Fetch a list of products from the Gift2Games API.
      *
-     * @param array $queryParams Query parameters e.g., 'category', 'ids', 'inStock'
+     * @param  array  $queryParams  Query parameters e.g., 'category', 'ids', 'inStock'
      * @return array The list of products
+     *
      * @throws \Exception
      */
     public function fetchList(int $offset, int $limit, array $queryParams = []): array
@@ -28,7 +28,7 @@ class Products extends Client
     /**
      * Format the products response to a simplified structure.
      *
-     * @param array $response The raw API response
+     * @param  array  $response  The raw API response
      * @return array Formatted products array
      */
     private function formatProductsResponse(array $response): array
@@ -40,11 +40,11 @@ class Products extends Client
             // Build description from available fields
             $descriptionParts = [];
 
-            if (!empty($item['productType'])) {
+            if (! empty($item['productType'])) {
                 $descriptionParts[] = "Type: {$item['productType']}";
             }
 
-            if (!empty($item['currency'])) {
+            if (! empty($item['currency'])) {
                 $descriptionParts[] = "Currency: {$item['currency']}";
             }
 
@@ -53,7 +53,7 @@ class Products extends Client
                 $descriptionParts[] = "Stock: {$stockStatus}";
             }
 
-            if (!empty($item['categoryId'])) {
+            if (! empty($item['categoryId'])) {
                 $descriptionParts[] = "Category ID: {$item['categoryId']}";
             }
 

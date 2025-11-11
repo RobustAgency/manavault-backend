@@ -2,11 +2,11 @@
 
 namespace App\Services;
 
-use App\Actions\Ezcards\GetVoucherCodes;
-use App\Models\PurchaseOrder;
 use App\Models\Voucher;
+use App\Models\PurchaseOrder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Actions\Ezcards\GetVoucherCodes;
 
 class EzCardsVoucherCodeService
 {
@@ -82,7 +82,6 @@ class EzCardsVoucherCodeService
     /**
      * Process a single purchase order to fetch and store voucher codes.
      *
-     * @param PurchaseOrder $purchaseOrder
      * @return array Processing result
      */
     public function processPurchaseOrder(PurchaseOrder $purchaseOrder): array
@@ -112,9 +111,6 @@ class EzCardsVoucherCodeService
 
     /**
      * Check if all voucher codes for a purchase order are completed.
-     *
-     * @param PurchaseOrder $purchaseOrder
-     * @return bool
      */
     private function areAllVouchersCompleted(PurchaseOrder $purchaseOrder): bool
     {
@@ -144,8 +140,6 @@ class EzCardsVoucherCodeService
     /**
      * Store voucher codes from API response into the database.
      *
-     * @param PurchaseOrder $purchaseOrder
-     * @param array $voucherCodesResponse
      * @return int Number of vouchers added
      */
     private function storeVoucherCodes(PurchaseOrder $purchaseOrder, array $voucherCodesResponse): int
@@ -153,7 +147,7 @@ class EzCardsVoucherCodeService
         $vouchersAdded = 0;
 
         // Handle response structure - adjust based on actual API response
-        $vouchers = $voucherCodesResponse['data'][0]['codes'] ??  [];
+        $vouchers = $voucherCodesResponse['data'][0]['codes'] ?? [];
 
         DB::beginTransaction();
         try {
@@ -165,13 +159,13 @@ class EzCardsVoucherCodeService
                 $stockId = $voucherData['stockId'] ?? null;
 
                 // For PROCESSING status without code, create placeholder with stockId
-                if (!$code && $status === 'PROCESSING' && $stockId) {
+                if (! $code && $status === 'PROCESSING' && $stockId) {
                     // Check if a voucher with this stockId already exists
                     $exists = Voucher::where('purchase_order_id', $purchaseOrder->id)
                         ->where('stock_id', $stockId)
                         ->exists();
 
-                    if (!$exists) {
+                    if (! $exists) {
                         Voucher::create([
                             'code' => null,
                             'purchase_order_id' => $purchaseOrder->id,
@@ -181,11 +175,12 @@ class EzCardsVoucherCodeService
                         ]);
                         $vouchersAdded++;
                     }
+
                     continue;
                 }
 
                 // Skip if no code and not processing
-                if (!$code) {
+                if (! $code) {
                     continue;
                 }
 
@@ -199,7 +194,7 @@ class EzCardsVoucherCodeService
                     })
                     ->first();
 
-                if (!$existingVoucher) {
+                if (! $existingVoucher) {
                     Voucher::create([
                         'code' => $code,
                         'purchase_order_id' => $purchaseOrder->id,
@@ -230,9 +225,6 @@ class EzCardsVoucherCodeService
 
     /**
      * Mark a purchase order as fully processed.
-     *
-     * @param PurchaseOrder $purchaseOrder
-     * @return void
      */
     private function markPurchaseOrderAsProcessed(PurchaseOrder $purchaseOrder): void
     {

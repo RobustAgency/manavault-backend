@@ -10,8 +10,8 @@ class Order extends Client
 
         $response = $this->handleResponse($response);
 
-        if (!$response['status']) {
-            throw new \RuntimeException('Order creation failed: ' . $response['error']['message']);
+        if (! $response['status']) {
+            throw new \RuntimeException('Order creation failed: '.$response['error']['message']);
         }
 
         return $response;

@@ -2,14 +2,14 @@
 
 namespace Tests\Feature\Imports;
 
-use App\Imports\VoucherImport;
-use App\Models\PurchaseOrder;
+use Tests\TestCase;
 use App\Models\Voucher;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
+use App\Models\PurchaseOrder;
+use App\Imports\VoucherImport;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Facades\Excel;
-use Tests\TestCase;
+use Illuminate\Foundation\Testing\WithFaker;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class VoucherImportTest extends TestCase
 {
@@ -17,7 +17,7 @@ class VoucherImportTest extends TestCase
 
     private PurchaseOrder $purchaseOrder;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
         $this->purchaseOrder = PurchaseOrder::factory()->create();
@@ -137,7 +137,7 @@ class VoucherImportTest extends TestCase
         $import = new VoucherImport($this->purchaseOrder->id);
 
         // Create a large collection to test batch processing
-        $largeCollection = new Collection();
+        $largeCollection = new Collection;
         for ($i = 1; $i <= 250; $i++) {
             $largeCollection->push(['code' => sprintf('BULK-VCH-%03d', $i)]);
         }
@@ -162,7 +162,7 @@ class VoucherImportTest extends TestCase
     {
         // Create a temporary CSV content for testing
         $csvContent = "code\nVCH-CSV-001\nVCH-CSV-002\nVCH-CSV-003";
-        $tempFile = tempnam(sys_get_temp_dir(), 'voucher_test') . '.csv';
+        $tempFile = tempnam(sys_get_temp_dir(), 'voucher_test').'.csv';
         file_put_contents($tempFile, $csvContent);
 
         try {

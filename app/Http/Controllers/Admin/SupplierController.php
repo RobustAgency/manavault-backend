@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Models\Supplier;
+use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\SupplierResource;
+use App\Repositories\SupplierRepository;
 use App\Http\Requests\Suppliers\ListSupplierRequest;
 use App\Http\Requests\Suppliers\StoreSupplierRequest;
 use App\Http\Requests\Suppliers\UpdateSupplierRequest;
-use App\Http\Resources\SupplierResource;
-use App\Models\Supplier;
-use App\Repositories\SupplierRepository;
-use Illuminate\Http\JsonResponse;
 
 class SupplierController extends Controller
 {
@@ -19,6 +19,7 @@ class SupplierController extends Controller
     {
         $validated = $request->validated();
         $suppliers = $this->repository->getFilteredSuppliers($validated);
+
         return response()->json([
             'error' => false,
             'data' => $suppliers,
@@ -30,6 +31,7 @@ class SupplierController extends Controller
     {
         $validated = $request->validated();
         $supplier = $this->repository->createSupplier($validated);
+
         return response()->json([
             'error' => false,
             'data' => $supplier,
@@ -49,6 +51,7 @@ class SupplierController extends Controller
     public function update(UpdateSupplierRequest $request, Supplier $supplier): JsonResponse
     {
         $this->repository->updateSupplier($supplier, $request->validated());
+
         return response()->json([
             'error' => false,
             'data' => null,
@@ -59,6 +62,7 @@ class SupplierController extends Controller
     public function destroy(Supplier $supplier): JsonResponse
     {
         $this->repository->deleteSupplier($supplier);
+
         return response()->json([
             'error' => false,
             'data' => null,

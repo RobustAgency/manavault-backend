@@ -2,10 +2,10 @@
 
 namespace Tests\Feature\Repositories;
 
+use Tests\TestCase;
 use App\Models\Supplier;
 use App\Repositories\SupplierRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 
 class SupplierRepositoryTest extends TestCase
 {

@@ -2,11 +2,10 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\UserController;
-use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\ProductController;
-use App\Http\Controllers\Admin\PurchaseOrderController;
 use App\Http\Controllers\Admin\VoucherController;
-
+use App\Http\Controllers\Admin\SupplierController;
+use App\Http\Controllers\Admin\PurchaseOrderController;
 
 Route::middleware(['auth:supabase', 'role:super_admin,admin'])->prefix('/admin')->group(function () {
 

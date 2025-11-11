@@ -2,26 +2,27 @@
 
 namespace Tests\Feature\Services;
 
-use App\Imports\VoucherImport;
-use App\Models\PurchaseOrder;
-use App\Services\VoucherImportService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
-use Maatwebsite\Excel\Facades\Excel;
 use ZipArchive;
 use Tests\TestCase;
+use App\Models\PurchaseOrder;
+use App\Imports\VoucherImport;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Services\VoucherImportService;
+use Illuminate\Foundation\Testing\WithFaker;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class VoucherImportServiceTest extends TestCase
 {
     use RefreshDatabase, WithFaker;
 
     private VoucherImportService $service;
+
     private PurchaseOrder $purchaseOrder;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new VoucherImportService();
+        $this->service = new VoucherImportService;
         $this->purchaseOrder = PurchaseOrder::factory()->create();
     }
 
@@ -100,7 +101,7 @@ class VoucherImportServiceTest extends TestCase
 
         $zipFile = $this->createZipFileWithVoucherFiles([
             'vouchers1.csv' => "code\nVCH-ZIP-001\nVCH-ZIP-002",
-            'vouchers2.xlsx' => "mock xlsx content",
+            'vouchers2.xlsx' => 'mock xlsx content',
         ]);
 
         $data = [
@@ -114,12 +115,11 @@ class VoucherImportServiceTest extends TestCase
 
         $tempDir = sys_get_temp_dir();
 
-        Excel::assertImported($tempDir . '/vouchers1.csv');
-        Excel::assertImported($tempDir . '/vouchers2.xlsx');
+        Excel::assertImported($tempDir.'/vouchers1.csv');
+        Excel::assertImported($tempDir.'/vouchers2.xlsx');
 
         $this->cleanupTempFile($zipFile);
     }
-
 
     public function test_process_file_skips_invalid_files_in_zip(): void
     {
@@ -128,9 +128,9 @@ class VoucherImportServiceTest extends TestCase
         // Create ZIP with valid + invalid files
         $zipFile = $this->createZipFileWithVoucherFiles([
             'vouchers.csv' => "code\nVCH-001",
-            'readme.txt' => "This is a readme file", // Invalid
-            'image.jpg' => "fake image content", // Invalid
-            'data.xlsx' => "mock xlsx content", // Valid
+            'readme.txt' => 'This is a readme file', // Invalid
+            'image.jpg' => 'fake image content', // Invalid
+            'data.xlsx' => 'mock xlsx content', // Valid
         ]);
 
         $data = [
@@ -144,12 +144,11 @@ class VoucherImportServiceTest extends TestCase
 
         $tempDir = sys_get_temp_dir();
 
-        Excel::assertImported($tempDir . '/vouchers.csv');
-        Excel::assertImported($tempDir . '/data.xlsx');
+        Excel::assertImported($tempDir.'/vouchers.csv');
+        Excel::assertImported($tempDir.'/data.xlsx');
 
         $this->cleanupTempFile($zipFile);
     }
-
 
     public function test_process_file_returns_false_for_invalid_zip(): void
     {
@@ -178,7 +177,7 @@ class VoucherImportServiceTest extends TestCase
 
         // Get the system temp directory
         $tempDir = sys_get_temp_dir();
-        $fileCountBefore = count(glob($tempDir . '/*'));
+        $fileCountBefore = count(glob($tempDir.'/*'));
 
         $data = [
             'filePath' => $zipFile,
@@ -190,7 +189,7 @@ class VoucherImportServiceTest extends TestCase
         $this->assertTrue($result);
 
         // Verify temp files are cleaned up
-        $fileCountAfter = count(glob($tempDir . '/*'));
+        $fileCountAfter = count(glob($tempDir.'/*'));
 
         // The temp file count should be the same or very close
         // (allowing for some system temp files that might be created)
@@ -262,9 +261,9 @@ class VoucherImportServiceTest extends TestCase
         Excel::fake();
 
         $zipFile = $this->createZipFileWithVoucherFiles([
-            'readme.txt' => "This is a readme file",
-            'image.jpg' => "fake image content",
-            'document.pdf' => "fake pdf content",
+            'readme.txt' => 'This is a readme file',
+            'image.jpg' => 'fake image content',
+            'document.pdf' => 'fake pdf content',
         ]);
 
         $data = [
@@ -284,8 +283,9 @@ class VoucherImportServiceTest extends TestCase
      */
     private function createTempFile(string $content, string $extension): string
     {
-        $tempFile = tempnam(sys_get_temp_dir(), 'voucher_test_') . '.' . $extension;
+        $tempFile = tempnam(sys_get_temp_dir(), 'voucher_test_').'.'.$extension;
         file_put_contents($tempFile, $content);
+
         return $tempFile;
     }
 
@@ -294,8 +294,8 @@ class VoucherImportServiceTest extends TestCase
      */
     private function createZipFileWithVoucherFiles(array $files): string
     {
-        $zipFile = tempnam(sys_get_temp_dir(), 'voucher_zip_test_') . '.zip';
-        $zip = new ZipArchive();
+        $zipFile = tempnam(sys_get_temp_dir(), 'voucher_zip_test_').'.zip';
+        $zip = new ZipArchive;
 
         if ($zip->open($zipFile, ZipArchive::CREATE) === true) {
             foreach ($files as $filename => $content) {
@@ -312,8 +312,8 @@ class VoucherImportServiceTest extends TestCase
      */
     private function createEmptyZipFile(): string
     {
-        $zipFile = tempnam(sys_get_temp_dir(), 'empty_zip_test_') . '.zip';
-        $zip = new ZipArchive();
+        $zipFile = tempnam(sys_get_temp_dir(), 'empty_zip_test_').'.zip';
+        $zip = new ZipArchive;
 
         if ($zip->open($zipFile, ZipArchive::CREATE) === true) {
             $zip->close();

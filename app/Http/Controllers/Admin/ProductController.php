@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
-use App\Http\Requests\Product\ListProductRequest;
-use App\Http\Requests\Product\ListThirdPartyProductRequest;
 use App\Models\Product;
-use App\Repositories\ProductRepository;
-use App\Http\Requests\Product\UpdateProductRequest;
-use App\Http\Requests\Product\StoreProductRequest;
-use App\Http\Resources\ProductResource;
 use Illuminate\Http\JsonResponse;
+use App\Http\Controllers\Controller;
+use App\Http\Resources\ProductResource;
+use App\Repositories\ProductRepository;
+use App\Http\Requests\Product\ListProductRequest;
+use App\Http\Requests\Product\StoreProductRequest;
+use App\Http\Requests\Product\UpdateProductRequest;
+use App\Http\Requests\Product\ListThirdPartyProductRequest;
 
 class ProductController extends Controller
 {
@@ -19,6 +19,7 @@ class ProductController extends Controller
     public function index(ListProductRequest $request): JsonResponse
     {
         $products = $this->repository->getFilteredProducts($request->validated());
+
         return response()->json([
             'error' => false,
             'data' => $products,
@@ -29,6 +30,7 @@ class ProductController extends Controller
     public function show(Product $product): JsonResponse
     {
         $product->load('supplier');
+
         return response()->json([
             'error' => false,
             'data' => new ProductResource($product),
@@ -40,6 +42,7 @@ class ProductController extends Controller
     {
         $validated = $request->validated();
         $product = $this->repository->createProduct($validated);
+
         return response()->json([
             'error' => false,
             'data' => new ProductResource($product),
@@ -51,6 +54,7 @@ class ProductController extends Controller
     {
         $validated = $request->validated();
         $product = $this->repository->updateProduct($product, $validated);
+
         return response()->json([
             'error' => false,
             'data' => new ProductResource($product),
@@ -61,6 +65,7 @@ class ProductController extends Controller
     public function destroy(Product $product): JsonResponse
     {
         $this->repository->deleteProduct($product);
+
         return response()->json([
             'error' => false,
             'message' => 'Product deleted successfully.',
@@ -74,6 +79,7 @@ class ProductController extends Controller
             $request->input('limit', 15),
             $request->input('offset', 1)
         );
+
         return response()->json([
             'error' => false,
             'data' => [
