@@ -16,7 +16,7 @@ class SupplierRepositoryTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->repository = new SupplierRepository();
+        $this->repository = new SupplierRepository;
     }
 
     public function test_create_a_supplier()

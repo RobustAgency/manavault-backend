@@ -21,7 +21,7 @@ class ProductRepository
      */
     public function getFilteredProducts(array $filters = []): LengthAwarePaginator
     {
-        $query = Product::with('supplier');
+        $query = Product::query();
 
         if (isset($filters['name'])) {
             $query->where('name', 'like', '%'.$filters['name'].'%');
@@ -31,8 +31,8 @@ class ProductRepository
             $query->where('status', $filters['status']);
         }
 
-        if (isset($filters['supplier_id'])) {
-            $query->where('supplier_id', $filters['supplier_id']);
+        if (isset($filters['brand'])) {
+            $query->where('brand', 'like', '%'.$filters['brand'].'%');
         }
 
         $per_page = $filters['per_page'] ?? 10;

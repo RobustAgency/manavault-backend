@@ -27,16 +27,16 @@ class PurchaseOrderRepository
     {
         $query = PurchaseOrder::query()->with(['product', 'supplier']);
 
-        if (!empty($filters['supplier_name'])) {
-            $query->whereHas('supplier', fn($q) => $q->where('name', 'like', '%' . $filters['supplier_name'] . '%'));
+        if (! empty($filters['supplier_name'])) {
+            $query->whereHas('supplier', fn ($q) => $q->where('name', 'like', '%'.$filters['supplier_name'].'%'));
         }
 
-        if (!empty($filters['product_name'])) {
-            $query->whereHas('product', fn($q) => $q->where('name', 'like', '%' . $filters['product_name'] . '%'));
+        if (! empty($filters['product_name'])) {
+            $query->whereHas('product', fn ($q) => $q->where('name', 'like', '%'.$filters['product_name'].'%'));
         }
 
-        if (!empty($filters['order_number'])) {
-            $query->where('order_number', 'like', '%' . $filters['order_number'] . '%');
+        if (! empty($filters['order_number'])) {
+            $query->where('order_number', 'like', '%'.$filters['order_number'].'%');
         }
 
         $perPage = $filters['per_page'] ?? 10;

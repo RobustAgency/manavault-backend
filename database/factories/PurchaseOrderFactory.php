@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Product;
+use App\Models\Supplier;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -19,11 +20,13 @@ class PurchaseOrderFactory extends Factory
     {
         $quantity = $this->faker->numberBetween(1, 50);
         $product = Product::factory()->create();
+        $supplier = Supplier::factory()->create();
+        $unitPrice = $this->faker->randomFloat(2, 5, 100);
 
         return [
             'product_id' => $product->id,
-            'supplier_id' => $product->supplier_id,
-            'total_price' => $product->purchase_price * $quantity,
+            'supplier_id' => $supplier->id,
+            'total_price' => $unitPrice * $quantity,
             'quantity' => $quantity,
             'order_number' => $this->faker->uuid(),
             'transaction_id' => null,
@@ -37,8 +40,8 @@ class PurchaseOrderFactory extends Factory
      */
     public function withTransactionId(): static
     {
-        return $this->state(fn(array $attributes) => [
-            'transaction_id' => 'TXN-' . time() . rand(100, 999),
+        return $this->state(fn (array $attributes) => [
+            'transaction_id' => 'TXN-'.time().rand(100, 999),
         ]);
     }
 }

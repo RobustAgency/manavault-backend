@@ -428,7 +428,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/admin/products?name=&status=active&per_page=10",
+							"raw": "{{base_url}}/admin/products?name=&brand=&status=active&per_page=10",
 							"host": [
 								"{{base_url}}"
 							],
@@ -441,6 +441,11 @@
 									"key": "name",
 									"value": "",
 									"description": "Optional: Filter by product name (max 255 characters)"
+								},
+								{
+									"key": "brand",
+									"value": "",
+									"description": "Optional: Filter by brand name (max 255 characters)"
 								},
 								{
 									"key": "status",
@@ -474,7 +479,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"supplier_id\": 1,  // Required: must exist in suppliers table\n    \"name\": \"Addidas Gift Card $25 (USA)\",  // Required: max 255 characters\n    \"description\": \"Digital gift card for Addidas stores\",  // Optional\n    \"sku\": \"AAU-QB-Q1J\",  // Required: max 100 characters, must be unique\n    \"purchase_price\": 20.00,  // Required: numeric, min 0\n    \"selling_price\": 22.88,  // Required: numeric, min 0\n    \"status\": \"active\"  // Required: Enum values: in_active, active, archived\n}"
+							"raw": "{\n    \"name\": \"Adidas Gift Card $25 (USA)\",  // Required: max 255 characters\n    \"sku\": \"AAU-QB-Q1J\",  // Required: max 100 characters, must be unique\n    \"brand\": \"Adidas\",  // Optional: max 255 characters\n    \"description\": \"Digital gift card for Adidas stores\",  // Optional\n    \"short_description\": \"$25 Adidas gift card - USA region\",  // Optional\n    \"long_description\": \"Redeem this gift card at any Adidas store or online at adidas.com. Valid for all products including footwear, apparel, and accessories.\",  // Optional\n    \"tags\": [\"gift card\", \"digital\", \"sports\", \"fashion\"],  // Optional: array of strings\n    \"image\": \"https://example.com/images/adidas-gift-card.jpg\",  // Optional: max 255 characters\n    \"selling_price\": 22.88,  // Required: numeric, min 0\n    \"status\": \"active\",  // Required: Enum values: in_active, active, archived\n    \"regions\": [\"US\", \"CA\"]  // Optional: array of strings\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/admin/products",
@@ -590,7 +595,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Updated Product Name\",  // Optional: max 255 characters\n    \"description\": \"Updated description\",  // Optional\n    \"purchase_price\": 18.00,  // Optional: numeric, min 0\n    \"selling_price\": 25.99,  // Optional: numeric, min 0\n    \"status\": \"archived\"  // Optional: Enum values: in_active, active, archived\n}"
+							"raw": "{\n    \"name\": \"Updated Product Name\",  // Optional: max 255 characters\n    \"brand\": \"Updated Brand\",  // Optional: max 255 characters\n    \"description\": \"Updated description\",  // Optional\n    \"short_description\": \"Updated short description\",  // Optional\n    \"long_description\": \"Updated long description with more details\",  // Optional\n    \"tags\": [\"updated\", \"modified\"],  // Optional: array of strings\n    \"image\": \"https://example.com/images/updated-image.jpg\",  // Optional: max 255 characters\n    \"selling_price\": 25.99,  // Optional: numeric, min 0\n    \"status\": \"archived\",  // Optional: Enum values: in_active, active, archived\n    \"regions\": [\"US\", \"CA\", \"UK\"]  // Optional: array of strings\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/admin/products/:product_id",
@@ -731,7 +736,7 @@
 								"purchase-orders"
 							]
 						},
-						"description": "Create a new purchase order. The order is automatically placed with the external supplier (EZ Cards or Gift2Games) based on the supplier configuration. Order number and total price are auto-generated. Requires admin role.\n\n**Required Fields:**\n- `product_id` (integer, required) - Must exist in products table\n- `supplier_id` (integer, required) - Must exist in suppliers table\n- `quantity` (integer, required) - Minimum: 1\n\n**Auto-Generated Fields:**\n- `order_number` - UUID v4 format\n- `total_price` - Calculated as: product.purchase_price × quantity\n- `transaction_id` - Returned from EZ Cards API (for EZ Cards orders only)\n\n**Supplier-Specific Behavior:**\n- **EZ Cards**: Order placed via API, transaction_id stored, voucher codes fetched later\n- **Gift2Games**: Order placed via API, voucher code immediately created and stored\n\n**Response (201):**\n```json\n{\n    \"error\": false,\n    \"data\": {\n        \"id\": 1,\n        \"order_number\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"product_id\": 1,\n        \"supplier_id\": 1,\n        \"quantity\": 10,\n        \"total_price\": \"100.00\",\n        \"transaction_id\": \"12345\",\n        \"created_at\": \"2025-11-11T10:00:00.000000Z\",\n        \"updated_at\": \"2025-11-11T10:00:00.000000Z\",\n        \"product\": {\n            \"id\": 1,\n            \"name\": \"Product Name\",\n            \"sku\": \"SKU123\"\n        },\n        \"supplier\": {\n            \"id\": 1,\n            \"name\": \"EZ Cards\",\n            \"slug\": \"ez_cards\"\n        },\n        \"vouchers\": []\n    },\n    \"message\": \"Purchase order created successfully.\"\n}\n```\n\n**Error Response (500):**\n```json\n{\n    \"error\": true,\n    \"message\": \"Failed to create purchase order: [error details]\"\n}\n```"
+						"description": "Create a new purchase order. The order is automatically placed with the external supplier (EZ Cards or Gift2Games) based on the supplier configuration. Order number and total price are auto-generated. Requires admin role.\n\n**Required Fields:**\n- `product_id` (integer, required) - Must exist in products table\n- `supplier_id` (integer, required) - Must exist in suppliers table\n- `quantity` (integer, required) - Minimum: 1\n\n**Auto-Generated Fields:**\n- `order_number` - UUID v4 format\n- `total_price` - Calculated based on supplier pricing\n- `transaction_id` - Returned from EZ Cards API (for EZ Cards orders only)\n\n**Supplier-Specific Behavior:**\n- **EZ Cards**: Order placed via API, transaction_id stored, voucher codes fetched later\n- **Gift2Games**: Order placed via API, voucher code immediately created and stored\n\n**Response (201):**\n```json\n{\n    \"error\": false,\n    \"data\": {\n        \"id\": 1,\n        \"order_number\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"product_id\": 1,\n        \"supplier_id\": 1,\n        \"quantity\": 10,\n        \"total_price\": \"100.00\",\n        \"transaction_id\": \"12345\",\n        \"created_at\": \"2025-11-11T10:00:00.000000Z\",\n        \"updated_at\": \"2025-11-11T10:00:00.000000Z\",\n        \"product\": {\n            \"id\": 1,\n            \"name\": \"Product Name\",\n            \"sku\": \"SKU123\"\n        },\n        \"supplier\": {\n            \"id\": 1,\n            \"name\": \"EZ Cards\",\n            \"slug\": \"ez_cards\"\n        },\n        \"vouchers\": []\n    },\n    \"message\": \"Purchase order created successfully.\"\n}\n```\n\n**Error Response (500):**\n```json\n{\n    \"error\": true,\n    \"message\": \"Failed to create purchase order: [error details]\"\n}\n```"
 					},
 					"response": []
 				},
@@ -763,7 +768,7 @@
 								}
 							]
 						},
-						"description": "Get details of a specific purchase order including associated product, supplier, and vouchers. Requires admin role.\n\n**URL Parameters:**\n- `purchase_order_id` (integer, required) - The ID of the purchase order\n\n**Response (200):**\n```json\n{\n    \"error\": false,\n    \"data\": {\n        \"id\": 1,\n        \"order_number\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"product_id\": 1,\n        \"supplier_id\": 1,\n        \"quantity\": 10,\n        \"total_price\": \"100.00\",\n        \"transaction_id\": \"12345\",\n        \"voucher_codes_processed\": false,\n        \"voucher_codes_processed_at\": null,\n        \"created_at\": \"2025-11-11T10:00:00.000000Z\",\n        \"updated_at\": \"2025-11-11T10:00:00.000000Z\",\n        \"product\": {\n            \"id\": 1,\n            \"name\": \"Product Name\",\n            \"sku\": \"SKU123\",\n            \"description\": \"Product description\",\n            \"purchase_price\": \"10.00\",\n            \"selling_price\": \"15.00\"\n        },\n        \"supplier\": {\n            \"id\": 1,\n            \"name\": \"EZ Cards\",\n            \"slug\": \"ez_cards\",\n            \"type\": \"external\",\n            \"status\": \"active\"\n        },\n        \"vouchers\": [\n            {\n                \"id\": 1,\n                \"code\": \"ABC123-DEF456\",\n                \"serial_number\": \"SN123456\",\n                \"pin_code\": \"1234\",\n                \"status\": \"COMPLETED\",\n                \"stock_id\": 1,\n                \"purchase_order_id\": 1,\n                \"created_at\": \"2025-11-11T10:05:00.000000Z\"\n            }\n        ]\n    },\n    \"message\": \"Purchase order retrieved successfully.\"\n}\n```"
+						"description": "Get details of a specific purchase order including associated product, supplier, and vouchers. Requires admin role.\n\n**URL Parameters:**\n- `purchase_order_id` (integer, required) - The ID of the purchase order\n\n**Response (200):**\n```json\n{\n    \"error\": false,\n    \"data\": {\n        \"id\": 1,\n        \"order_number\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"product_id\": 1,\n        \"supplier_id\": 1,\n        \"quantity\": 10,\n        \"total_price\": \"100.00\",\n        \"transaction_id\": \"12345\",\n        \"voucher_codes_processed\": false,\n        \"voucher_codes_processed_at\": null,\n        \"created_at\": \"2025-11-11T10:00:00.000000Z\",\n        \"updated_at\": \"2025-11-11T10:00:00.000000Z\",\n        \"product\": {\n            \"id\": 1,\n            \"name\": \"Product Name\",\n            \"sku\": \"SKU123\",\n            \"brand\": \"Brand Name\",\n            \"description\": \"Product description\",\n            \"short_description\": \"Short description\",\n            \"long_description\": \"Long description\",\n            \"tags\": [\"tag1\", \"tag2\"],\n            \"image\": \"https://example.com/image.jpg\",\n            \"selling_price\": \"15.00\",\n            \"status\": \"active\",\n            \"regions\": [\"US\", \"CA\"]\n        },\n        \"supplier\": {\n            \"id\": 1,\n            \"name\": \"EZ Cards\",\n            \"slug\": \"ez_cards\",\n            \"type\": \"external\",\n            \"status\": \"active\"\n        },\n        \"vouchers\": [\n            {\n                \"id\": 1,\n                \"code\": \"ABC123-DEF456\",\n                \"serial_number\": \"SN123456\",\n                \"pin_code\": \"1234\",\n                \"status\": \"COMPLETED\",\n                \"stock_id\": 1,\n                \"purchase_order_id\": 1,\n                \"created_at\": \"2025-11-11T10:05:00.000000Z\"\n            }\n        ]\n    },\n    \"message\": \"Purchase order retrieved successfully.\"\n}\n```"
 					},
 					"response": []
 				}

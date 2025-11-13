@@ -32,7 +32,7 @@ class VoucherFactory extends Factory
      */
     public function processing(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'status' => 'PROCESSING',
             'code' => null,
             'pin_code' => null,
