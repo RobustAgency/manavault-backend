@@ -14,21 +14,19 @@ class DigitalProduct extends Model
     protected $fillable = [
         'supplier_id',
         'name',
+        'sku',
         'brand',
         'description',
-        'tags',
-        'image',
         'cost_price',
         'status',
-        'regions',
         'metadata',
+        'last_synced_at',
     ];
 
     protected $casts = [
-        'tags' => 'array',
-        'regions' => 'array',
         'metadata' => 'array',
         'cost_price' => 'decimal:2',
+        'last_synced_at' => 'datetime',
     ];
 
     /**

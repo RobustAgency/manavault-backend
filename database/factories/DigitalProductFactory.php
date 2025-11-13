@@ -22,19 +22,18 @@ class DigitalProductFactory extends Factory
         return [
             'supplier_id' => Supplier::factory(),
             'name' => $this->faker->words(3, true),
+            'sku' => $this->faker->unique()->regexify('[A-Z]{3}-[0-9]{5}'),
             'brand' => $this->faker->company(),
             'description' => $this->faker->sentence(),
-            'tags' => $this->faker->randomElements(['gaming', 'entertainment', 'gift card', 'digital', 'popular'], $this->faker->numberBetween(1, 3)),
-            'image' => $this->faker->imageUrl(640, 480, 'products', true),
             'cost_price' => $costPrice,
             'status' => $this->faker->randomElement(['active', 'inactive']),
-            'regions' => $this->faker->randomElements(['US', 'CA', 'UK', 'EU', 'AU'], $this->faker->numberBetween(1, 3)),
             'metadata' => [
                 'external_id' => $this->faker->uuid(),
                 'category' => $this->faker->randomElement(['Gift Cards', 'Gaming', 'Entertainment']),
                 'min_value' => $this->faker->numberBetween(5, 25),
                 'max_value' => $this->faker->numberBetween(100, 500),
             ],
+            'last_synced_at' => null,
         ];
     }
 

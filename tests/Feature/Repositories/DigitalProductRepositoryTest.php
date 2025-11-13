@@ -28,13 +28,11 @@ class DigitalProductRepositoryTest extends TestCase
         $data = [
             'supplier_id' => $supplier->id,
             'name' => $this->faker->word(),
+            'sku' => $this->faker->unique()->regexify('[A-Z]{3}-[0-9]{5}'),
             'brand' => $this->faker->company(),
             'description' => $this->faker->sentence(),
-            'tags' => ['gaming', 'gift card'],
-            'image' => $this->faker->imageUrl(),
             'cost_price' => $this->faker->randomFloat(2, 10, 100),
             'status' => 'active',
-            'regions' => ['US', 'CA'],
             'metadata' => ['external_id' => $this->faker->uuid()],
         ];
 
@@ -57,6 +55,7 @@ class DigitalProductRepositoryTest extends TestCase
             [
                 'supplier_id' => $supplier->id,
                 'name' => 'Product 1',
+                'sku' => 'SKU-001',
                 'brand' => 'Brand A',
                 'cost_price' => 10.00,
                 'status' => 'active',
@@ -64,6 +63,7 @@ class DigitalProductRepositoryTest extends TestCase
             [
                 'supplier_id' => $supplier->id,
                 'name' => 'Product 2',
+                'sku' => 'SKU-002',
                 'brand' => 'Brand B',
                 'cost_price' => 20.00,
                 'status' => 'active',
@@ -71,6 +71,7 @@ class DigitalProductRepositoryTest extends TestCase
             [
                 'supplier_id' => $supplier->id,
                 'name' => 'Product 3',
+                'sku' => 'SKU-003',
                 'brand' => 'Brand C',
                 'cost_price' => 30.00,
                 'status' => 'inactive',
