@@ -655,6 +655,199 @@
 			"description": "Admin endpoints for product management"
 		},
 		{
+			"name": "Admin - Digital Products",
+			"item": [
+				{
+					"name": "List Digital Products",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/digital-products?name=&brand=&supplier_id=&status=active&per_page=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"digital-products"
+							],
+							"query": [
+								{
+									"key": "name",
+									"value": "",
+									"description": "Optional: Filter by product name (max 255 characters)"
+								},
+								{
+									"key": "brand",
+									"value": "",
+									"description": "Optional: Filter by brand name (max 255 characters)"
+								},
+								{
+									"key": "supplier_id",
+									"value": "",
+									"description": "Optional: Filter by supplier ID"
+								},
+								{
+									"key": "status",
+									"value": "active",
+									"description": "Optional: Filter by status (active, inactive)"
+								},
+								{
+									"key": "per_page",
+									"value": "10",
+									"description": "Optional: Items per page (min: 1, max: 100)"
+								}
+							]
+						},
+						"description": "Retrieve filtered and paginated list of digital products from external suppliers. Requires admin role."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Digital Products (Bulk)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"products\": [\n        {\n            \"supplier_id\": 1,  // Required: must exist in suppliers table\n            \"name\": \"Steam Gift Card $50\",  // Required: max 255 characters\n            \"brand\": \"Steam\",  // Optional: max 255 characters\n            \"description\": \"Digital gift card for Steam platform\",  // Optional\n            \"tags\": [\"gaming\", \"gift card\", \"digital\"],  // Optional: array of strings\n            \"image\": \"https://example.com/steam-card.jpg\",  // Optional: max 255 characters\n            \"cost_price\": 45.00,  // Required: numeric, min 0\n            \"status\": \"active\",  // Required: active or inactive\n            \"regions\": [\"US\", \"CA\", \"UK\"],  // Optional: array of strings\n            \"metadata\": {\n                \"external_id\": \"steam-50-usd\",\n                \"category\": \"Gaming\",\n                \"denomination\": 50\n            }  // Optional: json object\n        },\n        {\n            \"supplier_id\": 1,\n            \"name\": \"PlayStation Store Card $25\",\n            \"brand\": \"PlayStation\",\n            \"description\": \"Digital gift card for PlayStation Store\",\n            \"cost_price\": 22.00,\n            \"status\": \"active\",\n            \"tags\": [\"gaming\", \"playstation\"],\n            \"regions\": [\"US\"]\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/digital-products",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"digital-products"
+							]
+						},
+						"description": "Create one or multiple digital products at once. Supports bulk import from external APIs. Requires admin role."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Digital Product Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/digital-products/:digital_product_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"digital-products",
+								":digital_product_id"
+							],
+							"variable": [
+								{
+									"key": "digital_product_id",
+									"value": "1",
+									"description": "Required: Digital Product ID"
+								}
+							]
+						},
+						"description": "Get details of a specific digital product including supplier information. Requires admin role."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Digital Product",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Updated Product Name\",  // Optional: max 255 characters\n    \"brand\": \"Updated Brand\",  // Optional: max 255 characters\n    \"description\": \"Updated description\",  // Optional\n    \"tags\": [\"updated\", \"tag\"],  // Optional: array of strings\n    \"image\": \"https://example.com/new-image.jpg\",  // Optional: max 255 characters\n    \"cost_price\": 50.00,  // Optional: numeric, min 0\n    \"status\": \"inactive\",  // Optional: active or inactive\n    \"regions\": [\"US\", \"CA\", \"UK\", \"EU\"],  // Optional: array of strings\n    \"metadata\": {\n        \"updated_field\": \"new_value\"\n    }  // Optional: json object\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/digital-products/:digital_product_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"digital-products",
+								":digital_product_id"
+							],
+							"variable": [
+								{
+									"key": "digital_product_id",
+									"value": "1",
+									"description": "Required: Digital Product ID"
+								}
+							]
+						},
+						"description": "Update an existing digital product. All fields are optional. Requires admin role."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Digital Product",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/digital-products/:digital_product_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"digital-products",
+								":digital_product_id"
+							],
+							"variable": [
+								{
+									"key": "digital_product_id",
+									"value": "1",
+									"description": "Required: Digital Product ID"
+								}
+							]
+						},
+						"description": "Delete a digital product. Requires admin role."
+					},
+					"response": []
+				}
+			],
+			"description": "Admin endpoints for managing digital products from external suppliers (EZ Cards, Gift2Games, etc.)"
+		},
+		{
 			"name": "Admin - Purchase Orders",
 			"item": [
 				{
