@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Product extends Model
@@ -12,20 +11,21 @@ class Product extends Model
     use HasFactory;
 
     protected $fillable = [
-        'supplier_id',
         'name',
         'sku',
+        'brand',
         'description',
-        'purchase_price',
+        'short_description',
+        'long_description',
+        'tags',
+        'image',
         'selling_price',
         'status',
+        'regions',
     ];
 
-    /**
-     * @return BelongsTo<Supplier, $this>
-     */
-    public function supplier(): BelongsTo
-    {
-        return $this->belongsTo(Supplier::class);
-    }
+    protected $casts = [
+        'tags' => 'array',
+        'regions' => 'array',
+    ];
 }

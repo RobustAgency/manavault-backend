@@ -55,7 +55,7 @@ abstract class BaseApiClient
     protected function getHeaders(): array
     {
         $authValue = $this->useBearerPrefix()
-            ? 'Bearer ' . $this->accessToken
+            ? 'Bearer '.$this->accessToken
             : $this->accessToken;
 
         $headers = [
@@ -127,6 +127,6 @@ abstract class BaseApiClient
         }
 
         // Handle errors as needed, e.g., log them or throw exceptions
-        throw new \Exception($this->getServiceName() . ' API request failed: ' . $response->body());
+        throw new \Exception($this->getServiceName().' API request failed: '.$response->body());
     }
 }

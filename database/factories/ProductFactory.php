@@ -3,7 +3,6 @@
 namespace Database\Factories;
 
 use App\Enums\Product\Lifecycle;
-use App\Models\Supplier;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -18,28 +17,21 @@ class ProductFactory extends Factory
      */
     public function definition(): array
     {
-        $purchasePrice = $this->faker->randomFloat(2, 5, 100);
-        $markup = $this->faker->randomFloat(2, 1.2, 2.0); // 20% to 100% markup
+        $sellingPrice = $this->faker->randomFloat(2, 10, 200);
 
         return [
-            'supplier_id' => Supplier::factory(),
             'name' => $this->faker->words(3, true),
             'sku' => $this->faker->unique()->bothify('SKU-####-??##'),
+            'brand' => $this->faker->company(),
             'description' => $this->faker->sentence(),
-            'purchase_price' => $purchasePrice,
-            'selling_price' => round($purchasePrice * $markup, 2),
-            'status' => $this->faker->randomElement(array_map(fn($c) => $c->value, Lifecycle::cases())),
+            'short_description' => $this->faker->sentence(10),
+            'long_description' => $this->faker->paragraph(3),
+            'tags' => $this->faker->randomElements(['gaming', 'entertainment', 'gift card', 'digital', 'popular'], $this->faker->numberBetween(1, 3)),
+            'image' => $this->faker->imageUrl(640, 480, 'products', true),
+            'selling_price' => $sellingPrice,
+            'status' => $this->faker->randomElement(array_map(fn ($c) => $c->value, Lifecycle::cases())),
+            'regions' => $this->faker->randomElements(['US', 'CA', 'UK', 'EU', 'AU'], $this->faker->numberBetween(1, 3)),
         ];
-    }
-
-    /**
-     * Indicate that the product is for a specific supplier.
-     */
-    public function forSupplier(Supplier|int $supplier): static
-    {
-        return $this->state(fn(array $attributes) => [
-            'supplier_id' => $supplier instanceof Supplier ? $supplier->id : $supplier,
-        ]);
     }
 
     /**
@@ -47,7 +39,7 @@ class ProductFactory extends Factory
      */
     public function active(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'status' => 'active',
         ]);
     }
@@ -57,7 +49,7 @@ class ProductFactory extends Factory
      */
     public function inactive(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'status' => 'inactive',
         ]);
     }

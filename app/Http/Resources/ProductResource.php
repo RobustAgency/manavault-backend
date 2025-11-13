@@ -22,13 +22,17 @@ class ProductResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'sku' => $this->sku,
+            'brand' => $this->brand,
             'description' => $this->description,
-            'purchase_price' => $this->purchase_price,
+            'short_description' => $this->short_description,
+            'long_description' => $this->long_description,
+            'tags' => $this->tags,
+            'image' => $this->image,
             'selling_price' => $this->selling_price,
             'status' => $this->status,
+            'regions' => $this->regions,
             'created_at' => $this->created_at->toDateTimeString(),
             'updated_at' => $this->updated_at->toDateTimeString(),
-            'supplier' => new SupplierResource($this->whenLoaded('supplier')),
         ];
     }
 }

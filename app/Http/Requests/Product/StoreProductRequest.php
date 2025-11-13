@@ -24,13 +24,19 @@ class StoreProductRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'supplier_id' => ['required', 'exists:suppliers,id'],
             'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
             'sku' => ['required', 'string', 'max:100', 'unique:products,sku'],
-            'purchase_price' => ['required', 'numeric', 'min:0'],
+            'brand' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'short_description' => ['nullable', 'string'],
+            'long_description' => ['nullable', 'string'],
+            'tags' => ['nullable', 'array'],
+            'tags.*' => ['string'],
+            'image' => ['nullable', 'string', 'max:255'],
             'selling_price' => ['required', 'numeric', 'min:0'],
             'status' => ['required', 'string', Rule::in(array_map(fn ($c) => $c->value, Lifecycle::cases()))],
+            'regions' => ['nullable', 'array'],
+            'regions.*' => ['string'],
         ];
     }
 }
