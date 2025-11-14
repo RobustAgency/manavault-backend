@@ -4,16 +4,9 @@ namespace App\Repositories;
 
 use App\Models\Product;
 use Illuminate\Pagination\LengthAwarePaginator;
-use App\Actions\Ezcards\GetProducts as EzCardsGetProducts;
-use App\Actions\Gift2Games\GetProducts as Gift2GamesGetProducts;
 
 class ProductRepository
 {
-    public function __construct(
-        private EzCardsGetProducts $ezGetProducts,
-        private Gift2GamesGetProducts $gift2GamesGetProducts
-    ) {}
-
     /**
      * Get paginated products filtered by the provided criteria.
      *
@@ -55,20 +48,5 @@ class ProductRepository
     public function deleteProduct(Product $product): bool
     {
         return $product->delete();
-    }
-
-    /**
-     * Fetch products from third-party services based on slug.
-     */
-    public function listThirdPartyProducts(string $slug, int $limit, int $offset): array
-    {
-        switch ($slug) {
-            case 'ez_cards':
-                return $this->ezGetProducts->execute($limit, $offset);
-            case 'gift2games':
-                return $this->gift2GamesGetProducts->execute($offset, $limit);
-            default:
-                return [];
-        }
     }
 }

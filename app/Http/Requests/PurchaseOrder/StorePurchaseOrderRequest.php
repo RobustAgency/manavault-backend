@@ -22,9 +22,27 @@ class StorePurchaseOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'product_id' => ['required', 'exists:products,id'],
             'supplier_id' => ['required', 'exists:suppliers,id'],
-            'quantity' => ['required', 'integer', 'min:1'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.digital_product_id' => ['required', 'exists:digital_products,id'],
+            'items.*.quantity' => ['required', 'integer', 'min:1'],
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'items.required' => 'At least one item is required.',
+            'items.min' => 'At least one item is required.',
+            'items.*.digital_product_id.required' => 'Digital product is required for all items.',
+            'items.*.digital_product_id.exists' => 'The selected digital product does not exist.',
+            'items.*.quantity.required' => 'Quantity is required for all items.',
+            'items.*.quantity.min' => 'Quantity must be at least 1.',
         ];
     }
 }

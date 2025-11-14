@@ -13,23 +13,16 @@ class PurchaseOrder extends Model
     use HasFactory;
 
     protected $fillable = [
-        'product_id',
         'supplier_id',
         'total_price',
-        'quantity',
         'order_number',
         'transaction_id',
-        'voucher_codes_processed',
-        'voucher_codes_processed_at',
+        'status',
     ];
 
-    /**
-     * @return BelongsTo<Product, $this>
-     */
-    public function product(): BelongsTo
-    {
-        return $this->belongsTo(Product::class);
-    }
+    protected $casts = [
+        'total_price' => 'decimal:2',
+    ];
 
     /**
      * @return BelongsTo<Supplier, $this>
@@ -40,10 +33,10 @@ class PurchaseOrder extends Model
     }
 
     /**
-     * @return HasMany<Voucher, $this>
+     * @return HasMany<PurchaseOrderItem, $this>
      */
-    public function vouchers(): HasMany
+    public function items(): HasMany
     {
-        return $this->hasMany(Voucher::class);
+        return $this->hasMany(PurchaseOrderItem::class);
     }
 }

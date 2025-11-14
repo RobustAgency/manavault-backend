@@ -29,7 +29,6 @@ Route::middleware(['auth:supabase', 'role:super_admin,admin'])->prefix('/admin')
     Route::prefix('/products')->group(function () {
         Route::get('', [ProductController::class, 'index']);
         Route::post('', [ProductController::class, 'store']);
-        Route::get('/third-party', [ProductController::class, 'listThirdPartyProducts']);
         Route::get('/{product}', [ProductController::class, 'show']);
         Route::post('/{product}', [ProductController::class, 'update']);
         Route::delete('/{product}', [ProductController::class, 'destroy']);

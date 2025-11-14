@@ -2,20 +2,23 @@
 
 namespace App\Repositories;
 
-use Ramsey\Uuid\Uuid;
-use App\Models\Product;
 use App\Models\Voucher;
 use App\Models\Supplier;
 use App\Models\PurchaseOrder;
+use App\Models\DigitalProduct;
+use App\Models\PurchaseOrderItem;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Pagination\LengthAwarePaginator;
-use App\Actions\Ezcards\PlaceOrder as EzcardsPlaceOrder;
-use App\Actions\Gift2Games\CreateOrder as Gift2GamesCreateOrder;
+use App\Services\Ezcards\EzcardsPlaceOrderService;
+use App\Services\Gift2Games\Gift2GamesPlaceOrderService;
 
 class PurchaseOrderRepository
 {
     public function __construct(
-        private EzcardsPlaceOrder $ezcardsPlaceOrder,
-        private Gift2GamesCreateOrder $gift2GamesCreateOrder
+        private EzcardsPlaceOrderService $ezcardPlaceOrderService,
+        private Gift2GamesPlaceOrderService $gift2GamesPlaceOrderService,
     ) {}
 
     /**
@@ -25,19 +28,7 @@ class PurchaseOrderRepository
      */
     public function getFilteredPurchaseOrders(array $filters = []): LengthAwarePaginator
     {
-        $query = PurchaseOrder::query()->with(['product', 'supplier']);
-
-        if (! empty($filters['supplier_name'])) {
-            $query->whereHas('supplier', fn ($q) => $q->where('name', 'like', '%'.$filters['supplier_name'].'%'));
-        }
-
-        if (! empty($filters['product_name'])) {
-            $query->whereHas('product', fn ($q) => $q->where('name', 'like', '%'.$filters['product_name'].'%'));
-        }
-
-        if (! empty($filters['order_number'])) {
-            $query->where('order_number', 'like', '%'.$filters['order_number'].'%');
-        }
+        $query = PurchaseOrder::query();
 
         $perPage = $filters['per_page'] ?? 10;
 
@@ -45,58 +36,137 @@ class PurchaseOrderRepository
     }
 
     /**
-     * Create a new purchase order.
+     * Create a single purchase order with items from one supplier.
+     *
+     * @return Collection<int, PurchaseOrder>
      *
      * @throws \RuntimeException
      */
-    public function createPurchaseOrder(array $data): PurchaseOrder
+    public function createPurchaseOrders(array $data): Collection
     {
-        // Fetch supplier and product
-        /** @var Supplier $supplier */
-        $supplier = Supplier::findOrFail($data['supplier_id']);
-        /** @var Product $product */
-        $product = Product::findOrFail($data['product_id']);
+        /** @var int $supplierId */
+        $supplierId = $data['supplier_id'];
 
-        // Generate unique order number
-        $orderNumber = Uuid::uuid4()->toString();
+        /** @var array<int, array{digital_product_id:int, quantity:int}> $items */
+        $items = $data['items'];
 
-        $placeOrderData = [
-            'product_sku' => $product->sku,
-            'quantity' => $data['quantity'],
-            'order_number' => $orderNumber,
-        ];
+        $supplier = Supplier::findOrFail($supplierId);
 
-        $orderResponse = null;
+        $orderNumber = $this->generateOrderNumber();
+        $status = 'completed';
 
+        DB::beginTransaction();
         try {
-            switch ($supplier->slug) {
-                case 'ez_cards':
-                    $orderResponse = $this->ezcardsPlaceOrder->execute($placeOrderData);
-                    $data['transaction_id'] = $orderResponse['data']['transactionId'] ?? null;
-                    break;
+            $totalPrice = 0;
+            $orderItems = [];
+            $transactionId = null;
+            $externalOrderResponse = [];
 
-                case 'gift2games':
-                    $orderResponse = $this->gift2GamesCreateOrder->execute($placeOrderData);
-                    break;
+            foreach ($items as $item) {
+                /** @var DigitalProduct $digitalProduct */
+                $digitalProduct = DigitalProduct::findOrFail($item['digital_product_id']);
+                $quantity = $item['quantity'];
+                $unitCost = $digitalProduct->cost_price;
+                $subtotal = $quantity * $unitCost;
+
+                $totalPrice += $subtotal;
+
+                $orderItems[] = [
+                    'digital_product_id' => $digitalProduct->id,
+                    'digital_product' => $digitalProduct,
+                    'quantity' => $quantity,
+                    'unit_cost' => (float) $unitCost,
+                    'subtotal' => (float) $subtotal,
+                ];
             }
-        } catch (\Exception $e) {
-            throw new \RuntimeException("Failed to place order with supplier {$supplier->slug}: ".$e->getMessage(), 0, $e);
-        }
+            if ($this->isExternalSupplier($supplier)) {
+                try {
+                    $status = 'processing';
+                    $externalOrderResponse = $this->placeExternalOrder($supplier, $orderItems, $orderNumber);
+                    $transactionId = $externalOrderResponse['transaction_id'] ?? null;
 
-        $data['order_number'] = $orderNumber;
-        $data['total_price'] = $product->purchase_price * $data['quantity'];
+                    Log::info('External order placed successfully', [
+                        'supplier_slug' => $supplier->slug,
+                        'supplier_id' => $supplierId,
+                        'transaction_id' => $transactionId,
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('Failed to place external order', [
+                        'supplier_slug' => $supplier->slug,
+                        'supplier_id' => $supplierId,
+                        'error' => $e->getMessage(),
+                    ]);
+                    $status = 'failed';
+                }
+            }
 
-        $purchase_order = PurchaseOrder::create($data);
-
-        if ($supplier->slug === 'gift2games') {
-            Voucher::create([
-                'purchase_order_id' => $purchase_order->id,
-                'code' => $orderResponse['data']['serialCode'],
-                'serial_number' => $orderResponse['data']['serialNumber'],
-                'status' => 'COMPLETED',
+            // Create a single purchase order
+            $purchaseOrder = PurchaseOrder::create([
+                'supplier_id' => $supplierId,
+                'total_price' => $totalPrice,
+                'order_number' => $orderNumber,
+                'transaction_id' => $transactionId,
+                'status' => $status,
             ]);
-        }
 
-        return $purchase_order;
+            // Create purchase order items
+            foreach ($orderItems as $orderItem) {
+                PurchaseOrderItem::create([
+                    'purchase_order_id' => $purchaseOrder->id,
+                    'digital_product_id' => $orderItem['digital_product_id'],
+                    'quantity' => $orderItem['quantity'],
+                    'unit_cost' => $orderItem['unit_cost'],
+                    'subtotal' => $orderItem['subtotal'],
+                ]);
+            }
+
+            if ($externalOrderResponse[0]['serialCode']) {
+                foreach ($externalOrderResponse as $voucherData) {
+                    Voucher::create([
+                        'purchase_order_id' => $purchaseOrder->id,
+                        'code' => $voucherData['serialCode'],
+                        'serial_number' => $voucherData['serialNumber'] ?? null,
+                        'status' => 'available',
+                    ]);
+                }
+            }
+
+            DB::commit();
+
+            return collect([$purchaseOrder->load(['supplier', 'items.digitalProduct'])]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw new \RuntimeException('Failed to create purchase order: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Generate a unique order number.
+     */
+    private function generateOrderNumber(): string
+    {
+        return 'PO-'.date('Ymd').'-'.strtoupper(uniqid());
+    }
+
+    /**
+     * Check if supplier is external (requires API order placement).
+     */
+    private function isExternalSupplier(Supplier $supplier): bool
+    {
+        return in_array($supplier->slug, ['ez_cards']);
+    }
+
+    /**
+     * Place order with external supplier API.
+     *
+     * @throws \RuntimeException
+     */
+    private function placeExternalOrder(Supplier $supplier, array $orderItems, string $orderNumber): array
+    {
+        return match ($supplier->slug) {
+            'ez_cards' => $this->ezcardPlaceOrderService->placeOrder($orderItems, $orderNumber),
+            'gift2games' => $this->gift2GamesPlaceOrderService->placeOrder($orderItems, $orderNumber),
+            default => throw new \RuntimeException("Unknown external supplier: {$supplier->slug}"),
+        };
     }
 }

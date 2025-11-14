@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Ezcards;
 
 use App\Models\Voucher;
 use App\Models\PurchaseOrder;
