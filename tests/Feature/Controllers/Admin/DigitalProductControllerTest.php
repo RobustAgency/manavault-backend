@@ -39,14 +39,13 @@ class DigitalProductControllerTest extends TestCase
                             'id',
                             'supplier_id',
                             'name',
+                            'sku',
                             'brand',
                             'description',
-                            'tags',
-                            'image',
                             'cost_price',
                             'status',
-                            'regions',
                             'metadata',
+                            'last_synced_at',
                             'created_at',
                             'updated_at',
                         ],
@@ -117,14 +116,13 @@ class DigitalProductControllerTest extends TestCase
                     'id',
                     'supplier_id',
                     'name',
+                    'sku',
                     'brand',
                     'description',
-                    'tags',
-                    'image',
                     'cost_price',
                     'status',
-                    'regions',
                     'metadata',
+                    'last_synced_at',
                     'created_at',
                     'updated_at',
                     'supplier',
@@ -162,13 +160,11 @@ class DigitalProductControllerTest extends TestCase
                 [
                     'supplier_id' => $supplier->id,
                     'name' => 'New Digital Product',
+                    'sku' => 'SKU-12345',
                     'brand' => 'Test Brand',
                     'description' => 'Product description',
-                    'tags' => ['gaming', 'digital'],
-                    'image' => 'https://example.com/image.jpg',
                     'cost_price' => 149.99,
                     'status' => 'active',
-                    'regions' => ['US', 'CA'],
                     'metadata' => ['external_id' => 'ext-123'],
                 ],
             ],
@@ -198,6 +194,7 @@ class DigitalProductControllerTest extends TestCase
 
         $this->assertDatabaseHas('digital_products', [
             'name' => 'New Digital Product',
+            'sku' => 'SKU-12345',
             'brand' => 'Test Brand',
             'cost_price' => 149.99,
         ]);
@@ -214,6 +211,7 @@ class DigitalProductControllerTest extends TestCase
                 [
                     'supplier_id' => $supplier->id,
                     'name' => 'Product 1',
+                    'sku' => 'SKU-001',
                     'brand' => 'Brand A',
                     'cost_price' => 10.00,
                     'status' => 'active',
@@ -221,6 +219,7 @@ class DigitalProductControllerTest extends TestCase
                 [
                     'supplier_id' => $supplier->id,
                     'name' => 'Product 2',
+                    'sku' => 'SKU-002',
                     'brand' => 'Brand B',
                     'cost_price' => 20.00,
                     'status' => 'active',
@@ -228,6 +227,7 @@ class DigitalProductControllerTest extends TestCase
                 [
                     'supplier_id' => $supplier->id,
                     'name' => 'Product 3',
+                    'sku' => 'SKU-003',
                     'brand' => 'Brand C',
                     'cost_price' => 30.00,
                     'status' => 'inactive',
@@ -263,6 +263,7 @@ class DigitalProductControllerTest extends TestCase
         $response->assertStatus(422)
             ->assertJsonValidationErrors([
                 'products.0.supplier_id',
+                'products.0.sku',
                 'products.0.cost_price',
                 'products.0.status',
             ]);
@@ -360,6 +361,7 @@ class DigitalProductControllerTest extends TestCase
                 [
                     'supplier_id' => $supplier->id,
                     'name' => 'Test Product',
+                    'sku' => 'TEST-SKU',
                     'cost_price' => 99.99,
                     'status' => 'active',
                 ],

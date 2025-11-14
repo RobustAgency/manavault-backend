@@ -23,15 +23,11 @@ class UpdateDigitalProductRequest extends FormRequest
     {
         return [
             'name' => ['sometimes', 'string', 'max:255'],
+            'sku' => ['sometimes', 'string', 'max:255'],
             'brand' => ['sometimes', 'nullable', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
-            'tags' => ['sometimes', 'nullable', 'array'],
-            'tags.*' => ['string'],
-            'image' => ['sometimes', 'nullable', 'string', 'max:255'],
             'cost_price' => ['sometimes', 'numeric', 'min:0'],
             'status' => ['sometimes', 'string', 'in:active,inactive'],
-            'regions' => ['sometimes', 'nullable', 'array'],
-            'regions.*' => ['string'],
             'metadata' => ['sometimes', 'nullable', 'array'],
         ];
     }

@@ -25,15 +25,11 @@ class StoreDigitalProductRequest extends FormRequest
             'products' => ['required', 'array', 'min:1'],
             'products.*.supplier_id' => ['required', 'integer', 'exists:suppliers,id'],
             'products.*.name' => ['required', 'string', 'max:255'],
+            'products.*.sku' => ['required', 'string', 'max:255'],
             'products.*.brand' => ['nullable', 'string', 'max:255'],
             'products.*.description' => ['nullable', 'string'],
-            'products.*.tags' => ['nullable', 'array'],
-            'products.*.tags.*' => ['string'],
-            'products.*.image' => ['nullable', 'string', 'max:255'],
             'products.*.cost_price' => ['required', 'numeric', 'min:0'],
             'products.*.status' => ['required', 'string', 'in:active,inactive'],
-            'products.*.regions' => ['nullable', 'array'],
-            'products.*.regions.*' => ['string'],
             'products.*.metadata' => ['nullable', 'array'],
         ];
     }
