@@ -7,7 +7,6 @@ use App\Models\Supplier;
 use App\Models\PurchaseOrder;
 use App\Models\DigitalProduct;
 use App\Models\PurchaseOrderItem;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -35,14 +34,7 @@ class PurchaseOrderRepository
         return $query->paginate($perPage);
     }
 
-    /**
-     * Create a single purchase order with items from one supplier.
-     *
-     * @return Collection<int, PurchaseOrder>
-     *
-     * @throws \RuntimeException
-     */
-    public function createPurchaseOrders(array $data): Collection
+    public function createPurchaseOrder(array $data): PurchaseOrder
     {
         /** @var int $supplierId */
         $supplierId = $data['supplier_id'];
@@ -51,7 +43,6 @@ class PurchaseOrderRepository
         $items = $data['items'];
 
         $supplier = Supplier::findOrFail($supplierId);
-
         $orderNumber = $this->generateOrderNumber();
         $status = 'completed';
 
@@ -120,7 +111,7 @@ class PurchaseOrderRepository
                 ]);
             }
 
-            if ($externalOrderResponse[0]['serialCode']) {
+            if (! empty($externalOrderResponse) && isset($externalOrderResponse[0]['serialCode'])) {
                 foreach ($externalOrderResponse as $voucherData) {
                     Voucher::create([
                         'purchase_order_id' => $purchaseOrder->id,
@@ -129,38 +120,30 @@ class PurchaseOrderRepository
                         'status' => 'available',
                     ]);
                 }
+                $purchaseOrder->update([
+                    'status' => 'completed',
+                ]);
             }
 
             DB::commit();
 
-            return collect([$purchaseOrder->load(['supplier', 'items.digitalProduct'])]);
+            return $purchaseOrder;
         } catch (\Exception $e) {
             DB::rollBack();
             throw new \RuntimeException('Failed to create purchase order: '.$e->getMessage());
         }
     }
 
-    /**
-     * Generate a unique order number.
-     */
     private function generateOrderNumber(): string
     {
         return 'PO-'.date('Ymd').'-'.strtoupper(uniqid());
     }
 
-    /**
-     * Check if supplier is external (requires API order placement).
-     */
     private function isExternalSupplier(Supplier $supplier): bool
     {
-        return in_array($supplier->slug, ['ez_cards']);
+        return in_array($supplier->slug, ['ez_cards', 'gift2games']);
     }
 
-    /**
-     * Place order with external supplier API.
-     *
-     * @throws \RuntimeException
-     */
     private function placeExternalOrder(Supplier $supplier, array $orderItems, string $orderNumber): array
     {
         return match ($supplier->slug) {

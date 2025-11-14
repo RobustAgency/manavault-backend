@@ -14,13 +14,17 @@ class EzcardsPlaceOrderService
         $products = [];
         foreach ($orderItems as $item) {
             $products[] = [
-                'product_id' => $item['digital_product']->sku,
+                'sku' => $item['digital_product']->sku,
                 'quantity' => $item['quantity'],
-                'clientOrderNumber' => $orderNumber,
             ];
         }
 
-        $response = $this->ezcardsPlaceOrder->execute($products);
+        $requestData = [
+            'clientOrderNumber' => $orderNumber,
+            'products' => $products,
+        ];
+
+        $response = $this->ezcardsPlaceOrder->execute($requestData);
 
         $data = $response['data'] ?? [];
 

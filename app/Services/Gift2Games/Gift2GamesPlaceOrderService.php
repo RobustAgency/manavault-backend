@@ -26,7 +26,7 @@ class Gift2GamesPlaceOrderService
                     continue;
                 }
 
-                $vouchers[] = $response;
+                $vouchers[] = $response['data'];
             }
         }
 

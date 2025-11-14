@@ -21,10 +21,10 @@ class SyncGift2GamesProductsCommand extends Command
      */
     protected $description = 'Sync digital products from Gift2Games';
 
-    // public function __construct(private SyncDigitalProducts $syncDigitalProducts)
-    // {
-    //     parent::__construct();
-    // }
+    public function __construct(private SyncDigitalProducts $syncDigitalProducts)
+    {
+        parent::__construct();
+    }
 
     /**
      * Execute the console command.
@@ -33,7 +33,7 @@ class SyncGift2GamesProductsCommand extends Command
     {
         $this->info('Starting Gift2Games product sync...');
         try {
-            // $this->syncDigitalProducts->processSyncAllProducts();
+            $this->syncDigitalProducts->processSyncAllProducts();
             $this->info('Sync completed successfully.');
         } catch (\Throwable $e) {
             $this->error('Sync failed: '.$e->getMessage());
