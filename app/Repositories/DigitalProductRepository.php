@@ -100,4 +100,9 @@ class DigitalProductRepository
     {
         return DigitalProduct::where('status', 'active')->get();
     }
+
+    public function createOrUpdate(array $attributes, array $values): DigitalProduct
+    {
+        return DigitalProduct::updateOrCreate($attributes, $values);
+    }
 }

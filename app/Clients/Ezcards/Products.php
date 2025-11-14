@@ -27,58 +27,7 @@ class Products extends Client
 
         $response = $this->handleResponse($response);
 
-        return $this->formatProductsResponse($response);
-    }
-
-    /**
-     * Format the products response to a simplified structure.
-     *
-     * @param  array  $response  The raw API response
-     * @return array Formatted products array
-     */
-    private function formatProductsResponse(array $response): array
-    {
-        if (! isset($response['data']['items']) || ! is_array($response['data']['items'])) {
-            return [];
-        }
-
-        return array_map(function ($item) {
-            // Get the first price from the prices array
-            $price = isset($item['prices'][0]['price']) ? (float) $item['prices'][0]['price'] : 0.0;
-
-            // Build description from available fields
-            $descriptionParts = [];
-
-            if (! empty($item['brand'])) {
-                $descriptionParts[] = "Brand: {$item['brand']}";
-            }
-
-            if (! empty($item['faceValue'])) {
-                $descriptionParts[] = "Face Value: {$item['currency']} {$item['faceValue']}";
-            }
-
-            if (! empty($item['percentageOffFaceValue'])) {
-                $descriptionParts[] = "Discount: {$item['percentageOffFaceValue']}%";
-            }
-
-            if (! empty($item['country'])) {
-                $descriptionParts[] = "Country: {$item['country']}";
-            }
-
-            if (! empty($item['format'])) {
-                $format = $item['format'] === 'D' ? 'Digital' : $item['format'];
-                $descriptionParts[] = "Format: {$format}";
-            }
-
-            $description = implode(' | ', $descriptionParts);
-
-            return [
-                'sku' => $item['sku'] ?? null,
-                'name' => $item['name'] ?? null,
-                'description' => $description ?: null,
-                'price' => $price,
-            ];
-        }, $response['data']['items']);
+        return $response;
     }
 
     private function validateQueryParams(array $params): array

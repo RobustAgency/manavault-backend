@@ -21,16 +21,7 @@ class PlaceOrder
     public function execute(array $orderData): array
     {
         try {
-            $data = [
-                'products' => [
-                    [
-                        'sku' => $orderData['product_sku'],
-                        'quantity' => $orderData['quantity'],
-                        'clientOrderNumber' => $orderData['order_number'],
-                    ],
-                ],
-            ];
-            $orderResponse = $this->ezcardsOrders->placeOrder($data);
+            $orderResponse = $this->ezcardsOrders->placeOrder($orderData);
 
             return $orderResponse;
         } catch (\RuntimeException $e) {

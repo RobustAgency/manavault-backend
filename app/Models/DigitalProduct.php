@@ -20,6 +20,7 @@ class DigitalProduct extends Model
         'cost_price',
         'status',
         'metadata',
+        'source',
         'last_synced_at',
     ];
 

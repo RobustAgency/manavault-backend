@@ -10,7 +10,6 @@ use App\Repositories\ProductRepository;
 use App\Http\Requests\Product\ListProductRequest;
 use App\Http\Requests\Product\StoreProductRequest;
 use App\Http\Requests\Product\UpdateProductRequest;
-use App\Http\Requests\Product\ListThirdPartyProductRequest;
 
 class ProductController extends Controller
 {
@@ -67,25 +66,6 @@ class ProductController extends Controller
         return response()->json([
             'error' => false,
             'message' => 'Product deleted successfully.',
-        ]);
-    }
-
-    public function listThirdPartyProducts(ListThirdPartyProductRequest $request): JsonResponse
-    {
-        $products = $this->repository->listThirdPartyProducts(
-            $request->input('slug'),
-            $request->input('limit', 15),
-            $request->input('offset', 1)
-        );
-
-        return response()->json([
-            'error' => false,
-            'data' => [
-                'data' => $products,
-                'limit' => $request->input('limit', 15),
-                'offset' => $request->input('offset', 1),
-            ],
-            'message' => 'Third-party products retrieved successfully.',
         ]);
     }
 }
