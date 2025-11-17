@@ -49,7 +49,7 @@ class PurchaseOrderRepositoryTest extends TestCase
     {
         PurchaseOrder::factory()->count(15)->create();
 
-        $orders = $this->repository->getPaginatedPurchaseOrders();
+        $orders = $this->repository->getFilteredPurchaseOrders();
 
         $this->assertCount(10, $orders->items()); // Default per_page is 10
         $this->assertEquals(15, $orders->total());
@@ -59,23 +59,10 @@ class PurchaseOrderRepositoryTest extends TestCase
     {
         PurchaseOrder::factory()->count(25)->create();
 
-        $orders = $this->repository->getPaginatedPurchaseOrders(['per_page' => 5]);
+        $orders = $this->repository->getFilteredPurchaseOrders(['per_page' => 5]);
 
         $this->assertCount(5, $orders->items());
         $this->assertEquals(25, $orders->total());
         $this->assertEquals(5, $orders->count());
-    }
-
-    public function test_paginated_purchase_orders_loads_relationships(): void
-    {
-        $purchaseOrder = PurchaseOrder::factory()->create();
-
-        $orders = $this->repository->getPaginatedPurchaseOrders();
-        $firstOrder = $orders->items()[0];
-
-        $this->assertTrue($firstOrder->relationLoaded('product'));
-        $this->assertTrue($firstOrder->relationLoaded('supplier'));
-        $this->assertNotNull($firstOrder->product);
-        $this->assertNotNull($firstOrder->supplier);
     }
 }

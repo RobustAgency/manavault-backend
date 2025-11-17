@@ -25,8 +25,9 @@ class Gift2GamesPlaceOrderService
 
                     continue;
                 }
-
-                $vouchers[] = $response['data'];
+                $voucherData = $response['data'];
+                $voucherData['digital_product_id'] = $item['digital_product_id'];
+                $vouchers[] = $voucherData;
             }
         }
 

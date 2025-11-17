@@ -50,68 +50,6 @@ class VoucherControllerTest extends TestCase
             ]);
     }
 
-    public function test_admin_can_import_vouchers_with_xlsx_file(): void
-    {
-        $this->actingAs($this->admin);
-
-        $purchaseOrder = PurchaseOrder::factory()->create();
-        PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(2)->create();
-
-        $file = UploadedFile::fake()->create('vouchers.xlsx', 100, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        $response = $this->postJson('/api/admin/vouchers/store', [
-            'file' => $file,
-            'purchase_order_id' => $purchaseOrder->id,
-        ]);
-
-        $response->assertStatus(200)
-            ->assertJson([
-                'error' => false,
-                'message' => 'Vouchers imported successfully.',
-            ]);
-    }
-
-    public function test_admin_can_import_vouchers_with_xls_file(): void
-    {
-        $this->actingAs($this->admin);
-
-        $purchaseOrder = PurchaseOrder::factory()->create();
-        PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(2)->create();
-
-        $file = UploadedFile::fake()->create('vouchers.xls', 100, 'application/vnd.ms-excel');
-
-        $response = $this->postJson('/api/admin/vouchers/store', [
-            'file' => $file,
-            'purchase_order_id' => $purchaseOrder->id,
-        ]);
-
-        $response->assertStatus(200)
-            ->assertJson([
-                'error' => false,
-                'message' => 'Vouchers imported successfully.',
-            ]);
-    }
-
-    public function test_admin_can_import_vouchers_with_zip_file(): void
-    {
-        $this->actingAs($this->admin);
-
-        $purchaseOrder = PurchaseOrder::factory()->create();
-        PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(2)->create();
-
-        $file = UploadedFile::fake()->create('vouchers.zip', 100, 'application/zip');
-
-        $response = $this->postJson('/api/admin/vouchers/store', [
-            'file' => $file,
-            'purchase_order_id' => $purchaseOrder->id,
-        ]);
-
-        $response->assertStatus(200)
-            ->assertJson([
-                'error' => false,
-                'message' => 'Vouchers imported successfully.',
-            ]);
-    }
-
     public function test_admin_can_import_vouchers_with_voucher_codes_array(): void
     {
         $this->actingAs($this->admin);

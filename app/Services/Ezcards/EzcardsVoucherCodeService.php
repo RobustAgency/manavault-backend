@@ -101,9 +101,20 @@ class EzcardsVoucherCodeService
         $vouchersAdded = $this->storeVoucherCodes($purchaseOrder, $voucherCodesResponse);
         $result['vouchers_added'] = $vouchersAdded;
 
-        // Check if all vouchers are now completed and update the purchase order
+        // Only mark as completed if ALL vouchers are stored and available
         if ($this->areAllVouchersCompleted($purchaseOrder)) {
             $this->markPurchaseOrderAsProcessed($purchaseOrder);
+            Log::info('Purchase order marked as completed', [
+                'purchase_order_id' => $purchaseOrder->id,
+                'order_number' => $purchaseOrder->order_number,
+            ]);
+        } else {
+            Log::info('Purchase order still processing - not all vouchers ready', [
+                'purchase_order_id' => $purchaseOrder->id,
+                'order_number' => $purchaseOrder->order_number,
+                'expected_quantity' => $purchaseOrder->getTotalQuantity(),
+                'current_available' => $purchaseOrder->vouchers()->where('status', 'available')->count(),
+            ]);
         }
 
         return $result;
@@ -149,71 +160,107 @@ class EzcardsVoucherCodeService
     {
         $vouchersAdded = 0;
 
-        // Handle response structure - adjust based on actual API response
-        $vouchers = $voucherCodesResponse['data'][0]['codes'] ?? [];
+        // Handle response structure - the data array contains items for each product
+        $productVouchers = $voucherCodesResponse['data'] ?? [];
+
+        // Load purchase order items with digital products to match vouchers to items
+        $purchaseOrder->load('items.digitalProduct');
 
         DB::beginTransaction();
         try {
-            foreach ($vouchers as $index => $voucherData) {
-                // Extract voucher code (adjust field names based on actual API response)
-                $code = $voucherData['redeemCode'] ?? $voucherData['serialCode'] ?? null;
-                $serialNumber = $voucherData['serialNumber'] ?? null;
-                $status = isset($voucherData['redeemCode']) ? 'available' : 'processing';
-                $stockId = $voucherData['stockId'] ?? null;
+            // Process each product's vouchers from the API response
+            foreach ($productVouchers as $productData) {
+                $sku = $productData['sku'];
+                $codes = $productData['codes'];
 
-                // For processing status without code, create placeholder with stockId
-                if (! $code && $status === 'processing' && $stockId) {
-                    // Check if a voucher with this stockId already exists
-                    $exists = Voucher::where('purchase_order_id', $purchaseOrder->id)
-                        ->where('stock_id', $stockId)
-                        ->exists();
+                // Find the corresponding purchase order item by matching the SKU
+                $purchaseOrderItem = $purchaseOrder->items->first(function ($item) use ($sku) {
+                    return $item->digitalProduct->sku === $sku;
+                });
 
-                    if (! $exists) {
+                if (! $purchaseOrderItem) {
+                    Log::warning('No purchase order item found for EzCards voucher', [
+                        'sku' => $sku,
+                        'purchase_order_id' => $purchaseOrder->id,
+                    ]);
+
+                    continue;
+                }
+
+                // Process each voucher code for this product
+                foreach ($codes as $voucherData) {
+                    $code = $voucherData['redeemCode'];
+                    $pinCode = $voucherData['pinCode'] ?? null;
+                    $stockId = $voucherData['stockId'];
+                    $apiStatus = $voucherData['status'];
+
+                    // Determine voucher status based on API status and code availability
+                    if ($apiStatus === 'COMPLETED' && $code) {
+                        $status = 'available';
+                    } elseif ($apiStatus === 'PROCESSING' || ! $code) {
+                        $status = 'processing';
+                    } else {
+                        $status = 'available';
+                    }
+
+                    // For processing status without code, create placeholder with stockId
+                    if (! $code && $status === 'processing' && $stockId) {
+                        // Check if a voucher with this stockId already exists
+                        $exists = Voucher::where('purchase_order_id', $purchaseOrder->id)
+                            ->where('stock_id', $stockId)
+                            ->exists();
+
+                        if (! $exists) {
+                            Voucher::create([
+                                'code' => null,
+                                'purchase_order_id' => $purchaseOrder->id,
+                                'purchase_order_item_id' => $purchaseOrderItem->id,
+                                'status' => $status,
+                                'serial_number' => null,
+                                'pin_code' => null,
+                                'stock_id' => $stockId,
+                            ]);
+                            $vouchersAdded++;
+                        }
+
+                        continue;
+                    }
+
+                    // Skip if no code and not processing
+                    if (! $code) {
+                        continue;
+                    }
+
+                    // Check if voucher code already exists (by code or by stockId)
+                    $existingVoucher = Voucher::where('purchase_order_id', $purchaseOrder->id)
+                        ->where(function ($query) use ($code, $stockId) {
+                            $query->where('code', $code);
+                            if ($stockId) {
+                                $query->orWhere('stock_id', $stockId);
+                            }
+                        })
+                        ->first();
+
+                    if (! $existingVoucher) {
                         Voucher::create([
-                            'code' => null,
+                            'code' => $code,
                             'purchase_order_id' => $purchaseOrder->id,
+                            'purchase_order_item_id' => $purchaseOrderItem->id,
                             'status' => $status,
-                            'serial_number' => null,
+                            'pin_code' => $pinCode,
                             'stock_id' => $stockId,
                         ]);
                         $vouchersAdded++;
+                    } else {
+                        // Update existing voucher if status or code changed
+                        $existingVoucher->update([
+                            'code' => $code,
+                            'purchase_order_item_id' => $purchaseOrderItem->id,
+                            'status' => $status,
+                            'pin_code' => $pinCode,
+                            'stock_id' => $stockId,
+                        ]);
                     }
-
-                    continue;
-                }
-
-                // Skip if no code and not processing
-                if (! $code) {
-                    continue;
-                }
-
-                // Check if voucher code already exists (by code or by stockId)
-                $existingVoucher = Voucher::where('purchase_order_id', $purchaseOrder->id)
-                    ->where(function ($query) use ($code, $stockId) {
-                        $query->where('code', $code);
-                        if ($stockId) {
-                            $query->orWhere('stock_id', $stockId);
-                        }
-                    })
-                    ->first();
-
-                if (! $existingVoucher) {
-                    Voucher::create([
-                        'code' => $code,
-                        'purchase_order_id' => $purchaseOrder->id,
-                        'status' => $status,
-                        'serial_number' => $serialNumber,
-                        'stock_id' => $stockId,
-                    ]);
-                    $vouchersAdded++;
-                } else {
-                    // Update existing voucher if status or code changed
-                    $existingVoucher->update([
-                        'code' => $code,
-                        'status' => $status,
-                        'serial_number' => $serialNumber,
-                        'stock_id' => $stockId,
-                    ]);
                 }
             }
 
