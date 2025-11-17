@@ -9,17 +9,14 @@ use App\Repositories\DigitalProductRepository;
 
 class SyncDigitalProducts
 {
-    private Supplier $supplier;
-
     public function __construct(
         private GetProducts $getProducts,
         private DigitalProductRepository $digitalProductRepository,
-    ) {
-        $this->supplier = Supplier::where('slug', 'gift2games')->first();
-    }
+    ) {}
 
     public function processSyncAllProducts(): void
     {
+        $supplier = Supplier::where('slug', 'gift2games')->first();
         $products = $this->getProducts->execute();
         if ($products['status'] == 0) {
             Log::error('Failed to sync Gift2Games products');
@@ -31,9 +28,9 @@ class SyncDigitalProducts
         foreach ($items as $item) {
             $this->digitalProductRepository->createOrUpdate([
                 'sku' => $item['id'],
-                'supplier_id' => $this->supplier->id,
+                'supplier_id' => $supplier->id,
             ], [
-                'supplier_id' => $this->supplier->id,
+                'supplier_id' => $supplier->id,
                 'name' => $item['title'],
                 'sku' => $item['id'],
                 'brand' => $item['brand'] ?? null,

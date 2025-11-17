@@ -39,4 +39,20 @@ class PurchaseOrder extends Model
     {
         return $this->hasMany(PurchaseOrderItem::class);
     }
+
+    /**
+     * @return HasMany<Voucher, $this>
+     */
+    public function vouchers(): HasMany
+    {
+        return $this->hasMany(Voucher::class);
+    }
+
+    /**
+     * Get the total quantity of all items in this purchase order.
+     */
+    public function getTotalQuantity(): int
+    {
+        return (int) $this->items()->sum('quantity');
+    }
 }

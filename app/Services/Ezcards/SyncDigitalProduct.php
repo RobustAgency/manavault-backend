@@ -9,22 +9,20 @@ use App\Repositories\DigitalProductRepository;
 
 class SyncDigitalProduct
 {
-    private Supplier $supplier;
-
     private int $pageSize = 100;
 
     public function __construct(
         private GetProducts $getProducts,
         private DigitalProductRepository $digitalProductRepository,
-    ) {
-        $this->supplier = Supplier::where('slug', 'ez_cards')->firstOrFail();
-    }
+    ) {}
 
     /**
      * Sync all products from EZ Cards API.
      */
     public function processSyncAllProducts(): void
     {
+        $supplier = Supplier::where('slug', 'ez_cards')->firstOrFail();
+
         $page = 1;
 
         do {
@@ -37,23 +35,23 @@ class SyncDigitalProduct
                 break;
             }
 
-            $this->syncBatch($items);
+            $this->syncBatch($supplier, $items);
 
             $page++;
         } while ($page <= $totalPage);
     }
 
-    private function syncBatch(array $items): void
+    private function syncBatch(Supplier $supplier, array $items): void
     {
         foreach ($items as $item) {
             try {
                 $this->digitalProductRepository->createOrUpdate(
                     [
                         'sku' => $item['sku'],
-                        'supplier_id' => $this->supplier->id,
+                        'supplier_id' => $supplier->id,
                     ],
                     [
-                        'supplier_id' => $this->supplier->id,
+                        'supplier_id' => $supplier->id,
                         'name' => $item['name'],
                         'sku' => $item['sku'],
                         'brand' => $item['brand'] ?? null,

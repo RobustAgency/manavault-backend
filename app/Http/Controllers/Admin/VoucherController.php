@@ -6,7 +6,7 @@ use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
 use App\Repositories\VoucherRepository;
 use App\Http\Requests\ListVouchersRequest;
-use App\Http\Requests\Voucher\ImportVoucherRequest;
+use App\Http\Requests\Voucher\StoreVoucherRequest;
 
 class VoucherController extends Controller
 {
@@ -24,12 +24,12 @@ class VoucherController extends Controller
         ]);
     }
 
-    public function importVouchers(ImportVoucherRequest $request): JsonResponse
+    public function store(StoreVoucherRequest $request): JsonResponse
     {
         $validated = $request->validated();
 
         try {
-            $this->voucherRepository->importVouchers($validated);
+            $this->voucherRepository->storeVouchers($validated);
 
             return response()->json([
                 'error' => false,

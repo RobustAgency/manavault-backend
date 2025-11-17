@@ -650,6 +650,47 @@
 						"description": "Delete a product. Requires admin role."
 					},
 					"response": []
+				},
+				{
+					"name": "Assign Digital Products",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"digital_product_ids\": [1, 2, 3]  // Required: Array of digital product IDs (min: 1 item)\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/products/:product_id/digital_products",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"products",
+								":product_id",
+								"digital_products"
+							],
+							"variable": [
+								{
+									"key": "product_id",
+									"value": "1",
+									"description": "Required: Product ID"
+								}
+							]
+						},
+						"description": "Assign multiple digital products to a product. This will sync the relationship (removes old assignments and adds new ones). Requires admin role."
+					},
+					"response": []
 				}
 			],
 			"description": "Admin endpoints for product management"
