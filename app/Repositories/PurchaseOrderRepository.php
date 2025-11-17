@@ -74,7 +74,7 @@ class PurchaseOrderRepository
                 try {
                     $status = 'processing';
                     $externalOrderResponse = $this->placeExternalOrder($supplier, $orderItems, $orderNumber);
-                    $transactionId = $externalOrderResponse['transaction_id'] ?? null;
+                    $transactionId = $externalOrderResponse['transactionId'] ?? null;
 
                     Log::info('External order placed successfully', [
                         'supplier_slug' => $supplier->slug,

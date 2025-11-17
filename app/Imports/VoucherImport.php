@@ -17,15 +17,18 @@ class VoucherImport implements ToCollection, WithBatchInserts, WithChunkReading,
 {
     protected int $purchaseOrderID;
 
+    protected int $purchaseOrderTotalQuantity;
+
     protected array $errors = [];
 
     protected int $successCount = 0;
 
     protected int $failureCount = 0;
 
-    public function __construct(int $purchaseOrderID)
+    public function __construct(int $purchaseOrderID, int $purchaseOrderTotalQuantity)
     {
         $this->purchaseOrderID = $purchaseOrderID;
+        $this->purchaseOrderTotalQuantity = $purchaseOrderTotalQuantity;
     }
 
     /**
@@ -33,23 +36,35 @@ class VoucherImport implements ToCollection, WithBatchInserts, WithChunkReading,
      */
     public function collection(Collection $rows): void
     {
+        $totalRows = $rows->count();
+
+        if ($totalRows !== $this->purchaseOrderTotalQuantity) {
+            throw new RuntimeException("The number of voucher codes ({$totalRows}) does not match the total quantity of the purchase order ({$this->purchaseOrderTotalQuantity}).");
+        }
+
         DB::beginTransaction();
-        foreach ($rows as $index => $row) {
-            try {
-                $this->validateRow($row->toArray());
+        try {
+            foreach ($rows as $index => $row) {
+                // @phpstan-ignore function.impossibleType
+                $rowData = is_array($row) ? $row : $row->toArray();
+                $this->validateRow($rowData);
 
                 Voucher::create([
-                    'code' => $row['code'],
+                    'code' => $rowData['code'],
                     'purchase_order_id' => $this->purchaseOrderID,
+                    'status' => 'available',
                 ]);
 
                 $this->successCount++;
-            } catch (ValidationException $e) {
-                DB::rollBack();
-                throw new RuntimeException($e->getMessage());
             }
+            DB::commit();
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            throw new RuntimeException($e->getMessage());
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
         }
-        DB::commit();
     }
 
     protected function validateRow(array $data): void

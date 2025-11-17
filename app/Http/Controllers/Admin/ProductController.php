@@ -10,6 +10,7 @@ use App\Repositories\ProductRepository;
 use App\Http\Requests\Product\ListProductRequest;
 use App\Http\Requests\Product\StoreProductRequest;
 use App\Http\Requests\Product\UpdateProductRequest;
+use App\Http\Requests\Product\AssignDigitalProductsRequest;
 
 class ProductController extends Controller
 {
@@ -66,6 +67,18 @@ class ProductController extends Controller
         return response()->json([
             'error' => false,
             'message' => 'Product deleted successfully.',
+        ]);
+    }
+
+    public function assignDigitalProducts(Product $product, AssignDigitalProductsRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+
+        $product->digitalProducts()->sync($validated['digital_product_ids']);
+
+        return response()->json([
+            'error' => false,
+            'message' => 'Digital products assigned successfully.',
         ]);
     }
 }

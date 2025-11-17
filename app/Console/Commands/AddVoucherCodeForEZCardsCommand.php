@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Services\EzcardsVoucherCodeService;
+use App\Services\Ezcards\EzcardsVoucherCodeService;
 
 class AddVoucherCodeForEZCardsCommand extends Command
 {
@@ -21,16 +21,21 @@ class AddVoucherCodeForEZCardsCommand extends Command
      */
     protected $description = 'Add voucher code for EZCards purchase orders';
 
+    public function __construct(private EzcardsVoucherCodeService $voucherCodeService)
+    {
+        parent::__construct();
+    }
+
     /**
      * Execute the console command.
      */
-    public function handle(EzcardsVoucherCodeService $voucherCodeService): int
+    public function handle(): int
     {
         $this->info('Starting EZ Cards voucher code processing...');
         $this->newLine();
 
         try {
-            $summary = $voucherCodeService->processAllPurchaseOrders();
+            $summary = $this->voucherCodeService->processAllPurchaseOrders();
 
             // Display summary
             $this->info('Processing completed!');

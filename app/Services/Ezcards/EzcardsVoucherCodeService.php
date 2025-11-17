@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Actions\Ezcards\GetVoucherCodes;
 
-class EzCardsVoucherCodeService
+class EzcardsVoucherCodeService
 {
     public function __construct(
         private GetVoucherCodes $getVoucherCodes
@@ -70,11 +70,11 @@ class EzCardsVoucherCodeService
      */
     private function getUnprocessedPurchaseOrders()
     {
-        return PurchaseOrder::with(['supplier', 'vouchers'])
+        return PurchaseOrder::with(['supplier', 'vouchers', 'items'])
             ->whereHas('supplier', function ($query) {
                 $query->where('slug', 'ez_cards');
             })
-            ->where('voucher_codes_processed', false)
+            ->where('status', '!=', 'completed')
             ->whereNotNull('transaction_id')
             ->get();
     }
@@ -124,17 +124,20 @@ class EzCardsVoucherCodeService
             return false;
         }
 
+        // Get the total quantity from all purchase order items
+        $expectedQuantity = $purchaseOrder->getTotalQuantity();
+
         // Check if we have the expected number of vouchers
-        if ($totalVouchers < $purchaseOrder->quantity) {
+        if ($totalVouchers < $expectedQuantity) {
             return false;
         }
 
-        // Check if all vouchers have COMPLETED status
-        $completedVouchers = $purchaseOrder->vouchers()
-            ->where('status', 'COMPLETED')
+        // Check if all vouchers have available status
+        $availableVouchers = $purchaseOrder->vouchers()
+            ->where('status', 'available')
             ->count();
 
-        return $completedVouchers === $purchaseOrder->quantity;
+        return $availableVouchers === $expectedQuantity;
     }
 
     /**
@@ -153,13 +156,13 @@ class EzCardsVoucherCodeService
         try {
             foreach ($vouchers as $index => $voucherData) {
                 // Extract voucher code (adjust field names based on actual API response)
-                $code = $voucherData['redeemCode'] ?? null;
-                $status = $voucherData['status'] ?? 'PROCESSING';
-                $pinCode = $voucherData['pinCode'] ?? null;
+                $code = $voucherData['redeemCode'] ?? $voucherData['serialCode'] ?? null;
+                $serialNumber = $voucherData['serialNumber'] ?? null;
+                $status = isset($voucherData['redeemCode']) ? 'available' : 'processing';
                 $stockId = $voucherData['stockId'] ?? null;
 
-                // For PROCESSING status without code, create placeholder with stockId
-                if (! $code && $status === 'PROCESSING' && $stockId) {
+                // For processing status without code, create placeholder with stockId
+                if (! $code && $status === 'processing' && $stockId) {
                     // Check if a voucher with this stockId already exists
                     $exists = Voucher::where('purchase_order_id', $purchaseOrder->id)
                         ->where('stock_id', $stockId)
@@ -170,7 +173,7 @@ class EzCardsVoucherCodeService
                             'code' => null,
                             'purchase_order_id' => $purchaseOrder->id,
                             'status' => $status,
-                            'pin_code' => null,
+                            'serial_number' => null,
                             'stock_id' => $stockId,
                         ]);
                         $vouchersAdded++;
@@ -199,7 +202,7 @@ class EzCardsVoucherCodeService
                         'code' => $code,
                         'purchase_order_id' => $purchaseOrder->id,
                         'status' => $status,
-                        'pin_code' => $pinCode,
+                        'serial_number' => $serialNumber,
                         'stock_id' => $stockId,
                     ]);
                     $vouchersAdded++;
@@ -208,7 +211,7 @@ class EzCardsVoucherCodeService
                     $existingVoucher->update([
                         'code' => $code,
                         'status' => $status,
-                        'pin_code' => $pinCode,
+                        'serial_number' => $serialNumber,
                         'stock_id' => $stockId,
                     ]);
                 }
@@ -229,8 +232,7 @@ class EzCardsVoucherCodeService
     private function markPurchaseOrderAsProcessed(PurchaseOrder $purchaseOrder): void
     {
         $purchaseOrder->update([
-            'voucher_codes_processed' => true,
-            'voucher_codes_processed_at' => now(),
+            'status' => 'completed',
         ]);
     }
 }
