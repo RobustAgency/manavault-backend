@@ -2,7 +2,6 @@
 
 namespace App\Repositories;
 
-use App\Models\Voucher;
 use App\Models\Supplier;
 use App\Models\PurchaseOrder;
 use App\Models\DigitalProduct;
@@ -11,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Pagination\LengthAwarePaginator;
 use App\Services\Ezcards\EzcardsPlaceOrderService;
+use App\Services\Gift2Games\Gift2GamesVoucherService;
 use App\Services\Gift2Games\Gift2GamesPlaceOrderService;
 
 class PurchaseOrderRepository
@@ -18,6 +18,7 @@ class PurchaseOrderRepository
     public function __construct(
         private EzcardsPlaceOrderService $ezcardPlaceOrderService,
         private Gift2GamesPlaceOrderService $gift2GamesPlaceOrderService,
+        private Gift2GamesVoucherService $gift2GamesVoucherService,
     ) {}
 
     /**
@@ -115,68 +116,8 @@ class PurchaseOrderRepository
 
             if ($supplier->slug === 'gift2games') {
                 // For Gift2Games, vouchers are returned immediately in the order response
-                if (! empty($externalOrderResponse)) {
-                    $voucherCountByProduct = [];
-
-                    foreach ($externalOrderResponse as $voucherData) {
-                        $digitalProductId = $voucherData['digital_product_id'] ?? null;
-
-                        if (! $digitalProductId) {
-                            Log::warning('Gift2Games voucher missing digital_product_id', ['voucher' => $voucherData]);
-
-                            continue;
-                        }
-
-                        // Initialize counter for this product if not exists
-                        if (! isset($voucherCountByProduct[$digitalProductId])) {
-                            $voucherCountByProduct[$digitalProductId] = 0;
-                        }
-
-                        // Find the purchase order item for this digital product
-                        $purchaseOrderItem = $purchaseOrder->items->first(function ($item) use ($digitalProductId) {
-                            return $item->digital_product_id == $digitalProductId;
-                        });
-
-                        if (! $purchaseOrderItem) {
-                            Log::warning('No purchase order item found for voucher', [
-                                'digital_product_id' => $digitalProductId,
-                                'voucher' => $voucherData,
-                            ]);
-
-                            continue;
-                        }
-
-                        // Increment the counter
-                        $voucherCountByProduct[$digitalProductId]++;
-
-                        // Verify we're not exceeding the ordered quantity
-                        if ($voucherCountByProduct[$digitalProductId] > $purchaseOrderItem->quantity) {
-                            Log::warning('Received more vouchers than ordered quantity', [
-                                'digital_product_id' => $digitalProductId,
-                                'ordered_quantity' => $purchaseOrderItem->quantity,
-                                'received_count' => $voucherCountByProduct[$digitalProductId],
-                            ]);
-                        }
-
-                        Voucher::create([
-                            'purchase_order_id' => $purchaseOrder->id,
-                            'purchase_order_item_id' => $purchaseOrderItem->id,
-                            'code' => $voucherData['serialCode'] ?? $voucherData['code'] ?? null,
-                            'serial_number' => $voucherData['serialNumber'] ?? null,
-                            'status' => 'available',
-                        ]);
-                    }
-
-                    // Check if all vouchers were created successfully
-                    $totalExpectedVouchers = $purchaseOrder->getTotalQuantity();
-                    $totalCreatedVouchers = Voucher::where('purchase_order_id', $purchaseOrder->id)->count();
-
-                    if ($totalCreatedVouchers >= $totalExpectedVouchers) {
-                        $purchaseOrder->update([
-                            'status' => 'completed',
-                        ]);
-                    }
-                }
+                // Use the Gift2GamesVoucherService to process and store them
+                $this->gift2GamesVoucherService->storeVouchers($purchaseOrder, $externalOrderResponse);
             } elseif ($supplier->slug === 'ez_cards') {
                 // For EzCards, vouchers are NOT returned immediately
                 // They will be fetched later using EzcardsVoucherCodeService with the transaction_id
@@ -203,7 +144,7 @@ class PurchaseOrderRepository
 
     private function isExternalSupplier(Supplier $supplier): bool
     {
-        return in_array($supplier->slug, ['ez_cards', 'gift2games']);
+        return $supplier->type === 'external';
     }
 
     private function placeExternalOrder(Supplier $supplier, array $orderItems, string $orderNumber): array
