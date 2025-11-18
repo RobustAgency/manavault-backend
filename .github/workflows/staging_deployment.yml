@@ -1,24 +1,34 @@
 name: Staging Deployment
+
 on:
   push:
     branches:
       - staging
+
 jobs:
   deploy:
     runs-on: ubuntu-24.04
+
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
 
-      - name: Install laravel envoy
+      - name: Set git safe directory
+        run: git config --global --add safe.directory /app
+
+      - name: Install Composer dependencies
         uses: php-actions/composer@v6
         with:
-          args: --ignore-platform-reqs
-          command: require laravel/envoy --dev
+          args: install --ignore-platform-reqs --no-interaction --no-progress
 
-      - name: Adding Staging server key
+      - name: Require Laravel Envoy
+        run: composer require laravel/envoy --dev --ignore-platform-reqs
+
+      - name: Set up SSH
         run: |
-          echo "${{ secrets.DEV_PRIVATE_KEY }}" > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "144.126.254.193" > ~/.ssh/known_hosts
-      - name: Deploying to Staging server
+          echo "${{ secrets.DEV_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "144.126.254.193" >> ~/.ssh/known_hosts
+
+      - name: Deploy to Staging server
         run: ./vendor/bin/envoy run deploy
