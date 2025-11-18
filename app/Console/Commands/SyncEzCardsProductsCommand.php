@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Services\EzCards\SyncDigitalProduct;
+use App\Services\Ezcards\SyncDigitalProduct;
 
 class SyncEzCardsProductsCommand extends Command
 {
