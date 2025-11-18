@@ -21,5 +21,8 @@ jobs:
           ssh-keyscan -H "144.126.254.193" >> ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
+      - name: Install dependencies
+        run: composer install
+
       - name: Deploying to Staging server
         run: ./vendor/bin/envoy run deploy
