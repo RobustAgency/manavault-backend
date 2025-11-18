@@ -14,8 +14,11 @@ jobs:
         run: git config --global --add safe.directory /app
 
       - name: Adding Staging server key
-        run: |
-          echo "${{ secrets.DEV_PRIVATE_KEY }}" > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "144.126.254.193" > ~/.ssh/known_hosts
+          run: |
+            mkdir -p ~/.ssh
+            echo "${{ secrets.DEV_PRIVATE_KEY }}" > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa
+            chmod 600 ~/.ssh/id_rsa
+            ssh-keyscan -H "144.126.254.193" >> ~/.ssh/known_hosts
+            chmod 644 ~/.ssh/known_hosts
       - name: Deploying to Staging server
         run: ./vendor/bin/envoy run deploy
