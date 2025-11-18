@@ -9,9 +9,9 @@ use Illuminate\Http\Client\RequestException;
 
 abstract class BaseApiClient
 {
-    protected string $baseUrl;
+    protected ?string $baseUrl;
 
-    protected string $accessToken;
+    protected ?string $accessToken;
 
     protected ?string $apiKey = null;
 
@@ -54,15 +54,19 @@ abstract class BaseApiClient
      */
     protected function getHeaders(): array
     {
-        $authValue = $this->useBearerPrefix()
-            ? 'Bearer '.$this->accessToken
-            : $this->accessToken;
-
         $headers = [
-            'Authorization' => $authValue,
             'Content-Type' => 'application/json',
             'Accept' => 'application/json',
         ];
+
+        // Add Authorization header if access token exists
+        if ($this->accessToken !== null) {
+            $authValue = $this->useBearerPrefix()
+                ? 'Bearer '.$this->accessToken
+                : $this->accessToken;
+
+            $headers['Authorization'] = $authValue;
+        }
 
         // Add API key header if it exists
         if ($this->apiKey !== null) {
