@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\EzCards;
+namespace App\Services\Ezcards;
 
 use App\Models\Supplier;
 use Illuminate\Support\Facades\Log;
