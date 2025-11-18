@@ -13,6 +13,10 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v4
 
+      - name: Set git safe directory
+        run: git config --global --add safe.directory /app
+
+
       - name: Require Laravel Envoy
         uses: php-actions/composer@v6
         with:
