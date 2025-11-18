@@ -40,6 +40,6 @@ class UserRepository
      */
     public function getPaginated(int $perPage = 10): LengthAwarePaginator
     {
-        return User::where('role', '!=', 'admin')->latest()->paginate($perPage);
+        return User::where('role', '!=', 'super_admin')->latest()->paginate($perPage);
     }
 }

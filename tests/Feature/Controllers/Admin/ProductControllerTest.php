@@ -2,11 +2,11 @@
 
 namespace Tests\Feature\Controllers\Admin;
 
+use Tests\TestCase;
 use App\Models\User;
 use App\Models\Product;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
-use Tests\TestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class ProductControllerTest extends TestCase
 {
@@ -14,7 +14,7 @@ class ProductControllerTest extends TestCase
 
     private User $admin;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
         $this->admin = User::factory()->create(['role' => 'admin']);
@@ -38,12 +38,18 @@ class ProductControllerTest extends TestCase
                             'id',
                             'name',
                             'sku',
+                            'brand',
                             'description',
-                            'price',
+                            'short_description',
+                            'long_description',
+                            'tags',
+                            'image',
+                            'selling_price',
                             'status',
+                            'regions',
                             'created_at',
                             'updated_at',
-                        ]
+                        ],
                     ],
                     'per_page',
                     'total',
@@ -90,7 +96,7 @@ class ProductControllerTest extends TestCase
 
         $product = Product::factory()->create([
             'name' => 'Test Product',
-            'price' => 99.99,
+            'selling_price' => 99.99,
         ]);
 
         $response = $this->getJson("/api/admin/products/{$product->id}");
@@ -102,8 +108,15 @@ class ProductControllerTest extends TestCase
                     'id',
                     'name',
                     'sku',
+                    'brand',
                     'description',
-                    'price',
+                    'short_description',
+                    'long_description',
+                    'tags',
+                    'image',
+                    'selling_price',
+                    'status',
+                    'regions',
                     'created_at',
                     'updated_at',
                 ],
@@ -115,7 +128,7 @@ class ProductControllerTest extends TestCase
                 'data' => [
                     'id' => $product->id,
                     'name' => 'Test Product',
-                    'price' => 99.99,
+                    'selling_price' => 99.99,
                 ],
             ]);
     }
@@ -137,8 +150,14 @@ class ProductControllerTest extends TestCase
             'name' => 'New Product',
             'description' => 'Product description',
             'sku' => 'SKU-12345',
-            'price' => 149.99,
+            'brand' => 'Test Brand',
+            'short_description' => 'Short description',
+            'long_description' => 'Long description with more details',
+            'tags' => ['gaming', 'digital'],
+            'image' => 'https://example.com/image.jpg',
+            'selling_price' => 149.99,
             'status' => 'active',
+            'regions' => ['US', 'CA'],
         ];
 
         $response = $this->postJson('/api/admin/products', $data);
@@ -150,9 +169,15 @@ class ProductControllerTest extends TestCase
                     'id',
                     'name',
                     'sku',
+                    'brand',
                     'description',
-                    'price',
+                    'short_description',
+                    'long_description',
+                    'tags',
+                    'image',
+                    'selling_price',
                     'status',
+                    'regions',
                     'created_at',
                     'updated_at',
                 ],
@@ -164,7 +189,7 @@ class ProductControllerTest extends TestCase
                 'data' => [
                     'name' => 'New Product',
                     'description' => 'Product description',
-                    'price' => 149.99,
+                    'selling_price' => 149.99,
                     'status' => 'active',
                 ],
             ]);
@@ -172,7 +197,7 @@ class ProductControllerTest extends TestCase
         $this->assertDatabaseHas('products', [
             'name' => 'New Product',
             'description' => 'Product description',
-            'price' => 149.99,
+            'selling_price' => 149.99,
         ]);
     }
 
@@ -182,13 +207,15 @@ class ProductControllerTest extends TestCase
 
         $product = Product::factory()->create([
             'name' => 'Original Name',
-            'price' => 100.00,
+            'selling_price' => 100.00,
         ]);
 
         $updateData = [
             'name' => 'Updated Name',
             'description' => 'Updated description',
-            'price' => 199.99,
+            'brand' => 'Updated Brand',
+            'short_description' => 'Updated short desc',
+            'selling_price' => 199.99,
         ];
 
         $response = $this->postJson("/api/admin/products/{$product->id}", $updateData);
@@ -200,9 +227,15 @@ class ProductControllerTest extends TestCase
                     'id',
                     'name',
                     'sku',
+                    'brand',
                     'description',
-                    'price',
+                    'short_description',
+                    'long_description',
+                    'tags',
+                    'image',
+                    'selling_price',
                     'status',
+                    'regions',
                     'created_at',
                     'updated_at',
                 ],
@@ -215,7 +248,7 @@ class ProductControllerTest extends TestCase
                     'id' => $product->id,
                     'name' => 'Updated Name',
                     'description' => 'Updated description',
-                    'price' => 199.99,
+                    'selling_price' => 199.99,
                 ],
             ]);
 
@@ -223,10 +256,9 @@ class ProductControllerTest extends TestCase
             'id' => $product->id,
             'name' => 'Updated Name',
             'description' => 'Updated description',
-            'price' => 199.99,
+            'selling_price' => 199.99,
         ]);
     }
-
 
     public function test_admin_delete_product(): void
     {
@@ -267,7 +299,7 @@ class ProductControllerTest extends TestCase
     {
         $data = [
             'name' => 'Test Product',
-            'price' => 99.99,
+            'selling_price' => 99.99,
         ];
 
         $response = $this->postJson('/api/admin/products', $data);

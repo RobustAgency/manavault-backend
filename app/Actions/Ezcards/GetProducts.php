@@ -14,6 +14,7 @@ class GetProducts
             'limit' => $limit,
             'page' => $page,
         ];
+
         return $this->ezcardsProducts->fetchList($queryParams);
     }
 }

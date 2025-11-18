@@ -428,7 +428,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/admin/products?name=&status=active&per_page=10",
+							"raw": "{{base_url}}/admin/products?name=&brand=&status=active&per_page=10",
 							"host": [
 								"{{base_url}}"
 							],
@@ -441,6 +441,11 @@
 									"key": "name",
 									"value": "",
 									"description": "Optional: Filter by product name (max 255 characters)"
+								},
+								{
+									"key": "brand",
+									"value": "",
+									"description": "Optional: Filter by brand name (max 255 characters)"
 								},
 								{
 									"key": "status",
@@ -474,7 +479,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"supplier_id\": 1,  // Required: must exist in suppliers table\n    \"name\": \"Addidas Gift Card $25 (USA)\",  // Required: max 255 characters\n    \"description\": \"Digital gift card for Addidas stores\",  // Optional\n    \"sku\": \"AAU-QB-Q1J\",  // Required: max 100 characters, must be unique\n    \"purchase_price\": 20.00,  // Required: numeric, min 0\n    \"selling_price\": 22.88,  // Required: numeric, min 0\n    \"status\": \"active\"  // Required: Enum values: in_active, active, archived\n}"
+							"raw": "{\n    \"name\": \"Adidas Gift Card $25 (USA)\",  // Required: max 255 characters\n    \"sku\": \"AAU-QB-Q1J\",  // Required: max 100 characters, must be unique\n    \"brand\": \"Adidas\",  // Optional: max 255 characters\n    \"description\": \"Digital gift card for Adidas stores\",  // Optional\n    \"short_description\": \"$25 Adidas gift card - USA region\",  // Optional\n    \"long_description\": \"Redeem this gift card at any Adidas store or online at adidas.com. Valid for all products including footwear, apparel, and accessories.\",  // Optional\n    \"tags\": [\"gift card\", \"digital\", \"sports\", \"fashion\"],  // Optional: array of strings\n    \"image\": \"https://example.com/images/adidas-gift-card.jpg\",  // Optional: max 255 characters\n    \"selling_price\": 22.88,  // Required: numeric, min 0\n    \"status\": \"active\",  // Required: Enum values: in_active, active, archived\n    \"regions\": [\"US\", \"CA\"]  // Optional: array of strings\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/admin/products",
@@ -590,7 +595,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Updated Product Name\",  // Optional: max 255 characters\n    \"description\": \"Updated description\",  // Optional\n    \"purchase_price\": 18.00,  // Optional: numeric, min 0\n    \"selling_price\": 25.99,  // Optional: numeric, min 0\n    \"status\": \"archived\"  // Optional: Enum values: in_active, active, archived\n}"
+							"raw": "{\n    \"name\": \"Updated Product Name\",  // Optional: max 255 characters\n    \"brand\": \"Updated Brand\",  // Optional: max 255 characters\n    \"description\": \"Updated description\",  // Optional\n    \"short_description\": \"Updated short description\",  // Optional\n    \"long_description\": \"Updated long description with more details\",  // Optional\n    \"tags\": [\"updated\", \"modified\"],  // Optional: array of strings\n    \"image\": \"https://example.com/images/updated-image.jpg\",  // Optional: max 255 characters\n    \"selling_price\": 25.99,  // Optional: numeric, min 0\n    \"status\": \"archived\",  // Optional: Enum values: in_active, active, archived\n    \"regions\": [\"US\", \"CA\", \"UK\"]  // Optional: array of strings\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/admin/products/:product_id",
@@ -645,9 +650,243 @@
 						"description": "Delete a product. Requires admin role."
 					},
 					"response": []
+				},
+				{
+					"name": "Assign Digital Products",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"digital_product_ids\": [1, 2, 3]  // Required: Array of digital product IDs (min: 1 item)\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/products/:product_id/digital_products",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"products",
+								":product_id",
+								"digital_products"
+							],
+							"variable": [
+								{
+									"key": "product_id",
+									"value": "1",
+									"description": "Required: Product ID"
+								}
+							]
+						},
+						"description": "Assign multiple digital products to a product. This will sync the relationship (removes old assignments and adds new ones). Requires admin role."
+					},
+					"response": []
 				}
 			],
 			"description": "Admin endpoints for product management"
+		},
+		{
+			"name": "Admin - Digital Products",
+			"item": [
+				{
+					"name": "List Digital Products",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/digital-products?name=&brand=&supplier_id=&status=active&per_page=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"digital-products"
+							],
+							"query": [
+								{
+									"key": "name",
+									"value": "",
+									"description": "Optional: Filter by product name (max 255 characters)"
+								},
+								{
+									"key": "brand",
+									"value": "",
+									"description": "Optional: Filter by brand name (max 255 characters)"
+								},
+								{
+									"key": "supplier_id",
+									"value": "",
+									"description": "Optional: Filter by supplier ID"
+								},
+								{
+									"key": "status",
+									"value": "active",
+									"description": "Optional: Filter by status (active, inactive)"
+								},
+								{
+									"key": "per_page",
+									"value": "10",
+									"description": "Optional: Items per page (min: 1, max: 100)"
+								}
+							]
+						},
+						"description": "Retrieve filtered and paginated list of digital products from external suppliers. Requires admin role."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Digital Products (Bulk)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"products\": [\n        {\n            \"supplier_id\": 1,  // Required: must exist in suppliers table\n            \"name\": \"Steam Gift Card $50\",  // Required: max 255 characters\n            \"brand\": \"Steam\",  // Optional: max 255 characters\n            \"description\": \"Digital gift card for Steam platform\",  // Optional\n            \"tags\": [\"gaming\", \"gift card\", \"digital\"],  // Optional: array of strings\n            \"image\": \"https://example.com/steam-card.jpg\",  // Optional: max 255 characters\n            \"cost_price\": 45.00,  // Required: numeric, min 0\n            \"status\": \"active\",  // Required: active or inactive\n            \"regions\": [\"US\", \"CA\", \"UK\"],  // Optional: array of strings\n            \"metadata\": {\n                \"external_id\": \"steam-50-usd\",\n                \"category\": \"Gaming\",\n                \"denomination\": 50\n            }  // Optional: json object\n        },\n        {\n            \"supplier_id\": 1,\n            \"name\": \"PlayStation Store Card $25\",\n            \"brand\": \"PlayStation\",\n            \"description\": \"Digital gift card for PlayStation Store\",\n            \"cost_price\": 22.00,\n            \"status\": \"active\",\n            \"tags\": [\"gaming\", \"playstation\"],\n            \"regions\": [\"US\"]\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/digital-products",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"digital-products"
+							]
+						},
+						"description": "Create one or multiple digital products at once. Supports bulk import from external APIs. Requires admin role."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Digital Product Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/digital-products/:digital_product_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"digital-products",
+								":digital_product_id"
+							],
+							"variable": [
+								{
+									"key": "digital_product_id",
+									"value": "1",
+									"description": "Required: Digital Product ID"
+								}
+							]
+						},
+						"description": "Get details of a specific digital product including supplier information. Requires admin role."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Digital Product",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Updated Product Name\",  // Optional: max 255 characters\n    \"brand\": \"Updated Brand\",  // Optional: max 255 characters\n    \"description\": \"Updated description\",  // Optional\n    \"tags\": [\"updated\", \"tag\"],  // Optional: array of strings\n    \"image\": \"https://example.com/new-image.jpg\",  // Optional: max 255 characters\n    \"cost_price\": 50.00,  // Optional: numeric, min 0\n    \"status\": \"inactive\",  // Optional: active or inactive\n    \"regions\": [\"US\", \"CA\", \"UK\", \"EU\"],  // Optional: array of strings\n    \"metadata\": {\n        \"updated_field\": \"new_value\"\n    }  // Optional: json object\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/digital-products/:digital_product_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"digital-products",
+								":digital_product_id"
+							],
+							"variable": [
+								{
+									"key": "digital_product_id",
+									"value": "1",
+									"description": "Required: Digital Product ID"
+								}
+							]
+						},
+						"description": "Update an existing digital product. All fields are optional. Requires admin role."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Digital Product",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/digital-products/:digital_product_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"digital-products",
+								":digital_product_id"
+							],
+							"variable": [
+								{
+									"key": "digital_product_id",
+									"value": "1",
+									"description": "Required: Digital Product ID"
+								}
+							]
+						},
+						"description": "Delete a digital product. Requires admin role."
+					},
+					"response": []
+				}
+			],
+			"description": "Admin endpoints for managing digital products from external suppliers (EZ Cards, Gift2Games, etc.)"
 		},
 		{
 			"name": "Admin - Purchase Orders",
@@ -694,7 +933,7 @@
 								}
 							]
 						},
-						"description": "Retrieve paginated list of purchase orders with optional filters. Requires admin role.\n\n**Query Parameters:**\n- `per_page` (integer, optional) - Number of items per page (min: 1, max: 100)\n- `order_number` (string, optional) - Filter by order number (partial match, max: 244 characters)\n- `supplier_name` (string, optional) - Filter by supplier name (partial match, max: 255 characters)\n- `product_name` (string, optional) - Filter by product name (partial match, max: 255 characters)\n\n**Response (200):**\n```json\n{\n    \"error\": false,\n    \"data\": {\n        \"current_page\": 1,\n        \"data\": [\n            {\n                \"id\": 1,\n                \"order_number\": \"550e8400-e29b-41d4-a716-446655440000\",\n                \"product_id\": 1,\n                \"supplier_id\": 1,\n                \"quantity\": 10,\n                \"total_price\": \"100.00\",\n                \"transaction_id\": \"12345\",\n                \"created_at\": \"2025-11-11T10:00:00.000000Z\",\n                \"product\": { \"id\": 1, \"name\": \"Product Name\", \"sku\": \"SKU123\" },\n                \"supplier\": { \"id\": 1, \"name\": \"Supplier Name\", \"slug\": \"ez_cards\" }\n            }\n        ],\n        \"per_page\": 10,\n        \"total\": 50\n    },\n    \"message\": \"Purchase orders retrieved successfully.\"\n}\n```"
+						"description": "Retrieve paginated list of purchase orders with optional filters. Requires admin role.\n\n**Query Parameters:**\n- `per_page` (integer, optional) - Number of items per page (min: 1, max: 100)\n- `order_number` (string, optional) - Filter by order number (partial match, max: 244 characters)\n- `supplier_name` (string, optional) - Filter by supplier name (partial match, max: 255 characters)\n- `product_name` (string, optional) - Filter by product name (partial match, max: 255 characters)\n\n**Response (200):**\n```json\n{\n    \"error\": false,\n    \"data\": {\n        \"current_page\": 1,\n        \"data\": [\n            {\n                \"id\": 1,\n                \"order_number\": \"PO-20251114-ABC123\",\n                \"supplier_id\": 1,\n                \"total_price\": \"450.00\",\n                \"transaction_id\": \"TXN-1234\",\n                \"status\": \"processing\",\n                \"created_at\": \"2025-11-14T10:00:00.000000Z\",\n                \"updated_at\": \"2025-11-14T10:00:00.000000Z\",\n                \"supplier\": {\n                    \"id\": 1,\n                    \"name\": \"EZ Cards\",\n                    \"slug\": \"ez_cards\",\n                    \"type\": \"external\",\n                    \"status\": \"active\"\n                },\n                \"items\": [\n                    {\n                        \"id\": 1,\n                        \"purchase_order_id\": 1,\n                        \"digital_product_id\": 1,\n                        \"quantity\": 10,\n                        \"unit_cost\": \"25.99\",\n                        \"subtotal\": \"259.90\",\n                        \"digital_product\": {\n                            \"id\": 1,\n                            \"name\": \"Product 1\",\n                            \"sku\": \"SKU-001\"\n                        }\n                    },\n                    {\n                        \"id\": 2,\n                        \"purchase_order_id\": 1,\n                        \"digital_product_id\": 2,\n                        \"quantity\": 5,\n                        \"unit_cost\": \"38.02\",\n                        \"subtotal\": \"190.10\",\n                        \"digital_product\": {\n                            \"id\": 2,\n                            \"name\": \"Product 2\",\n                            \"sku\": \"SKU-002\"\n                        }\n                    }\n                ]\n            }\n        ],\n        \"per_page\": 10,\n        \"total\": 50\n    },\n    \"message\": \"Purchase orders retrieved successfully.\"\n}\n```"
 					},
 					"response": []
 				},
@@ -714,7 +953,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"product_id\": 1,\n    \"supplier_id\": 1,\n    \"quantity\": 10\n}",
+							"raw": "{\n    \"supplier_id\": 1,\n    \"items\": [\n        {\n            \"digital_product_id\": 1,\n            \"quantity\": 10\n        },\n        {\n            \"digital_product_id\": 2,\n            \"quantity\": 5\n        }\n    ]\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -731,7 +970,7 @@
 								"purchase-orders"
 							]
 						},
-						"description": "Create a new purchase order. The order is automatically placed with the external supplier (EZ Cards or Gift2Games) based on the supplier configuration. Order number and total price are auto-generated. Requires admin role.\n\n**Required Fields:**\n- `product_id` (integer, required) - Must exist in products table\n- `supplier_id` (integer, required) - Must exist in suppliers table\n- `quantity` (integer, required) - Minimum: 1\n\n**Auto-Generated Fields:**\n- `order_number` - UUID v4 format\n- `total_price` - Calculated as: product.purchase_price × quantity\n- `transaction_id` - Returned from EZ Cards API (for EZ Cards orders only)\n\n**Supplier-Specific Behavior:**\n- **EZ Cards**: Order placed via API, transaction_id stored, voucher codes fetched later\n- **Gift2Games**: Order placed via API, voucher code immediately created and stored\n\n**Response (201):**\n```json\n{\n    \"error\": false,\n    \"data\": {\n        \"id\": 1,\n        \"order_number\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"product_id\": 1,\n        \"supplier_id\": 1,\n        \"quantity\": 10,\n        \"total_price\": \"100.00\",\n        \"transaction_id\": \"12345\",\n        \"created_at\": \"2025-11-11T10:00:00.000000Z\",\n        \"updated_at\": \"2025-11-11T10:00:00.000000Z\",\n        \"product\": {\n            \"id\": 1,\n            \"name\": \"Product Name\",\n            \"sku\": \"SKU123\"\n        },\n        \"supplier\": {\n            \"id\": 1,\n            \"name\": \"EZ Cards\",\n            \"slug\": \"ez_cards\"\n        },\n        \"vouchers\": []\n    },\n    \"message\": \"Purchase order created successfully.\"\n}\n```\n\n**Error Response (500):**\n```json\n{\n    \"error\": true,\n    \"message\": \"Failed to create purchase order: [error details]\"\n}\n```"
+						"description": "Create a new purchase order with multiple items from a single supplier. The order is automatically placed with the external supplier (EZ Cards or Gift2Games) based on the supplier configuration. Order number and total price are auto-generated. Requires admin role.\n\n**Required Fields:**\n- `supplier_id` (integer, required) - Must exist in suppliers table. All items must be from this supplier\n- `items` (array, required) - Array of items to order (minimum 1 item)\n- `items.*.digital_product_id` (integer, required) - Must exist in digital_products table\n- `items.*.quantity` (integer, required) - Minimum: 1\n\n**Auto-Generated Fields:**\n- `order_number` - Format: PO-YYYYMMDD-UNIQUEID\n- `total_price` - Calculated from digital product cost_price and quantity\n- `transaction_id` - Returned from external supplier API (for external suppliers only)\n- `status` - pending/processing/completed/failed\n\n**Supplier-Specific Behavior:**\n- **EZ Cards**: Order placed via API, transaction_id stored, unit prices updated from API response\n- **Internal**: No external API call, status set to completed\n\n**Response (201):**\n```json\n{\n    \"error\": false,\n    \"data\": {\n        \"id\": 1,\n        \"order_number\": \"PO-20251114-ABC123\",\n        \"supplier_id\": 1,\n        \"total_price\": \"450.00\",\n        \"transaction_id\": \"TXN-1234\",\n        \"status\": \"processing\",\n        \"created_at\": \"2025-11-14T10:00:00.000000Z\",\n        \"updated_at\": \"2025-11-14T10:00:00.000000Z\",\n        \"supplier\": {\n            \"id\": 1,\n            \"name\": \"EZ Cards\",\n            \"slug\": \"ez_cards\",\n            \"type\": \"external\",\n            \"status\": \"active\"\n        },\n        \"items\": [\n            {\n                \"id\": 1,\n                \"purchase_order_id\": 1,\n                \"digital_product_id\": 1,\n                \"quantity\": 10,\n                \"unit_cost\": \"25.99\",\n                \"subtotal\": \"259.90\",\n                \"created_at\": \"2025-11-14T10:00:00.000000Z\",\n                \"updated_at\": \"2025-11-14T10:00:00.000000Z\",\n                \"digital_product\": {\n                    \"id\": 1,\n                    \"name\": \"Product 1\",\n                    \"sku\": \"SKU-001\",\n                    \"brand\": \"Brand Name\",\n                    \"cost_price\": \"25.99\"\n                }\n            },\n            {\n                \"id\": 2,\n                \"purchase_order_id\": 1,\n                \"digital_product_id\": 2,\n                \"quantity\": 5,\n                \"unit_cost\": \"38.02\",\n                \"subtotal\": \"190.10\",\n                \"created_at\": \"2025-11-14T10:00:00.000000Z\",\n                \"updated_at\": \"2025-11-14T10:00:00.000000Z\",\n                \"digital_product\": {\n                    \"id\": 2,\n                    \"name\": \"Product 2\",\n                    \"sku\": \"SKU-002\",\n                    \"brand\": \"Brand Name\",\n                    \"cost_price\": \"38.02\"\n                }\n            }\n        ],\n        \"vouchers\": []\n    },\n    \"message\": \"Purchase order created successfully.\"\n}\n```\n\n**Error Response (500):**\n```json\n{\n    \"error\": true,\n    \"message\": \"Failed to create purchase order: [error details]\"\n}\n```"
 					},
 					"response": []
 				},
@@ -763,7 +1002,7 @@
 								}
 							]
 						},
-						"description": "Get details of a specific purchase order including associated product, supplier, and vouchers. Requires admin role.\n\n**URL Parameters:**\n- `purchase_order_id` (integer, required) - The ID of the purchase order\n\n**Response (200):**\n```json\n{\n    \"error\": false,\n    \"data\": {\n        \"id\": 1,\n        \"order_number\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"product_id\": 1,\n        \"supplier_id\": 1,\n        \"quantity\": 10,\n        \"total_price\": \"100.00\",\n        \"transaction_id\": \"12345\",\n        \"voucher_codes_processed\": false,\n        \"voucher_codes_processed_at\": null,\n        \"created_at\": \"2025-11-11T10:00:00.000000Z\",\n        \"updated_at\": \"2025-11-11T10:00:00.000000Z\",\n        \"product\": {\n            \"id\": 1,\n            \"name\": \"Product Name\",\n            \"sku\": \"SKU123\",\n            \"description\": \"Product description\",\n            \"purchase_price\": \"10.00\",\n            \"selling_price\": \"15.00\"\n        },\n        \"supplier\": {\n            \"id\": 1,\n            \"name\": \"EZ Cards\",\n            \"slug\": \"ez_cards\",\n            \"type\": \"external\",\n            \"status\": \"active\"\n        },\n        \"vouchers\": [\n            {\n                \"id\": 1,\n                \"code\": \"ABC123-DEF456\",\n                \"serial_number\": \"SN123456\",\n                \"pin_code\": \"1234\",\n                \"status\": \"COMPLETED\",\n                \"stock_id\": 1,\n                \"purchase_order_id\": 1,\n                \"created_at\": \"2025-11-11T10:05:00.000000Z\"\n            }\n        ]\n    },\n    \"message\": \"Purchase order retrieved successfully.\"\n}\n```"
+						"description": "Get details of a specific purchase order including associated supplier, items with digital products, and vouchers. Requires admin role.\n\n**URL Parameters:**\n- `purchase_order_id` (integer, required) - The ID of the purchase order\n\n**Response (200):**\n```json\n{\n    \"error\": false,\n    \"data\": {\n        \"id\": 1,\n        \"order_number\": \"PO-20251114-ABC123\",\n        \"supplier_id\": 1,\n        \"total_price\": \"450.00\",\n        \"transaction_id\": \"TXN-1234\",\n        \"status\": \"processing\",\n        \"created_at\": \"2025-11-14T10:00:00.000000Z\",\n        \"updated_at\": \"2025-11-14T10:00:00.000000Z\",\n        \"supplier\": {\n            \"id\": 1,\n            \"name\": \"EZ Cards\",\n            \"slug\": \"ez_cards\",\n            \"type\": \"external\",\n            \"status\": \"active\",\n            \"contact_email\": \"contact@ezcards.com\",\n            \"contact_phone\": \"+1234567890\"\n        },\n        \"items\": [\n            {\n                \"id\": 1,\n                \"purchase_order_id\": 1,\n                \"digital_product_id\": 1,\n                \"quantity\": 10,\n                \"unit_cost\": \"25.99\",\n                \"subtotal\": \"259.90\",\n                \"created_at\": \"2025-11-14T10:00:00.000000Z\",\n                \"updated_at\": \"2025-11-14T10:00:00.000000Z\",\n                \"digital_product\": {\n                    \"id\": 1,\n                    \"supplier_id\": 1,\n                    \"name\": \"Product 1\",\n                    \"sku\": \"SKU-001\",\n                    \"brand\": \"Brand Name\",\n                    \"description\": \"Product description\",\n                    \"cost_price\": \"25.99\",\n                    \"status\": \"active\",\n                    \"metadata\": {\"category\": \"Gaming\"},\n                    \"last_synced_at\": \"2025-11-14T09:00:00.000000Z\",\n                    \"created_at\": \"2025-11-01T10:00:00.000000Z\",\n                    \"updated_at\": \"2025-11-14T10:00:00.000000Z\"\n                }\n            },\n            {\n                \"id\": 2,\n                \"purchase_order_id\": 1,\n                \"digital_product_id\": 2,\n                \"quantity\": 5,\n                \"unit_cost\": \"38.02\",\n                \"subtotal\": \"190.10\",\n                \"created_at\": \"2025-11-14T10:00:00.000000Z\",\n                \"updated_at\": \"2025-11-14T10:00:00.000000Z\",\n                \"digital_product\": {\n                    \"id\": 2,\n                    \"supplier_id\": 1,\n                    \"name\": \"Product 2\",\n                    \"sku\": \"SKU-002\",\n                    \"brand\": \"Brand Name\",\n                    \"description\": \"Product description\",\n                    \"cost_price\": \"38.02\",\n                    \"status\": \"active\",\n                    \"metadata\": {\"category\": \"Entertainment\"},\n                    \"last_synced_at\": \"2025-11-14T09:00:00.000000Z\",\n                    \"created_at\": \"2025-11-01T10:00:00.000000Z\",\n                    \"updated_at\": \"2025-11-14T10:00:00.000000Z\"\n                }\n            }\n        ],\n        \"vouchers\": [\n            {\n                \"id\": 1,\n                \"code\": \"ABC123-DEF456\",\n                \"serial_number\": \"SN123456\",\n                \"pin_code\": \"1234\",\n                \"status\": \"available\",\n                \"stock_id\": 1,\n                \"purchase_order_id\": 1,\n                \"created_at\": \"2025-11-14T10:05:00.000000Z\",\n                \"updated_at\": \"2025-11-14T10:05:00.000000Z\"\n            }\n        ]\n    },\n    \"message\": \"Purchase order retrieved successfully.\"\n}\n```"
 					},
 					"response": []
 				}

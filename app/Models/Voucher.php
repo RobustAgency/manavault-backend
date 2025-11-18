@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Voucher extends Model
 {
@@ -16,6 +16,7 @@ class Voucher extends Model
     protected $fillable = [
         'code',
         'purchase_order_id',
+        'purchase_order_item_id',
         'serial_number',
         'status',
         'pin_code',

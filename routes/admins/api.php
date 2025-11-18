@@ -2,11 +2,11 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\UserController;
-use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\ProductController;
-use App\Http\Controllers\Admin\PurchaseOrderController;
 use App\Http\Controllers\Admin\VoucherController;
-
+use App\Http\Controllers\Admin\SupplierController;
+use App\Http\Controllers\Admin\PurchaseOrderController;
+use App\Http\Controllers\Admin\DigitalProductController;
 
 Route::middleware(['auth:supabase', 'role:super_admin,admin'])->prefix('/admin')->group(function () {
 
@@ -29,10 +29,18 @@ Route::middleware(['auth:supabase', 'role:super_admin,admin'])->prefix('/admin')
     Route::prefix('/products')->group(function () {
         Route::get('', [ProductController::class, 'index']);
         Route::post('', [ProductController::class, 'store']);
-        Route::get('/third-party', [ProductController::class, 'listThirdPartyProducts']);
         Route::get('/{product}', [ProductController::class, 'show']);
+        Route::post('/{product}/digital_products', [ProductController::class, 'assignDigitalProducts']);
         Route::post('/{product}', [ProductController::class, 'update']);
         Route::delete('/{product}', [ProductController::class, 'destroy']);
+    });
+
+    Route::prefix('/digital-products')->controller(DigitalProductController::class)->group(function () {
+        Route::get('', 'index');
+        Route::post('', 'store');
+        Route::get('/{digitalProduct}', 'show');
+        Route::post('/{digitalProduct}', 'update');
+        Route::delete('/{digitalProduct}', 'destroy');
     });
 
     Route::prefix('/purchase-orders')->controller(PurchaseOrderController::class)->group(function () {
@@ -43,6 +51,6 @@ Route::middleware(['auth:supabase', 'role:super_admin,admin'])->prefix('/admin')
 
     Route::prefix('/vouchers')->controller(VoucherController::class)->group(function () {
         Route::get('', 'index');
-        Route::post('import', 'importVouchers');
+        Route::post('store', 'store');
     });
 });

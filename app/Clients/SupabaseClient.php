@@ -66,7 +66,7 @@ class SupabaseClient
     {
         return Http::withHeaders([
             'apikey' => $this->serviceKey,
-            'Authorization' => 'Bearer ' . $this->serviceKey,
+            'Authorization' => 'Bearer '.$this->serviceKey,
             'Content-Type' => 'application/json',
             'User-Agent' => 'ManaStore/1.0',
         ])
@@ -115,7 +115,7 @@ class SupabaseClient
             return $response->json();
         }
 
-        throw new Exception('Failed to create user in Supabase: ' . $response->body());
+        throw new Exception('Failed to create user in Supabase: '.$response->body());
     }
 
     /**
@@ -132,7 +132,7 @@ class SupabaseClient
         $response = $this->getClient()->put("/admin/users/{$userId}", $userData);
 
         if (! $response->successful()) {
-            throw new Exception('Failed to update user in Supabase: ' . $response->body());
+            throw new Exception('Failed to update user in Supabase: '.$response->body());
         }
 
         return true;
@@ -151,7 +151,7 @@ class SupabaseClient
         $response = $this->getClient()->delete("/admin/users/{$userId}");
 
         if (! $response->successful()) {
-            throw new Exception('Failed to delete user in Supabase: ' . $response->body());
+            throw new Exception('Failed to delete user in Supabase: '.$response->body());
         }
 
         return true;
@@ -182,7 +182,7 @@ class SupabaseClient
         ]);
 
         if (! $response->successful()) {
-            throw new Exception('Failed to send password reset email: ' . $response->body());
+            throw new Exception('Failed to send password reset email: '.$response->body());
         }
 
         return true;
@@ -208,7 +208,7 @@ class SupabaseClient
             return null;
         }
 
-        throw new Exception('Failed to get user from Supabase: ' . $response->body());
+        throw new Exception('Failed to get user from Supabase: '.$response->body());
     }
 
     /**
@@ -231,7 +231,7 @@ class SupabaseClient
             return $response->json();
         }
 
-        throw new Exception('Failed to list users from Supabase: ' . $response->body());
+        throw new Exception('Failed to list users from Supabase: '.$response->body());
     }
 
     /**
@@ -261,7 +261,7 @@ class SupabaseClient
             // Extract user data from payload
             return $this->extractUserDataFromPayload($payload);
         } catch (Exception $e) {
-            Log::warning('Supabase JWT validation error: ' . $e->getMessage());
+            Log::warning('Supabase JWT validation error: '.$e->getMessage());
 
             return null;
         }

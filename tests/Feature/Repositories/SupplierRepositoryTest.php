@@ -2,10 +2,10 @@
 
 namespace Tests\Feature\Repositories;
 
+use Tests\TestCase;
 use App\Models\Supplier;
 use App\Repositories\SupplierRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 
 class SupplierRepositoryTest extends TestCase
 {
@@ -16,7 +16,7 @@ class SupplierRepositoryTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->repository = new SupplierRepository();
+        $this->repository = new SupplierRepository;
     }
 
     public function test_create_a_supplier()

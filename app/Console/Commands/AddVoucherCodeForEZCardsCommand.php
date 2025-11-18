@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Services\EzCardsVoucherCodeService;
 use Illuminate\Console\Command;
+use App\Services\Ezcards\EzcardsVoucherCodeService;
 
 class AddVoucherCodeForEZCardsCommand extends Command
 {
@@ -21,16 +21,21 @@ class AddVoucherCodeForEZCardsCommand extends Command
      */
     protected $description = 'Add voucher code for EZCards purchase orders';
 
+    public function __construct(private EzcardsVoucherCodeService $voucherCodeService)
+    {
+        parent::__construct();
+    }
+
     /**
      * Execute the console command.
      */
-    public function handle(EzCardsVoucherCodeService $voucherCodeService): int
+    public function handle(): int
     {
         $this->info('Starting EZ Cards voucher code processing...');
         $this->newLine();
 
         try {
-            $summary = $voucherCodeService->processAllPurchaseOrders();
+            $summary = $this->voucherCodeService->processAllPurchaseOrders();
 
             // Display summary
             $this->info('Processing completed!');
@@ -48,7 +53,7 @@ class AddVoucherCodeForEZCardsCommand extends Command
             );
 
             // Display errors if any
-            if (!empty($summary['errors'])) {
+            if (! empty($summary['errors'])) {
                 $this->newLine();
                 $this->error('Errors encountered:');
                 $this->newLine();
@@ -67,14 +72,17 @@ class AddVoucherCodeForEZCardsCommand extends Command
 
             if ($summary['failed_orders'] > 0) {
                 $this->warn('Processing completed with some errors. Check the logs for details.');
+
                 return Command::FAILURE;
             }
 
             $this->info('All orders processed successfully!');
+
             return Command::SUCCESS;
         } catch (\Exception $e) {
-            $this->error('Fatal error: ' . $e->getMessage());
-            $this->error('Stack trace: ' . $e->getTraceAsString());
+            $this->error('Fatal error: '.$e->getMessage());
+            $this->error('Stack trace: '.$e->getTraceAsString());
+
             return Command::FAILURE;
         }
     }

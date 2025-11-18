@@ -2,8 +2,8 @@
 
 namespace App\Http\Resources;
 
-use App\Models\PurchaseOrder;
 use Illuminate\Http\Request;
+use App\Models\PurchaseOrder;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
@@ -21,14 +21,13 @@ class PurchaseOrderResource extends JsonResource
         return [
             'id' => $this->id,
             'order_number' => $this->order_number,
-            'product_id' => $this->product_id,
             'supplier_id' => $this->supplier_id,
             'total_price' => $this->total_price,
-            'quantity' => $this->quantity,
+            'status' => $this->status,
             'created_at' => $this->created_at->toDateTimeString(),
             'updated_at' => $this->updated_at->toDateTimeString(),
-            'product' => new ProductResource($this->whenLoaded('product')),
             'supplier' => new SupplierResource($this->whenLoaded('supplier')),
+            'items' => PurchaseOrderItemResource::collection($this->whenLoaded('items')),
             'vouchers' => VoucherResource::collection($this->whenLoaded('vouchers')),
         ];
     }

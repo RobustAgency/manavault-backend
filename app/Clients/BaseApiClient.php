@@ -2,15 +2,17 @@
 
 namespace App\Clients;
 
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
-use Illuminate\Http\Client\Response;
 
 abstract class BaseApiClient
 {
     protected string $baseUrl;
+
     protected string $accessToken;
+
     protected ?string $apiKey = null;
 
     /**
@@ -53,7 +55,7 @@ abstract class BaseApiClient
     protected function getHeaders(): array
     {
         $authValue = $this->useBearerPrefix()
-            ? 'Bearer ' . $this->accessToken
+            ? 'Bearer '.$this->accessToken
             : $this->accessToken;
 
         $headers = [
@@ -125,6 +127,6 @@ abstract class BaseApiClient
         }
 
         // Handle errors as needed, e.g., log them or throw exceptions
-        throw new \Exception($this->getServiceName() . ' API request failed: ' . $response->body());
+        throw new \Exception($this->getServiceName().' API request failed: '.$response->body());
     }
 }

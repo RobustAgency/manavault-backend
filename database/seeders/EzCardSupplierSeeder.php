@@ -28,7 +28,7 @@ class EzCardSupplierSeeder extends Seeder
             ->where('slug', 'ez_cards')
             ->exists();
 
-        if (!$exists) {
+        if (! $exists) {
             DB::table('suppliers')->insert($supplier);
             $this->command->info('EZ Cards supplier created successfully.');
         } else {

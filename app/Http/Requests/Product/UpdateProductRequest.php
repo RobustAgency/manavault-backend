@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\Product;
 
-use App\Enums\Product\Lifecycle;
 use Illuminate\Validation\Rule;
+use App\Enums\Product\Lifecycle;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateProductRequest extends FormRequest
@@ -25,10 +25,17 @@ class UpdateProductRequest extends FormRequest
     {
         return [
             'name' => ['sometimes', 'string', 'max:255'],
+            'brand' => ['sometimes', 'nullable', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
-            'purchase_price' => ['sometimes', 'numeric', 'min:0'],
+            'short_description' => ['sometimes', 'nullable', 'string'],
+            'long_description' => ['sometimes', 'nullable', 'string'],
+            'tags' => ['sometimes', 'nullable', 'array'],
+            'tags.*' => ['string'],
+            'image' => ['sometimes', 'nullable', 'string', 'max:255'],
             'selling_price' => ['sometimes', 'numeric', 'min:0'],
-            'status' => ['sometimes', 'string', Rule::in(array_map(fn($c) => $c->value, Lifecycle::cases()))],
+            'status' => ['sometimes', 'string', Rule::in(array_map(fn ($c) => $c->value, Lifecycle::cases()))],
+            'regions' => ['sometimes', 'nullable', 'array'],
+            'regions.*' => ['string'],
         ];
     }
 }

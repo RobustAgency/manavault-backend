@@ -2,12 +2,12 @@
 
 namespace Tests\Feature\Repositories;
 
-use App\Repositories\ProductRepository;
+use Tests\TestCase;
 use App\Models\Product;
 use App\Enums\Product\Lifecycle;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Repositories\ProductRepository;
 use Illuminate\Foundation\Testing\WithFaker;
-use Tests\TestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class ProductRepositoryTest extends TestCase
 {
@@ -15,7 +15,7 @@ class ProductRepositoryTest extends TestCase
 
     private ProductRepository $repository;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
         $this->repository = app(ProductRepository::class);
@@ -26,9 +26,15 @@ class ProductRepositoryTest extends TestCase
         $data = [
             'name' => $this->faker->word(),
             'sku' => $this->faker->unique()->bothify('SKU-####'),
+            'brand' => $this->faker->company(),
             'description' => $this->faker->sentence(),
-            'price' => $this->faker->randomFloat(2, 1, 100),
-            'status' => $this->faker->randomElement(array_map(fn($c) => $c->value, Lifecycle::cases())),
+            'short_description' => $this->faker->sentence(10),
+            'long_description' => $this->faker->paragraph(),
+            'tags' => ['gaming', 'gift card'],
+            'image' => $this->faker->imageUrl(),
+            'selling_price' => $this->faker->randomFloat(2, 1, 100),
+            'status' => $this->faker->randomElement(array_map(fn ($c) => $c->value, Lifecycle::cases())),
+            'regions' => ['US', 'CA'],
         ];
 
         $product = $this->repository->createProduct($data);
@@ -37,8 +43,9 @@ class ProductRepositoryTest extends TestCase
         $this->assertDatabaseHas('products', [
             'name' => $data['name'],
             'sku' => $data['sku'],
+            'brand' => $data['brand'],
             'description' => $data['description'],
-            'price' => $data['price'],
+            'selling_price' => $data['selling_price'],
             'status' => $data['status'],
         ]);
     }
@@ -77,6 +84,17 @@ class ProductRepositoryTest extends TestCase
         $this->assertCount(2, $results->items());
     }
 
+    public function test_get_filtered_products_by_brand(): void
+    {
+        Product::factory()->create(['brand' => 'Apple']);
+        Product::factory()->create(['brand' => 'Samsung']);
+        Product::factory()->create(['brand' => 'Apple Inc']);
+
+        $results = $this->repository->getFilteredProducts(['brand' => 'Apple']);
+
+        $this->assertCount(2, $results->items());
+    }
+
     public function test_update_product(): void
     {
         $product = Product::factory()->create();
@@ -84,23 +102,31 @@ class ProductRepositoryTest extends TestCase
         $updateData = [
             'name' => 'Updated Name',
             'sku' => 'Updated-SKU-1234',
+            'brand' => 'Updated Brand',
             'description' => 'Updated description',
-            'price' => 150.00,
+            'short_description' => 'Updated short description',
+            'long_description' => 'Updated long description',
+            'tags' => ['updated', 'tags'],
+            'image' => 'https://example.com/updated-image.jpg',
+            'selling_price' => 150.00,
+            'regions' => ['UK', 'EU'],
         ];
 
         $updatedProduct = $this->repository->updateProduct($product, $updateData);
 
         $this->assertEquals('Updated Name', $updatedProduct->name);
         $this->assertEquals('Updated-SKU-1234', $updatedProduct->sku);
+        $this->assertEquals('Updated Brand', $updatedProduct->brand);
         $this->assertEquals('Updated description', $updatedProduct->description);
-        $this->assertEquals(150.00, $updatedProduct->price);
+        $this->assertEquals(150.00, $updatedProduct->selling_price);
 
         $this->assertDatabaseHas('products', [
             'id' => $product->id,
             'name' => 'Updated Name',
             'sku' => 'Updated-SKU-1234',
+            'brand' => 'Updated Brand',
             'description' => 'Updated description',
-            'price' => 150.00,
+            'selling_price' => 150.00,
         ]);
     }
 
