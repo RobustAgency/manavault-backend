@@ -5,6 +5,8 @@ namespace Tests\Feature\Controllers\Admin;
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Product;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -146,6 +148,8 @@ class ProductControllerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
+        Storage::fake('public');
+
         $data = [
             'name' => 'New Product',
             'description' => 'Product description',
@@ -154,7 +158,7 @@ class ProductControllerTest extends TestCase
             'short_description' => 'Short description',
             'long_description' => 'Long description with more details',
             'tags' => ['gaming', 'digital'],
-            'image' => 'https://example.com/image.jpg',
+            'image' => UploadedFile::fake()->image('product.jpg'),
             'selling_price' => 149.99,
             'status' => 'active',
             'regions' => ['US', 'CA'],

@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\Product;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class ProductRepository
@@ -35,11 +36,20 @@ class ProductRepository
 
     public function createProduct(array $data): Product
     {
+        $image = $data['image'] ?? null;
+        if ($image instanceof UploadedFile) {
+            $data['image'] = $this->uploadProductImage($image);
+        }
+
         return Product::create($data);
     }
 
     public function updateProduct(Product $product, array $data): Product
     {
+        $image = $data['image'] ?? null;
+        if ($image instanceof UploadedFile) {
+            $data['image'] = $this->uploadProductImage($image);
+        }
         $product->update($data);
 
         return $product;
@@ -48,5 +58,10 @@ class ProductRepository
     public function deleteProduct(Product $product): bool
     {
         return $product->delete();
+    }
+
+    public function uploadProductImage(UploadedFile $image): string|false
+    {
+        return $image->store('uploads/products', 'public');
     }
 }
