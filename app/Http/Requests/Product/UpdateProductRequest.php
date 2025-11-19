@@ -31,7 +31,7 @@ class UpdateProductRequest extends FormRequest
             'long_description' => ['sometimes', 'nullable', 'string'],
             'tags' => ['sometimes', 'nullable', 'array'],
             'tags.*' => ['string'],
-            'image' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'image' => ['sometimes', 'nullable', 'file', 'mimes:jpeg,png,jpg', 'max:2048'],
             'selling_price' => ['sometimes', 'numeric', 'min:0'],
             'status' => ['sometimes', 'string', Rule::in(array_map(fn ($c) => $c->value, Lifecycle::cases()))],
             'regions' => ['sometimes', 'nullable', 'array'],

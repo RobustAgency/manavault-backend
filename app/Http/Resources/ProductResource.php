@@ -33,6 +33,7 @@ class ProductResource extends JsonResource
             'regions' => $this->regions,
             'created_at' => $this->created_at->toDateTimeString(),
             'updated_at' => $this->updated_at->toDateTimeString(),
+            'digital_products' => DigitalProductResource::collection($this->whenLoaded('digitalProducts')),
         ];
     }
 }

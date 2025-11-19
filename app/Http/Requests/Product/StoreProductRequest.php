@@ -32,7 +32,7 @@ class StoreProductRequest extends FormRequest
             'long_description' => ['nullable', 'string'],
             'tags' => ['nullable', 'array'],
             'tags.*' => ['string'],
-            'image' => ['nullable', 'string', 'max:255'],
+            'image' => ['nullable', 'file', 'mimes:jpeg,png,jpg', 'max:2048'],
             'selling_price' => ['required', 'numeric', 'min:0'],
             'status' => ['required', 'string', Rule::in(array_map(fn ($c) => $c->value, Lifecycle::cases()))],
             'regions' => ['nullable', 'array'],
