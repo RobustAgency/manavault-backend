@@ -37,7 +37,7 @@ class ProductRepository
     public function createProduct(array $data): Product
     {
         $image = $data['image'] ?? null;
-        if ($image) {
+        if ($image instanceof UploadedFile) {
             $data['image'] = $this->uploadProductImage($image);
         }
 
@@ -47,7 +47,7 @@ class ProductRepository
     public function updateProduct(Product $product, array $data): Product
     {
         $image = $data['image'] ?? null;
-        if ($image) {
+        if ($image instanceof UploadedFile) {
             $data['image'] = $this->uploadProductImage($image);
         }
         $product->update($data);
