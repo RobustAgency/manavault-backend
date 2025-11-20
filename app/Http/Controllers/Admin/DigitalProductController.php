@@ -7,27 +7,12 @@ use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\DigitalProductResource;
 use App\Repositories\DigitalProductRepository;
-use App\Http\Requests\DigitalProduct\ListDigitalProductRequest;
 use App\Http\Requests\DigitalProduct\StoreDigitalProductRequest;
 use App\Http\Requests\DigitalProduct\UpdateDigitalProductRequest;
 
 class DigitalProductController extends Controller
 {
     public function __construct(private DigitalProductRepository $repository) {}
-
-    /**
-     * Display a listing of digital products.
-     */
-    public function index(ListDigitalProductRequest $request): JsonResponse
-    {
-        $digitalProducts = $this->repository->getFilteredDigitalProducts($request->validated());
-
-        return response()->json([
-            'error' => false,
-            'data' => $digitalProducts,
-            'message' => 'Digital products retrieved successfully.',
-        ]);
-    }
 
     /**
      * Store newly created digital products in storage.
