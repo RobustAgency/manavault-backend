@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\Admin\SupplierController;
+use App\Http\Controllers\Admin\DigitalStockController;
 use App\Http\Controllers\Admin\PurchaseOrderController;
 use App\Http\Controllers\Admin\DigitalProductController;
 
@@ -36,7 +37,6 @@ Route::middleware(['auth:supabase', 'role:super_admin,admin'])->prefix('/admin')
     });
 
     Route::prefix('/digital-products')->controller(DigitalProductController::class)->group(function () {
-        Route::get('', 'index');
         Route::post('', 'store');
         Route::get('/{digitalProduct}', 'show');
         Route::post('/{digitalProduct}', 'update');
@@ -52,5 +52,9 @@ Route::middleware(['auth:supabase', 'role:super_admin,admin'])->prefix('/admin')
     Route::prefix('/vouchers')->controller(VoucherController::class)->group(function () {
         Route::get('', 'index');
         Route::post('store', 'store');
+    });
+
+    Route::prefix('/digital-stocks')->controller(DigitalStockController::class)->group(function () {
+        Route::get('', 'index');
     });
 });

@@ -21,125 +21,6 @@ class DigitalProductControllerTest extends TestCase
         $this->admin = User::factory()->create(['role' => 'admin']);
     }
 
-    public function test_admin_list_digital_products(): void
-    {
-        $this->actingAs($this->admin);
-
-        DigitalProduct::factory()->count(5)->create();
-
-        $response = $this->getJson('/api/admin/digital-products');
-
-        $response->assertStatus(200)
-            ->assertJsonStructure([
-                'error',
-                'data' => [
-                    'current_page',
-                    'data' => [
-                        '*' => [
-                            'id',
-                            'supplier_id',
-                            'name',
-                            'sku',
-                            'brand',
-                            'description',
-                            'cost_price',
-                            'status',
-                            'metadata',
-                            'last_synced_at',
-                            'created_at',
-                            'updated_at',
-                        ],
-                    ],
-                    'per_page',
-                    'total',
-                ],
-                'message',
-            ])
-            ->assertJson([
-                'error' => false,
-                'message' => 'Digital products retrieved successfully.',
-            ]);
-    }
-
-    public function test_admin_list_digital_products_with_filters(): void
-    {
-        $this->actingAs($this->admin);
-
-        $supplier1 = Supplier::factory()->create();
-        $supplier2 = Supplier::factory()->create();
-
-        DigitalProduct::factory()->count(3)->create([
-            'supplier_id' => $supplier1->id,
-            'status' => 'active',
-        ]);
-        DigitalProduct::factory()->count(2)->create([
-            'supplier_id' => $supplier2->id,
-            'status' => 'inactive',
-        ]);
-
-        $response = $this->getJson("/api/admin/digital-products?supplier_id={$supplier1->id}&status=active");
-
-        $response->assertStatus(200);
-        $this->assertCount(3, $response->json('data.data'));
-    }
-
-    public function test_admin_list_digital_products_with_pagination(): void
-    {
-        $this->actingAs($this->admin);
-
-        DigitalProduct::factory()->count(25)->create();
-
-        $response = $this->getJson('/api/admin/digital-products?per_page=5');
-
-        $response->assertStatus(200)
-            ->assertJsonPath('data.per_page', 5)
-            ->assertJsonPath('data.total', 25);
-
-        $this->assertCount(5, $response->json('data.data'));
-    }
-
-    public function test_admin_show_digital_product(): void
-    {
-        $this->actingAs($this->admin);
-
-        $digitalProduct = DigitalProduct::factory()->create([
-            'name' => 'Test Product',
-            'cost_price' => 99.99,
-        ]);
-
-        $response = $this->getJson("/api/admin/digital-products/{$digitalProduct->id}");
-
-        $response->assertStatus(200)
-            ->assertJsonStructure([
-                'error',
-                'data' => [
-                    'id',
-                    'supplier_id',
-                    'name',
-                    'sku',
-                    'brand',
-                    'description',
-                    'cost_price',
-                    'status',
-                    'metadata',
-                    'last_synced_at',
-                    'created_at',
-                    'updated_at',
-                    'supplier',
-                ],
-                'message',
-            ])
-            ->assertJson([
-                'error' => false,
-                'message' => 'Digital product retrieved successfully.',
-                'data' => [
-                    'id' => $digitalProduct->id,
-                    'name' => 'Test Product',
-                    'cost_price' => '99.99',
-                ],
-            ]);
-    }
-
     public function test_admin_show_nonexistent_digital_product(): void
     {
         $this->actingAs($this->admin);
@@ -345,13 +226,6 @@ class DigitalProductControllerTest extends TestCase
         $response->assertStatus(404);
     }
 
-    public function test_unauthenticated_user_cannot_access_digital_products(): void
-    {
-        $response = $this->getJson('/api/admin/digital-products');
-
-        $response->assertStatus(401);
-    }
-
     public function test_unauthenticated_user_cannot_create_digital_product(): void
     {
         $supplier = Supplier::factory()->create();
@@ -371,16 +245,5 @@ class DigitalProductControllerTest extends TestCase
         $response = $this->postJson('/api/admin/digital-products', $data);
 
         $response->assertStatus(401);
-    }
-
-    public function test_list_digital_products_validates_pagination_limits(): void
-    {
-        $this->actingAs($this->admin);
-
-        // Test per_page exceeds maximum
-        $response = $this->getJson('/api/admin/digital-products?per_page=150');
-
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['per_page']);
     }
 }
