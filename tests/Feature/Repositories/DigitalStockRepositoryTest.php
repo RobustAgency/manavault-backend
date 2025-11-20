@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Unit\Repositories;
+namespace Tests\Feature\Repositories;
 
 use Tests\TestCase;
 use App\Models\Supplier;
