@@ -40,7 +40,6 @@ class PurchaseOrderControllerTest extends TestCase
                         '*' => [
                             'id',
                             'order_number',
-                            'supplier_id',
                             'total_price',
                             'status',
                             'created_at',
@@ -87,12 +86,11 @@ class PurchaseOrderControllerTest extends TestCase
                 'data' => [
                     'id',
                     'order_number',
-                    'supplier_id',
                     'total_price',
                     'status',
                     'created_at',
                     'updated_at',
-                    'supplier',
+                    'suppliers',
                     'items',
                     'vouchers',
                 ],
@@ -120,9 +118,9 @@ class PurchaseOrderControllerTest extends TestCase
         ]);
 
         $data = [
-            'supplier_id' => $supplier->id,
             'items' => [
                 [
+                    'supplier_id' => $supplier->id,
                     'digital_product_id' => $digitalProduct->id,
                     'quantity' => 5,
                 ],
@@ -137,7 +135,6 @@ class PurchaseOrderControllerTest extends TestCase
                 'data' => [
                     'id',
                     'order_number',
-                    'supplier_id',
                     'total_price',
                     'status',
                     'created_at',
@@ -149,14 +146,12 @@ class PurchaseOrderControllerTest extends TestCase
                 'error' => false,
                 'message' => 'Purchase order created successfully.',
                 'data' => [
-                    'supplier_id' => $supplier->id,
                     'total_price' => 50.00,
                     'status' => 'completed',
                 ],
             ]);
 
         $this->assertDatabaseHas('purchase_orders', [
-            'supplier_id' => $supplier->id,
             'total_price' => 50.00,
             'status' => 'completed',
         ]);
@@ -173,6 +168,7 @@ class PurchaseOrderControllerTest extends TestCase
         ]);
 
         $digitalProduct = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier->id,
             'sku' => '12345',
             'cost_price' => 10.00,
         ]);
@@ -192,9 +188,9 @@ class PurchaseOrderControllerTest extends TestCase
         ]);
 
         $data = [
-            'supplier_id' => $supplier->id,
             'items' => [
                 [
+                    'supplier_id' => $supplier->id,
                     'digital_product_id' => $digitalProduct->id,
                     'quantity' => 1,
                 ],
@@ -208,13 +204,11 @@ class PurchaseOrderControllerTest extends TestCase
                 'error' => false,
                 'message' => 'Purchase order created successfully.',
                 'data' => [
-                    'supplier_id' => $supplier->id,
                     'status' => 'completed',
                 ],
             ]);
 
         $this->assertDatabaseHas('purchase_orders', [
-            'supplier_id' => $supplier->id,
             'status' => 'completed',
         ]);
 
@@ -262,9 +256,9 @@ class PurchaseOrderControllerTest extends TestCase
         ]);
 
         $data = [
-            'supplier_id' => $supplier->id,
             'items' => [
                 [
+                    'supplier_id' => $supplier->id,
                     'digital_product_id' => $digitalProduct->id,
                     'quantity' => 2,
                 ],
@@ -278,15 +272,12 @@ class PurchaseOrderControllerTest extends TestCase
                 'error' => false,
                 'message' => 'Purchase order created successfully.',
                 'data' => [
-                    'supplier_id' => $supplier->id,
                     'status' => 'processing',
                 ],
             ]);
 
         $this->assertDatabaseHas('purchase_orders', [
-            'supplier_id' => $supplier->id,
             'status' => 'processing',
-            'transaction_id' => '1234',
         ]);
 
         Http::assertSent(function ($request) {
@@ -307,13 +298,14 @@ class PurchaseOrderControllerTest extends TestCase
         $digitalProduct2 = DigitalProduct::factory()->create(['cost_price' => 15.00]);
 
         $data = [
-            'supplier_id' => $supplier->id,
             'items' => [
                 [
+                    'supplier_id' => $supplier->id,
                     'digital_product_id' => $digitalProduct1->id,
                     'quantity' => 3,
                 ],
                 [
+                    'supplier_id' => $supplier->id,
                     'digital_product_id' => $digitalProduct2->id,
                     'quantity' => 2,
                 ],
@@ -327,13 +319,11 @@ class PurchaseOrderControllerTest extends TestCase
                 'error' => false,
                 'message' => 'Purchase order created successfully.',
                 'data' => [
-                    'supplier_id' => $supplier->id,
                     'total_price' => 60.00,
                 ],
             ]);
 
         $this->assertDatabaseHas('purchase_orders', [
-            'supplier_id' => $supplier->id,
             'total_price' => 60.00,
         ]);
     }
@@ -346,7 +336,6 @@ class PurchaseOrderControllerTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors([
-                'supplier_id',
                 'items',
             ]);
     }
@@ -374,28 +363,6 @@ class PurchaseOrderControllerTest extends TestCase
                 'items.0.digital_product_id',
                 'items.0.quantity',
             ]);
-    }
-
-    public function test_purchase_order_creation_validates_supplier_exists(): void
-    {
-        $this->actingAs($this->admin);
-
-        $digitalProduct = DigitalProduct::factory()->create();
-
-        $data = [
-            'supplier_id' => 999999,
-            'items' => [
-                [
-                    'digital_product_id' => $digitalProduct->id,
-                    'quantity' => 5,
-                ],
-            ],
-        ];
-
-        $response = $this->postJson('/api/admin/purchase-orders', $data);
-
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['supplier_id']);
     }
 
     public function test_purchase_order_creation_validates_digital_product_exists(): void
@@ -478,9 +445,9 @@ class PurchaseOrderControllerTest extends TestCase
         ]);
 
         $data = [
-            'supplier_id' => $supplier->id,
             'items' => [
                 [
+                    'supplier_id' => $supplier->id,
                     'digital_product_id' => $digitalProduct->id,
                     'quantity' => 1,
                 ],
