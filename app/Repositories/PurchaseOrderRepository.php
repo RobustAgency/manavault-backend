@@ -36,7 +36,9 @@ class PurchaseOrderRepository
         $query = PurchaseOrder::with(['items', 'suppliers', 'vouchers']);
 
         if (isset($filters['supplier_id'])) {
-            $query->where('supplier_id', $filters['supplier_id']);
+            $query->whereHas('purchaseOrderSuppliers', function ($q) use ($filters) {
+                $q->where('supplier_id', $filters['supplier_id']);
+            });
         }
 
         if (isset($filters['status'])) {
@@ -49,7 +51,7 @@ class PurchaseOrderRepository
 
         $perPage = $filters['per_page'] ?? 10;
 
-        return $query->paginate($perPage);
+        return $query->orderBy('created_at', 'desc')->paginate($perPage);
     }
 
     public function createPurchaseOrder(array $data): PurchaseOrder

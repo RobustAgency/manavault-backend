@@ -40,10 +40,10 @@ class PurchaseOrder extends Model
         return $this->hasManyThrough(
             Supplier::class,
             PurchaseOrderSupplier::class,
-            'purchase_order_id', // Foreign key on purchase_order_suppliers table
-            'id',                 // Foreign key on suppliers table
-            'id',                 // Local key on purchase_orders table
-            'supplier_id'         // Local key on purchase_order_suppliers table
+            'purchase_order_id',
+            'id',
+            'id',
+            'supplier_id'
         );
     }
 

@@ -31,7 +31,7 @@ class ProductRepository
 
         $per_page = $filters['per_page'] ?? 10;
 
-        return $query->paginate($per_page);
+        return $query->orderBy('created_at', 'desc')->paginate($per_page);
     }
 
     public function createProduct(array $data): Product
