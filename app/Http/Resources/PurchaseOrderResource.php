@@ -21,7 +21,6 @@ class PurchaseOrderResource extends JsonResource
         return [
             'id' => $this->id,
             'order_number' => $this->order_number,
-            'supplier_id' => $this->supplier_id,
             'total_price' => $this->total_price,
             'status' => $this->status,
             'created_at' => $this->created_at->toDateTimeString(),
