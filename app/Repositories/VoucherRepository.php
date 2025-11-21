@@ -65,4 +65,13 @@ class VoucherRepository
 
         return true;
     }
+
+    public function decryptVoucherCode(Voucher $voucher): string
+    {
+        if ($this->voucherCipherService->isEncrypted($voucher->code)) {
+            return $this->voucherCipherService->decryptCode($voucher->code);
+        }
+
+        return $voucher->code;
+    }
 }

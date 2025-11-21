@@ -5,9 +5,12 @@ namespace App\Services\Gift2Games;
 use App\Models\Voucher;
 use App\Models\PurchaseOrder;
 use Illuminate\Support\Facades\Log;
+use App\Services\VoucherCipherService;
 
 class Gift2GamesVoucherService
 {
+    public function __construct(private VoucherCipherService $voucherCipherService) {}
+
     /**
      * Process and store vouchers from Gift2Games order response.
      *
@@ -76,11 +79,17 @@ class Gift2GamesVoucherService
                     ]);
                 }
 
+                $voucherCode = $voucherData['serialCode'] ?? null;
+
+                if ($voucherCode) {
+                    $voucherCode = $this->voucherCipherService->encryptCode($voucherCode);
+                }
+
                 // Create the voucher
                 Voucher::create([
                     'purchase_order_id' => $purchaseOrder->id,
                     'purchase_order_item_id' => $purchaseOrderItem->id,
-                    'code' => $voucherData['serialCode'] ?? $voucherData['code'] ?? null,
+                    'code' => $voucherCode,
                     'serial_number' => $voucherData['serialNumber'] ?? null,
                     'status' => 'available',
                 ]);
