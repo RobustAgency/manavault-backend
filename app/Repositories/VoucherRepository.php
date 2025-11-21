@@ -68,10 +68,12 @@ class VoucherRepository
 
     public function decryptVoucherCode(Voucher $voucher): string
     {
+        // Check if the code is encrypted before attempting to decrypt
         if ($this->voucherCipherService->isEncrypted($voucher->code)) {
             return $this->voucherCipherService->decryptCode($voucher->code);
         }
 
+        // If not encrypted (legacy plain text), return as-is
         return $voucher->code;
     }
 }
