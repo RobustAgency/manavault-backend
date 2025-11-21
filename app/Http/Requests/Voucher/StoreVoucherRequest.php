@@ -37,6 +37,7 @@ class StoreVoucherRequest extends FormRequest
             ],
             'voucher_codes.*' => [
                 'required',
+                'unique:vouchers,code',
                 'string',
                 'max:255',
             ],

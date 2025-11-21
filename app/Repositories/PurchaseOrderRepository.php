@@ -30,6 +30,18 @@ class PurchaseOrderRepository
     {
         $query = PurchaseOrder::with(['items', 'supplier', 'vouchers']);
 
+        if (isset($filters['supplier_id'])) {
+            $query->where('supplier_id', $filters['supplier_id']);
+        }
+
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        if (isset($filters['order_number'])) {
+            $query->where('order_number', 'like', '%'.$filters['order_number'].'%');
+        }
+
         $perPage = $filters['per_page'] ?? 10;
 
         return $query->paginate($perPage);
