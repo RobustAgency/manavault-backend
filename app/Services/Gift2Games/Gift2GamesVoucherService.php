@@ -4,7 +4,6 @@ namespace App\Services\Gift2Games;
 
 use App\Models\Voucher;
 use App\Models\PurchaseOrder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class Gift2GamesVoucherService
@@ -31,7 +30,6 @@ class Gift2GamesVoucherService
         $voucherCountByProduct = [];
         $vouchersAdded = 0;
 
-        DB::beginTransaction();
         try {
             foreach ($voucherCodesResponse as $voucherData) {
                 $digitalProductId = $voucherData['digital_product_id'] ?? null;
@@ -114,10 +112,8 @@ class Gift2GamesVoucherService
                 ]);
             }
 
-            DB::commit();
             $result['vouchers_added'] = $vouchersAdded;
         } catch (\Exception $e) {
-            DB::rollBack();
             Log::error('Failed to store Gift2Games vouchers', [
                 'purchase_order_id' => $purchaseOrder->id,
                 'error' => $e->getMessage(),

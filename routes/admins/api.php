@@ -37,6 +37,7 @@ Route::middleware(['auth:supabase', 'role:super_admin,admin'])->prefix('/admin')
     });
 
     Route::prefix('/digital-products')->controller(DigitalProductController::class)->group(function () {
+        Route::get('', 'index');
         Route::post('', 'store');
         Route::get('/{digitalProduct}', 'show');
         Route::post('/{digitalProduct}', 'update');

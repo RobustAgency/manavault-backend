@@ -22,8 +22,8 @@ class StorePurchaseOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'supplier_id' => ['required', 'exists:suppliers,id'],
             'items' => ['required', 'array', 'min:1'],
+            'items.*.supplier_id' => ['required', 'exists:suppliers,id'],
             'items.*.digital_product_id' => ['required', 'exists:digital_products,id'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
         ];
@@ -39,9 +39,12 @@ class StorePurchaseOrderRequest extends FormRequest
         return [
             'items.required' => 'At least one item is required.',
             'items.min' => 'At least one item is required.',
+            'items.*.supplier_id.required' => 'Supplier is required for all items.',
+            'items.*.supplier_id.exists' => 'The selected supplier does not exist.',
             'items.*.digital_product_id.required' => 'Digital product is required for all items.',
             'items.*.digital_product_id.exists' => 'The selected digital product does not exist.',
             'items.*.quantity.required' => 'Quantity is required for all items.',
+            'items.*.quantity.integer' => 'Quantity must be an integer.',
             'items.*.quantity.min' => 'Quantity must be at least 1.',
         ];
     }

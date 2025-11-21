@@ -16,7 +16,6 @@ class PurchaseOrder extends Model
         'supplier_id',
         'total_price',
         'order_number',
-        'transaction_id',
         'status',
     ];
 
