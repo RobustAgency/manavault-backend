@@ -9,6 +9,7 @@ use App\Imports\VoucherImport;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Services\VoucherCipherService;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -18,10 +19,13 @@ class VoucherImportTest extends TestCase
 
     private PurchaseOrder $purchaseOrder;
 
+    private VoucherCipherService $voucherCipherService;
+
     protected function setUp(): void
     {
         parent::setUp();
         $this->purchaseOrder = PurchaseOrder::factory()->create();
+        $this->voucherCipherService = app(VoucherCipherService::class);
 
         // Create purchase order items with total quantity of 3
         PurchaseOrderItem::factory()
@@ -38,7 +42,7 @@ class VoucherImportTest extends TestCase
     public function test_voucher_import_creates_vouchers_from_collection(): void
     {
         $totalQuantity = $this->purchaseOrder->getTotalQuantity();
-        $import = new VoucherImport($this->purchaseOrder->id, $totalQuantity);
+        $import = new VoucherImport($this->voucherCipherService, $this->purchaseOrder->id, $totalQuantity);
 
         $collection = new Collection([
             ['code' => 'VCH-001'],
@@ -48,22 +52,20 @@ class VoucherImportTest extends TestCase
 
         $import->collection($collection);
 
-        $this->assertDatabaseHas('vouchers', [
-            'code' => 'VCH-001',
-            'purchase_order_id' => $this->purchaseOrder->id,
-        ]);
-
-        $this->assertDatabaseHas('vouchers', [
-            'code' => 'VCH-002',
-            'purchase_order_id' => $this->purchaseOrder->id,
-        ]);
-
-        $this->assertDatabaseHas('vouchers', [
-            'code' => 'VCH-003',
-            'purchase_order_id' => $this->purchaseOrder->id,
-        ]);
-
+        // Verify vouchers were created
         $this->assertEquals(3, Voucher::count());
+
+        // Verify vouchers are encrypted and can be decrypted back to original values
+        $vouchers = Voucher::where('purchase_order_id', $this->purchaseOrder->id)->get();
+        $this->assertCount(3, $vouchers);
+
+        $decryptedCodes = $vouchers->map(function ($voucher) {
+            return $this->voucherCipherService->decryptCode($voucher->code);
+        })->toArray();
+
+        $this->assertContains('VCH-001', $decryptedCodes);
+        $this->assertContains('VCH-002', $decryptedCodes);
+        $this->assertContains('VCH-003', $decryptedCodes);
     }
 
     public function test_voucher_import_throws_exception_when_row_count_mismatches(): void
@@ -72,7 +74,7 @@ class VoucherImportTest extends TestCase
         $this->expectExceptionMessage('The number of voucher codes (2) does not match the total quantity of the purchase order (3).');
 
         $totalQuantity = $this->purchaseOrder->getTotalQuantity();
-        $import = new VoucherImport($this->purchaseOrder->id, $totalQuantity);
+        $import = new VoucherImport($this->voucherCipherService, $this->purchaseOrder->id, $totalQuantity);
 
         $collection = new Collection([
             ['code' => 'VCH-001'],
@@ -88,7 +90,7 @@ class VoucherImportTest extends TestCase
         $this->expectException(\RuntimeException::class);
 
         $totalQuantity = $this->purchaseOrder->getTotalQuantity();
-        $import = new VoucherImport($this->purchaseOrder->id, $totalQuantity);
+        $import = new VoucherImport($this->voucherCipherService, $this->purchaseOrder->id, $totalQuantity);
 
         $collection = new Collection([
             ['code' => 'VCH-001'],
@@ -107,8 +109,8 @@ class VoucherImportTest extends TestCase
         $purchaseOrder2 = PurchaseOrder::factory()->create();
         PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder2)->withQuantity(1)->create();
 
-        $import1 = new VoucherImport($purchaseOrder1->id, $purchaseOrder1->getTotalQuantity());
-        $import2 = new VoucherImport($purchaseOrder2->id, $purchaseOrder2->getTotalQuantity());
+        $import1 = new VoucherImport($this->voucherCipherService, $purchaseOrder1->id, $purchaseOrder1->getTotalQuantity());
+        $import2 = new VoucherImport($this->voucherCipherService, $purchaseOrder2->id, $purchaseOrder2->getTotalQuantity());
 
         $collection1 = new Collection([['code' => 'PO1-VCH-001']]);
         $collection2 = new Collection([['code' => 'PO2-VCH-001']]);
@@ -116,21 +118,21 @@ class VoucherImportTest extends TestCase
         $import1->collection($collection1);
         $import2->collection($collection2);
 
-        $this->assertDatabaseHas('vouchers', [
-            'code' => 'PO1-VCH-001',
-            'purchase_order_id' => $purchaseOrder1->id,
-        ]);
+        // Verify vouchers were created for correct purchase orders
+        $voucher1 = Voucher::where('purchase_order_id', $purchaseOrder1->id)->first();
+        $voucher2 = Voucher::where('purchase_order_id', $purchaseOrder2->id)->first();
 
-        $this->assertDatabaseHas('vouchers', [
-            'code' => 'PO2-VCH-001',
-            'purchase_order_id' => $purchaseOrder2->id,
-        ]);
+        $this->assertNotNull($voucher1);
+        $this->assertNotNull($voucher2);
+
+        $this->assertEquals('PO1-VCH-001', $this->voucherCipherService->decryptCode($voucher1->code));
+        $this->assertEquals('PO2-VCH-001', $this->voucherCipherService->decryptCode($voucher2->code));
     }
 
     public function test_voucher_import_batch_size_configuration(): void
     {
         $totalQuantity = $this->purchaseOrder->getTotalQuantity();
-        $import = new VoucherImport($this->purchaseOrder->id, $totalQuantity);
+        $import = new VoucherImport($this->voucherCipherService, $this->purchaseOrder->id, $totalQuantity);
 
         $this->assertEquals(100, $import->batchSize());
     }
@@ -138,7 +140,7 @@ class VoucherImportTest extends TestCase
     public function test_voucher_import_chunk_size_configuration(): void
     {
         $totalQuantity = $this->purchaseOrder->getTotalQuantity();
-        $import = new VoucherImport($this->purchaseOrder->id, $totalQuantity);
+        $import = new VoucherImport($this->voucherCipherService, $this->purchaseOrder->id, $totalQuantity);
 
         $this->assertEquals(100, $import->chunkSize());
     }
@@ -149,7 +151,7 @@ class VoucherImportTest extends TestCase
         $purchaseOrder = PurchaseOrder::factory()->create();
         PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(250)->create();
 
-        $import = new VoucherImport($purchaseOrder->id, $purchaseOrder->getTotalQuantity());
+        $import = new VoucherImport($this->voucherCipherService, $purchaseOrder->id, $purchaseOrder->getTotalQuantity());
 
         // Create a large collection to test batch processing
         $largeCollection = new Collection;
@@ -161,16 +163,14 @@ class VoucherImportTest extends TestCase
 
         $this->assertEquals(250, Voucher::where('purchase_order_id', $purchaseOrder->id)->count());
 
-        // Verify some random entries
-        $this->assertDatabaseHas('vouchers', [
-            'code' => 'BULK-VCH-001',
-            'purchase_order_id' => $purchaseOrder->id,
-        ]);
+        // Verify some random entries by decrypting
+        $vouchers = Voucher::where('purchase_order_id', $purchaseOrder->id)->get();
+        $decryptedCodes = $vouchers->map(function ($voucher) {
+            return $this->voucherCipherService->decryptCode($voucher->code);
+        })->toArray();
 
-        $this->assertDatabaseHas('vouchers', [
-            'code' => 'BULK-VCH-250',
-            'purchase_order_id' => $purchaseOrder->id,
-        ]);
+        $this->assertContains('BULK-VCH-001', $decryptedCodes);
+        $this->assertContains('BULK-VCH-250', $decryptedCodes);
     }
 
     public function test_voucher_import_with_excel_file(): void
@@ -182,24 +182,19 @@ class VoucherImportTest extends TestCase
 
         try {
             $totalQuantity = $this->purchaseOrder->getTotalQuantity();
-            Excel::import(new VoucherImport($this->purchaseOrder->id, $totalQuantity), $tempFile);
+            Excel::import(new VoucherImport($this->voucherCipherService, $this->purchaseOrder->id, $totalQuantity), $tempFile);
 
             $this->assertEquals(3, Voucher::where('purchase_order_id', $this->purchaseOrder->id)->count());
 
-            $this->assertDatabaseHas('vouchers', [
-                'code' => 'VCH-CSV-001',
-                'purchase_order_id' => $this->purchaseOrder->id,
-            ]);
+            // Verify vouchers are encrypted and can be decrypted back to original values
+            $vouchers = Voucher::where('purchase_order_id', $this->purchaseOrder->id)->get();
+            $decryptedCodes = $vouchers->map(function ($voucher) {
+                return $this->voucherCipherService->decryptCode($voucher->code);
+            })->toArray();
 
-            $this->assertDatabaseHas('vouchers', [
-                'code' => 'VCH-CSV-002',
-                'purchase_order_id' => $this->purchaseOrder->id,
-            ]);
-
-            $this->assertDatabaseHas('vouchers', [
-                'code' => 'VCH-CSV-003',
-                'purchase_order_id' => $this->purchaseOrder->id,
-            ]);
+            $this->assertContains('VCH-CSV-001', $decryptedCodes);
+            $this->assertContains('VCH-CSV-002', $decryptedCodes);
+            $this->assertContains('VCH-CSV-003', $decryptedCodes);
         } finally {
             // Clean up temp file
             if (file_exists($tempFile)) {
@@ -214,7 +209,7 @@ class VoucherImportTest extends TestCase
         $this->expectExceptionMessage('The number of voucher codes (0) does not match the total quantity of the purchase order (3).');
 
         $totalQuantity = $this->purchaseOrder->getTotalQuantity();
-        $import = new VoucherImport($this->purchaseOrder->id, $totalQuantity);
+        $import = new VoucherImport($this->voucherCipherService, $this->purchaseOrder->id, $totalQuantity);
 
         $emptyCollection = new Collection([]);
 
@@ -226,7 +221,7 @@ class VoucherImportTest extends TestCase
         $this->expectException(\RuntimeException::class);
 
         $totalQuantity = $this->purchaseOrder->getTotalQuantity();
-        $import = new VoucherImport($this->purchaseOrder->id, $totalQuantity);
+        $import = new VoucherImport($this->voucherCipherService, $this->purchaseOrder->id, $totalQuantity);
 
         $collection = new Collection([
             ['code' => 'VALID-001'],

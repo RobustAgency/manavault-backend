@@ -4,9 +4,11 @@ namespace Tests\Feature\Controllers\Admin;
 
 use Tests\TestCase;
 use App\Models\User;
+use App\Models\Voucher;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Http\UploadedFile;
+use App\Services\VoucherCipherService;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -19,11 +21,14 @@ class VoucherControllerTest extends TestCase
 
     private User $user;
 
+    private VoucherCipherService $voucherCipherService;
+
     protected function setUp(): void
     {
         parent::setUp();
         $this->admin = User::factory()->create(['role' => 'admin']);
         $this->user = User::factory()->create(['role' => 'user']);
+        $this->voucherCipherService = app(VoucherCipherService::class);
         Storage::fake('local');
     }
 
@@ -72,19 +77,17 @@ class VoucherControllerTest extends TestCase
                 'message' => 'Vouchers imported successfully.',
             ]);
 
-        // Verify vouchers were created
-        $this->assertDatabaseHas('vouchers', [
-            'code' => 'CODE-001',
-            'purchase_order_id' => $purchaseOrder->id,
-        ]);
-        $this->assertDatabaseHas('vouchers', [
-            'code' => 'CODE-002',
-            'purchase_order_id' => $purchaseOrder->id,
-        ]);
-        $this->assertDatabaseHas('vouchers', [
-            'code' => 'CODE-003',
-            'purchase_order_id' => $purchaseOrder->id,
-        ]);
+        // Verify vouchers were created and are encrypted
+        $vouchers = Voucher::where('purchase_order_id', $purchaseOrder->id)->get();
+        $this->assertCount(3, $vouchers);
+
+        $decryptedCodes = $vouchers->map(function ($voucher) {
+            return $this->voucherCipherService->decryptCode($voucher->code);
+        })->toArray();
+
+        $this->assertContains('CODE-001', $decryptedCodes);
+        $this->assertContains('CODE-002', $decryptedCodes);
+        $this->assertContains('CODE-003', $decryptedCodes);
     }
 
     public function test_import_vouchers_requires_file_or_voucher_codes(): void
