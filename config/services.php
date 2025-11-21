@@ -56,4 +56,8 @@ return [
         'access_token' => env('GIFT_2_GAMES_ACCESS_TOKEN'),
     ],
 
+    'voucher' => [
+        'encryption_key' => env('VOUCHER_ENCRYPTION_KEY', 'CKunc0FMA96tKqFiowsKv1H1VCzQM6G8WLgzVKnyVAo='),
+    ],
+
 ];

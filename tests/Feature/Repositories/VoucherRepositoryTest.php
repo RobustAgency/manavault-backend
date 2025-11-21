@@ -7,6 +7,7 @@ use App\Models\Voucher;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Http\UploadedFile;
+use App\Services\VoucherCipherService;
 use App\Repositories\VoucherRepository;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -19,12 +20,15 @@ class VoucherRepositoryTest extends TestCase
 
     private VoucherRepository $voucherRepository;
 
+    private VoucherCipherService $voucherCipherService;
+
     private PurchaseOrder $purchaseOrder;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->voucherRepository = app(VoucherRepository::class);
+        $this->voucherCipherService = app(VoucherCipherService::class);
         $this->purchaseOrder = PurchaseOrder::factory()->create();
 
         // Create purchase order items with total quantity of 3
@@ -56,18 +60,17 @@ class VoucherRepositoryTest extends TestCase
 
         // Verify vouchers were created
         $this->assertDatabaseCount('vouchers', 3);
-        $this->assertDatabaseHas('vouchers', [
-            'code' => 'VCH-001',
-            'purchase_order_id' => $this->purchaseOrder->id,
-        ]);
-        $this->assertDatabaseHas('vouchers', [
-            'code' => 'VCH-002',
-            'purchase_order_id' => $this->purchaseOrder->id,
-        ]);
-        $this->assertDatabaseHas('vouchers', [
-            'code' => 'VCH-003',
-            'purchase_order_id' => $this->purchaseOrder->id,
-        ]);
+
+        // Verify vouchers are encrypted in database
+        $vouchers = Voucher::where('purchase_order_id', $this->purchaseOrder->id)->get();
+        foreach ($vouchers as $voucher) {
+            $this->assertTrue($this->voucherCipherService->isEncrypted($voucher->code));
+        }
+
+        // Verify we can decrypt them back to original values
+        $this->assertEquals('VCH-001', $this->voucherRepository->decryptVoucherCode($vouchers[0]));
+        $this->assertEquals('VCH-002', $this->voucherRepository->decryptVoucherCode($vouchers[1]));
+        $this->assertEquals('VCH-003', $this->voucherRepository->decryptVoucherCode($vouchers[2]));
 
         $this->cleanupTempFile($csvFile);
     }
@@ -100,14 +103,16 @@ class VoucherRepositoryTest extends TestCase
 
         // Verify vouchers were created
         $this->assertEquals(2, Voucher::where('purchase_order_id', $purchaseOrder->id)->count());
-        $this->assertDatabaseHas('vouchers', [
-            'code' => 'VCH-XLSX-001',
-            'purchase_order_id' => $purchaseOrder->id,
-        ]);
-        $this->assertDatabaseHas('vouchers', [
-            'code' => 'VCH-XLSX-002',
-            'purchase_order_id' => $purchaseOrder->id,
-        ]);
+
+        // Verify vouchers are encrypted in database
+        $vouchers = Voucher::where('purchase_order_id', $purchaseOrder->id)->get();
+        foreach ($vouchers as $voucher) {
+            $this->assertTrue($this->voucherCipherService->isEncrypted($voucher->code));
+        }
+
+        // Verify we can decrypt them back to original values
+        $this->assertEquals('VCH-XLSX-001', $this->voucherRepository->decryptVoucherCode($vouchers[0]));
+        $this->assertEquals('VCH-XLSX-002', $this->voucherRepository->decryptVoucherCode($vouchers[1]));
 
         $this->cleanupTempFile($xlsxFile);
     }
@@ -129,21 +134,17 @@ class VoucherRepositoryTest extends TestCase
 
         // Verify vouchers were created
         $this->assertDatabaseCount('vouchers', 3);
-        $this->assertDatabaseHas('vouchers', [
-            'code' => 'CODE-001',
-            'purchase_order_id' => $this->purchaseOrder->id,
-            'status' => 'available',
-        ]);
-        $this->assertDatabaseHas('vouchers', [
-            'code' => 'CODE-002',
-            'purchase_order_id' => $this->purchaseOrder->id,
-            'status' => 'available',
-        ]);
-        $this->assertDatabaseHas('vouchers', [
-            'code' => 'CODE-003',
-            'purchase_order_id' => $this->purchaseOrder->id,
-            'status' => 'available',
-        ]);
+
+        // Verify vouchers are encrypted in database
+        $vouchers = Voucher::where('purchase_order_id', $this->purchaseOrder->id)->get();
+        foreach ($vouchers as $voucher) {
+            $this->assertTrue($this->voucherCipherService->isEncrypted($voucher->code));
+        }
+
+        // Verify we can decrypt them back to original values
+        $this->assertEquals('CODE-001', $this->voucherRepository->decryptVoucherCode($vouchers[0]));
+        $this->assertEquals('CODE-002', $this->voucherRepository->decryptVoucherCode($vouchers[1]));
+        $this->assertEquals('CODE-003', $this->voucherRepository->decryptVoucherCode($vouchers[2]));
     }
 
     public function test_store_vouchers_throws_exception_when_voucher_codes_count_mismatches(): void
@@ -161,6 +162,61 @@ class VoucherRepositoryTest extends TestCase
         ];
 
         $this->voucherRepository->storeVouchers($data);
+    }
+
+    public function test_decrypt_voucher_code_with_encrypted_voucher(): void
+    {
+        // Create an encrypted voucher
+        $plainCode = 'ENCRYPTED-CODE-123';
+        $encryptedCode = $this->voucherCipherService->encryptCode($plainCode);
+
+        $voucher = Voucher::factory()->create([
+            'code' => $encryptedCode,
+            'purchase_order_id' => $this->purchaseOrder->id,
+        ]);
+
+        // Decrypt and verify
+        $decryptedCode = $this->voucherRepository->decryptVoucherCode($voucher);
+
+        $this->assertEquals($plainCode, $decryptedCode);
+    }
+
+    public function test_decrypt_voucher_code_with_legacy_plain_text_voucher(): void
+    {
+        // Create a legacy voucher (plain text, not encrypted)
+        $plainCode = 'LEGACY-PLAIN-CODE-456';
+
+        $voucher = Voucher::factory()->create([
+            'code' => $plainCode,
+            'purchase_order_id' => $this->purchaseOrder->id,
+        ]);
+
+        // Should return the plain text as-is
+        $result = $this->voucherRepository->decryptVoucherCode($voucher);
+
+        $this->assertEquals($plainCode, $result);
+        $this->assertFalse($this->voucherCipherService->isEncrypted($voucher->code));
+    }
+
+    public function test_decrypt_voucher_code_handles_both_encrypted_and_plain_text(): void
+    {
+        // Create one encrypted voucher
+        $encryptedPlainCode = 'NEW-ENCRYPTED-789';
+        $encryptedVoucher = Voucher::factory()->create([
+            'code' => $this->voucherCipherService->encryptCode($encryptedPlainCode),
+            'purchase_order_id' => $this->purchaseOrder->id,
+        ]);
+
+        // Create one legacy plain text voucher
+        $legacyPlainCode = 'OLD-PLAIN-TEXT-999';
+        $legacyVoucher = Voucher::factory()->create([
+            'code' => $legacyPlainCode,
+            'purchase_order_id' => $this->purchaseOrder->id,
+        ]);
+
+        // Verify both can be decrypted/retrieved correctly
+        $this->assertEquals($encryptedPlainCode, $this->voucherRepository->decryptVoucherCode($encryptedVoucher));
+        $this->assertEquals($legacyPlainCode, $this->voucherRepository->decryptVoucherCode($legacyVoucher));
     }
 
     /**

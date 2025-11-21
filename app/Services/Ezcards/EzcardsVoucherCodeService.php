@@ -7,6 +7,7 @@ use App\Models\PurchaseOrder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\PurchaseOrderSupplier;
+use App\Services\VoucherCipherService;
 use App\Actions\Ezcards\GetVoucherCodes;
 use App\Services\PurchaseOrder\PurchaseOrderStatusService;
 
@@ -14,7 +15,8 @@ class EzcardsVoucherCodeService
 {
     public function __construct(
         private GetVoucherCodes $getVoucherCodes,
-        private PurchaseOrderStatusService $purchaseOrderStatusService
+        private PurchaseOrderStatusService $purchaseOrderStatusService,
+        private VoucherCipherService $voucherCipherService
     ) {}
 
     /**
@@ -261,6 +263,8 @@ class EzcardsVoucherCodeService
                             }
                         })
                         ->first();
+
+                    $code = $this->voucherCipherService->encryptCode($code);
 
                     if (! $existingVoucher) {
                         Voucher::create([
