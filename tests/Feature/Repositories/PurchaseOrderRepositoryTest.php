@@ -63,9 +63,9 @@ class PurchaseOrderRepositoryTest extends TestCase
         ]);
 
         $data = [
-            'supplier_id' => $supplier->id,
             'items' => [
                 [
+                    'supplier_id' => $supplier->id,
                     'digital_product_id' => $digitalProduct->id,
                     'quantity' => 2,
                 ],
@@ -76,7 +76,6 @@ class PurchaseOrderRepositoryTest extends TestCase
 
         $this->assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
         $this->assertEquals('completed', $purchaseOrder->status);
-        $this->assertEquals($supplier->id, $purchaseOrder->supplier_id);
         $this->assertCount(1, $purchaseOrder->items);
         $this->assertEquals(2, $purchaseOrder->vouchers()->count());
 
@@ -124,9 +123,9 @@ class PurchaseOrderRepositoryTest extends TestCase
         ]);
 
         $data = [
-            'supplier_id' => $supplier->id,
             'items' => [
                 [
+                    'supplier_id' => $supplier->id,
                     'digital_product_id' => $digitalProduct->id,
                     'quantity' => 3,
                 ],
@@ -137,8 +136,6 @@ class PurchaseOrderRepositoryTest extends TestCase
 
         $this->assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
         $this->assertEquals('processing', $purchaseOrder->status);
-        $this->assertEquals('1234', $purchaseOrder->transaction_id);
-        $this->assertEquals($supplier->id, $purchaseOrder->supplier_id);
         $this->assertCount(1, $purchaseOrder->items);
 
         Http::assertSent(function ($request) {
@@ -161,9 +158,9 @@ class PurchaseOrderRepositoryTest extends TestCase
         ]);
 
         $data = [
-            'supplier_id' => $supplier->id,
             'items' => [
                 [
+                    'supplier_id' => $supplier->id,
                     'digital_product_id' => $digitalProduct->id,
                     'quantity' => 5,
                 ],
@@ -174,8 +171,6 @@ class PurchaseOrderRepositoryTest extends TestCase
 
         $this->assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
         $this->assertEquals('completed', $purchaseOrder->status);
-        $this->assertNull($purchaseOrder->transaction_id);
-        $this->assertEquals($supplier->id, $purchaseOrder->supplier_id);
         $this->assertCount(1, $purchaseOrder->items);
         $this->assertEquals(75.00, $purchaseOrder->total_price);
     }
@@ -226,13 +221,14 @@ class PurchaseOrderRepositoryTest extends TestCase
         ]);
 
         $data = [
-            'supplier_id' => $supplier->id,
             'items' => [
                 [
+                    'supplier_id' => $supplier->id,
                     'digital_product_id' => $digitalProduct1->id,
                     'quantity' => 2,
                 ],
                 [
+                    'supplier_id' => $supplier->id,
                     'digital_product_id' => $digitalProduct2->id,
                     'quantity' => 3,
                 ],
@@ -243,7 +239,6 @@ class PurchaseOrderRepositoryTest extends TestCase
 
         $this->assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
         $this->assertEquals('processing', $purchaseOrder->status);
-        $this->assertEquals('5678', $purchaseOrder->transaction_id);
         $this->assertCount(2, $purchaseOrder->items);
         $this->assertEquals(182.26, $purchaseOrder->total_price);
 

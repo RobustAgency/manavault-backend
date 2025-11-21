@@ -18,10 +18,8 @@ class PurchaseOrderFactory extends Factory
     public function definition(): array
     {
         return [
-            'supplier_id' => Supplier::factory(),
             'total_price' => $this->faker->randomFloat(2, 50, 1000),
             'order_number' => $this->faker->unique()->regexify('PO-[0-9]{8}'),
-            'transaction_id' => null,
             'status' => $this->faker->randomElement(['pending', 'processing', 'completed', 'cancelled']),
         ];
     }

@@ -33,7 +33,7 @@ class PurchaseOrderRepository
      */
     public function getFilteredPurchaseOrders(array $filters = []): LengthAwarePaginator
     {
-        $query = PurchaseOrder::with(['items', 'supplier', 'vouchers']);
+        $query = PurchaseOrder::with(['items', 'suppliers', 'vouchers']);
 
         if (isset($filters['supplier_id'])) {
             $query->where('supplier_id', $filters['supplier_id']);
