@@ -23,7 +23,7 @@ class ListLoginLogsRequest extends FormRequest
     {
         return [
             'email' => ['sometimes', 'nullable', 'string', 'email'],
-            'ip_address' => ['sometimes', 'nullable', 'string', 'ip'],
+            'ip_address' => ['sometimes', 'nullable', 'string'],
             'activity' => ['sometimes', 'nullable', 'string'],
             'per_page' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:100'],
         ];
