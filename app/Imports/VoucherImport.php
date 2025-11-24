@@ -6,6 +6,7 @@ use RuntimeException;
 use App\Models\Voucher;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use App\Services\VoucherCipherService;
 use Illuminate\Support\Facades\Validator;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Illuminate\Validation\ValidationException;
@@ -25,10 +26,13 @@ class VoucherImport implements ToCollection, WithBatchInserts, WithChunkReading,
 
     protected int $failureCount = 0;
 
-    public function __construct(int $purchaseOrderID, int $purchaseOrderTotalQuantity)
+    protected VoucherCipherService $voucherCipherService;
+
+    public function __construct(VoucherCipherService $voucherCipherService, int $purchaseOrderID, int $purchaseOrderTotalQuantity)
     {
         $this->purchaseOrderID = $purchaseOrderID;
         $this->purchaseOrderTotalQuantity = $purchaseOrderTotalQuantity;
+        $this->voucherCipherService = $voucherCipherService;
     }
 
     /**
@@ -44,17 +48,16 @@ class VoucherImport implements ToCollection, WithBatchInserts, WithChunkReading,
 
         DB::beginTransaction();
         try {
-            foreach ($rows as $index => $row) {
+            foreach ($rows as $row) {
                 // @phpstan-ignore function.impossibleType
                 $rowData = is_array($row) ? $row : $row->toArray();
                 $this->validateRow($rowData);
-
+                $code = $this->voucherCipherService->encryptCode($rowData['code']);
                 Voucher::create([
-                    'code' => $rowData['code'],
+                    'code' => $code,
                     'purchase_order_id' => $this->purchaseOrderID,
                     'status' => 'available',
                 ]);
-
                 $this->successCount++;
             }
             DB::commit();

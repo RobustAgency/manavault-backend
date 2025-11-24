@@ -42,6 +42,19 @@ class DigitalStockRepository
                 });
         });
 
+        // Filter by supplier_id if provided
+        if (isset($filters['supplier_id'])) {
+            $query->where('digital_products.supplier_id', $filters['supplier_id']);
+        }
+
+        if (isset($filters['name'])) {
+            $query->where('digital_products.name', 'like', '%'.$filters['name'].'%');
+        }
+
+        if (isset($filters['brand'])) {
+            $query->where('digital_products.brand', 'like', '%'.$filters['brand'].'%');
+        }
+
         $query->orderBy('digital_products.id');
 
         return $query->paginate($perPage);

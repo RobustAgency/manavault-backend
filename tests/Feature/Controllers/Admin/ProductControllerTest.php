@@ -4,6 +4,7 @@ namespace Tests\Feature\Controllers\Admin;
 
 use Tests\TestCase;
 use App\Models\User;
+use App\Models\Brand;
 use App\Models\Product;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -150,11 +151,13 @@ class ProductControllerTest extends TestCase
 
         Storage::fake('public');
 
+        $brand = Brand::factory()->create();
+
         $data = [
             'name' => 'New Product',
             'description' => 'Product description',
             'sku' => 'SKU-12345',
-            'brand' => 'Test Brand',
+            'brand_id' => $brand->id,
             'short_description' => 'Short description',
             'long_description' => 'Long description with more details',
             'tags' => ['gaming', 'digital'],
@@ -173,7 +176,7 @@ class ProductControllerTest extends TestCase
                     'id',
                     'name',
                     'sku',
-                    'brand',
+                    'brand_id',
                     'description',
                     'short_description',
                     'long_description',
@@ -209,6 +212,8 @@ class ProductControllerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
+        $brand = Brand::factory()->create();
+
         $product = Product::factory()->create([
             'name' => 'Original Name',
             'selling_price' => 100.00,
@@ -217,7 +222,7 @@ class ProductControllerTest extends TestCase
         $updateData = [
             'name' => 'Updated Name',
             'description' => 'Updated description',
-            'brand' => 'Updated Brand',
+            'brand_id' => $brand->id,
             'short_description' => 'Updated short desc',
             'selling_price' => 199.99,
         ];
@@ -231,7 +236,7 @@ class ProductControllerTest extends TestCase
                     'id',
                     'name',
                     'sku',
-                    'brand',
+                    'brand_id',
                     'description',
                     'short_description',
                     'long_description',

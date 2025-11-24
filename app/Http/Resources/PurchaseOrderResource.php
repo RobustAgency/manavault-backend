@@ -21,12 +21,11 @@ class PurchaseOrderResource extends JsonResource
         return [
             'id' => $this->id,
             'order_number' => $this->order_number,
-            'supplier_id' => $this->supplier_id,
             'total_price' => $this->total_price,
             'status' => $this->status,
             'created_at' => $this->created_at->toDateTimeString(),
             'updated_at' => $this->updated_at->toDateTimeString(),
-            'supplier' => new SupplierResource($this->whenLoaded('supplier')),
+            'suppliers' => SupplierResource::collection($this->whenLoaded('suppliers')),
             'items' => PurchaseOrderItemResource::collection($this->whenLoaded('items')),
             'vouchers' => VoucherResource::collection($this->whenLoaded('vouchers')),
         ];

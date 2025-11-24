@@ -6,12 +6,17 @@ use App\Models\Voucher;
 use App\Models\PurchaseOrder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Models\PurchaseOrderSupplier;
+use App\Services\VoucherCipherService;
 use App\Actions\Ezcards\GetVoucherCodes;
+use App\Services\PurchaseOrder\PurchaseOrderStatusService;
 
 class EzcardsVoucherCodeService
 {
     public function __construct(
-        private GetVoucherCodes $getVoucherCodes
+        private GetVoucherCodes $getVoucherCodes,
+        private PurchaseOrderStatusService $purchaseOrderStatusService,
+        private VoucherCipherService $voucherCipherService
     ) {}
 
     /**
@@ -70,12 +75,16 @@ class EzcardsVoucherCodeService
      */
     private function getUnprocessedPurchaseOrders()
     {
-        return PurchaseOrder::with(['supplier', 'vouchers', 'items'])
-            ->whereHas('supplier', function ($query) {
-                $query->where('slug', 'ez_cards');
-            })
+        // Get purchase order IDs that have EZ Cards suppliers with transaction_id
+        $purchaseOrderIds = PurchaseOrderSupplier::whereHas('supplier', function ($query) {
+            $query->where('slug', 'ez_cards');
+        })
             ->where('status', '!=', 'completed')
             ->whereNotNull('transaction_id')
+            ->pluck('purchase_order_id');
+
+        return PurchaseOrder::with(['vouchers', 'items.digitalProduct'])
+            ->whereIn('id', $purchaseOrderIds)
             ->get();
     }
 
@@ -92,7 +101,21 @@ class EzcardsVoucherCodeService
             'reason' => null,
         ];
 
-        $transactionID = (int) $purchaseOrder->transaction_id;
+        // Get the EZ Cards purchase order supplier record
+        $purchaseOrderSupplier = PurchaseOrderSupplier::where('purchase_order_id', $purchaseOrder->id)
+            ->whereHas('supplier', function ($query) {
+                $query->where('slug', 'ez_cards');
+            })
+            ->first();
+
+        if (! $purchaseOrderSupplier || ! $purchaseOrderSupplier->transaction_id) {
+            $result['skipped'] = true;
+            $result['reason'] = 'No EZ Cards transaction ID found';
+
+            return $result;
+        }
+
+        $transactionID = (int) $purchaseOrderSupplier->transaction_id;
 
         // Fetch voucher codes from EZ Cards API
         $voucherCodesResponse = $this->getVoucherCodes->execute($transactionID);
@@ -103,7 +126,7 @@ class EzcardsVoucherCodeService
 
         // Only mark as completed if ALL vouchers are stored and available
         if ($this->areAllVouchersCompleted($purchaseOrder)) {
-            $this->markPurchaseOrderAsProcessed($purchaseOrder);
+            $this->markPurchaseOrderAsProcessed($purchaseOrder, $purchaseOrderSupplier);
             Log::info('Purchase order marked as completed', [
                 'purchase_order_id' => $purchaseOrder->id,
                 'order_number' => $purchaseOrder->order_number,
@@ -189,9 +212,9 @@ class EzcardsVoucherCodeService
 
                 // Process each voucher code for this product
                 foreach ($codes as $voucherData) {
-                    $code = $voucherData['redeemCode'];
+                    $code = $voucherData['redeemCode'] ?? null;
                     $pinCode = $voucherData['pinCode'] ?? null;
-                    $stockId = $voucherData['stockId'];
+                    $stockId = $voucherData['stockId'] ?? null;
                     $apiStatus = $voucherData['status'];
 
                     // Determine voucher status based on API status and code availability
@@ -241,6 +264,8 @@ class EzcardsVoucherCodeService
                         })
                         ->first();
 
+                    $code = $this->voucherCipherService->encryptCode($code);
+
                     if (! $existingVoucher) {
                         Voucher::create([
                             'code' => $code,
@@ -276,10 +301,20 @@ class EzcardsVoucherCodeService
     /**
      * Mark a purchase order as fully processed.
      */
-    private function markPurchaseOrderAsProcessed(PurchaseOrder $purchaseOrder): void
+    private function markPurchaseOrderAsProcessed(PurchaseOrder $purchaseOrder, PurchaseOrderSupplier $purchaseOrderSupplier): void
     {
-        $purchaseOrder->update([
+        // Update the purchase order supplier status to completed
+        $purchaseOrderSupplier->update([
             'status' => 'completed',
         ]);
+
+        Log::info('Purchase order supplier marked as completed', [
+            'purchase_order_id' => $purchaseOrder->id,
+            'supplier_id' => $purchaseOrderSupplier->supplier_id,
+            'transaction_id' => $purchaseOrderSupplier->transaction_id,
+        ]);
+
+        // Update the overall purchase order status based on all supplier statuses
+        $this->purchaseOrderStatusService->updateStatus($purchaseOrder);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Brand;
 use App\Enums\Product\Lifecycle;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -22,7 +23,7 @@ class ProductFactory extends Factory
         return [
             'name' => $this->faker->words(3, true),
             'sku' => $this->faker->unique()->bothify('SKU-####-??##'),
-            'brand' => $this->faker->company(),
+            'brand_id' => Brand::factory(),
             'description' => $this->faker->sentence(),
             'short_description' => $this->faker->sentence(10),
             'long_description' => $this->faker->paragraph(3),

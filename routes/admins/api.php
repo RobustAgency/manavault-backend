@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\Admin\SupplierController;
@@ -53,9 +54,15 @@ Route::middleware(['auth:supabase', 'role:super_admin,admin'])->prefix('/admin')
     Route::prefix('/vouchers')->controller(VoucherController::class)->group(function () {
         Route::get('', 'index');
         Route::post('store', 'store');
+        Route::get('/{voucher}', 'show');
     });
 
     Route::prefix('/digital-stocks')->controller(DigitalStockController::class)->group(function () {
         Route::get('', 'index');
+    });
+
+    Route::prefix('/brands')->controller(BrandController::class)->group(function () {
+        Route::get('', 'index');
+        Route::post('', 'store');
     });
 });

@@ -4,12 +4,16 @@ namespace App\Repositories;
 
 use App\Models\Voucher;
 use App\Models\PurchaseOrder;
+use App\Services\VoucherCipherService;
 use App\Services\VoucherImportService;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class VoucherRepository
 {
-    public function __construct(private VoucherImportService $voucherImportService) {}
+    public function __construct(
+        private VoucherImportService $voucherImportService,
+        private VoucherCipherService $voucherCipherService
+    ) {}
 
     /**
      * Get paginated vouchers filtered by the provided criteria.
@@ -47,6 +51,7 @@ class VoucherRepository
                     throw new \RuntimeException('The number of voucher codes does not match the total quantity of the purchase order.');
                 }
                 foreach ($data['voucher_codes'] as $code) {
+                    $code = $this->voucherCipherService->encryptCode($code);
                     Voucher::create([
                         'code' => $code,
                         'purchase_order_id' => $purchaseOrderID,
@@ -59,5 +64,16 @@ class VoucherRepository
         }
 
         return true;
+    }
+
+    public function decryptVoucherCode(Voucher $voucher): string
+    {
+        // Check if the code is encrypted before attempting to decrypt
+        if ($this->voucherCipherService->isEncrypted($voucher->code)) {
+            return $this->voucherCipherService->decryptCode($voucher->code);
+        }
+
+        // If not encrypted (legacy plain text), return as-is
+        return $voucher->code;
     }
 }

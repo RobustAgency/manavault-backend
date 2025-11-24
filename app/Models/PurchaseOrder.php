@@ -4,8 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class PurchaseOrder extends Model
 {
@@ -13,10 +13,8 @@ class PurchaseOrder extends Model
     use HasFactory;
 
     protected $fillable = [
-        'supplier_id',
         'total_price',
         'order_number',
-        'transaction_id',
         'status',
     ];
 
@@ -25,11 +23,28 @@ class PurchaseOrder extends Model
     ];
 
     /**
-     * @return BelongsTo<Supplier, $this>
+     * @return HasMany<PurchaseOrderSupplier, $this>
      */
-    public function supplier(): BelongsTo
+    public function purchaseOrderSuppliers(): HasMany
     {
-        return $this->belongsTo(Supplier::class);
+        return $this->hasMany(PurchaseOrderSupplier::class);
+    }
+
+    /**
+     * Get all suppliers for this purchase order
+     *
+     * @return HasManyThrough<Supplier, PurchaseOrderSupplier, $this>
+     */
+    public function suppliers(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            Supplier::class,
+            PurchaseOrderSupplier::class,
+            'purchase_order_id',
+            'id',
+            'id',
+            'supplier_id'
+        );
     }
 
     /**

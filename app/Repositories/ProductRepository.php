@@ -15,7 +15,7 @@ class ProductRepository
      */
     public function getFilteredProducts(array $filters = []): LengthAwarePaginator
     {
-        $query = Product::query();
+        $query = Product::with('brand');
 
         if (isset($filters['name'])) {
             $query->where('name', 'like', '%'.$filters['name'].'%');
@@ -25,13 +25,13 @@ class ProductRepository
             $query->where('status', $filters['status']);
         }
 
-        if (isset($filters['brand'])) {
-            $query->where('brand', 'like', '%'.$filters['brand'].'%');
+        if (isset($filters['brand_id'])) {
+            $query->where('brand_id', $filters['brand_id']);
         }
 
         $per_page = $filters['per_page'] ?? 10;
 
-        return $query->paginate($per_page);
+        return $query->orderBy('created_at', 'desc')->paginate($per_page);
     }
 
     public function createProduct(array $data): Product

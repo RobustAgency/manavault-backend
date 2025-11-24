@@ -23,7 +23,7 @@ class VoucherImportServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new VoucherImportService;
+        $this->service = app(VoucherImportService::class);
         $this->purchaseOrder = PurchaseOrder::factory()->create();
 
         // Create purchase order items with total quantity of 3

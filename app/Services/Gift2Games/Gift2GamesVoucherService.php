@@ -4,11 +4,13 @@ namespace App\Services\Gift2Games;
 
 use App\Models\Voucher;
 use App\Models\PurchaseOrder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Services\VoucherCipherService;
 
 class Gift2GamesVoucherService
 {
+    public function __construct(private VoucherCipherService $voucherCipherService) {}
+
     /**
      * Process and store vouchers from Gift2Games order response.
      *
@@ -31,7 +33,6 @@ class Gift2GamesVoucherService
         $voucherCountByProduct = [];
         $vouchersAdded = 0;
 
-        DB::beginTransaction();
         try {
             foreach ($voucherCodesResponse as $voucherData) {
                 $digitalProductId = $voucherData['digital_product_id'] ?? null;
@@ -78,11 +79,17 @@ class Gift2GamesVoucherService
                     ]);
                 }
 
+                $voucherCode = $voucherData['serialCode'] ?? null;
+
+                if ($voucherCode) {
+                    $voucherCode = $this->voucherCipherService->encryptCode($voucherCode);
+                }
+
                 // Create the voucher
                 Voucher::create([
                     'purchase_order_id' => $purchaseOrder->id,
                     'purchase_order_item_id' => $purchaseOrderItem->id,
-                    'code' => $voucherData['serialCode'] ?? $voucherData['code'] ?? null,
+                    'code' => $voucherCode,
                     'serial_number' => $voucherData['serialNumber'] ?? null,
                     'status' => 'available',
                 ]);
@@ -114,10 +121,8 @@ class Gift2GamesVoucherService
                 ]);
             }
 
-            DB::commit();
             $result['vouchers_added'] = $vouchersAdded;
         } catch (\Exception $e) {
-            DB::rollBack();
             Log::error('Failed to store Gift2Games vouchers', [
                 'purchase_order_id' => $purchaseOrder->id,
                 'error' => $e->getMessage(),

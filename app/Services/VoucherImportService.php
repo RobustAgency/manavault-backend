@@ -9,9 +9,13 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class VoucherImportService
 {
+    public function __construct(
+        private VoucherCipherService $voucherCipherService
+    ) {}
+
     private function importVoucherFromSpreadsheet(string $filePath, int $purchaseOrderID, int $purchaseOrderTotalQuantity): bool
     {
-        Excel::import(new VoucherImport($purchaseOrderID, $purchaseOrderTotalQuantity), $filePath);
+        Excel::import(new VoucherImport($this->voucherCipherService, $purchaseOrderID, $purchaseOrderTotalQuantity), $filePath);
 
         return true;
     }
