@@ -22,7 +22,7 @@ class ProductResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'sku' => $this->sku,
-            'brand' => $this->brand,
+            'brand_id' => $this->brand_id,
             'description' => $this->description,
             'short_description' => $this->short_description,
             'long_description' => $this->long_description,
@@ -34,6 +34,7 @@ class ProductResource extends JsonResource
             'created_at' => $this->created_at->toDateTimeString(),
             'updated_at' => $this->updated_at->toDateTimeString(),
             'digital_products' => DigitalProductResource::collection($this->whenLoaded('digitalProducts')),
+            'brand' => new BrandResource($this->whenLoaded('brand')),
         ];
     }
 }

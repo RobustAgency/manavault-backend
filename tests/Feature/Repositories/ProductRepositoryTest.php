@@ -3,6 +3,7 @@
 namespace Tests\Feature\Repositories;
 
 use Tests\TestCase;
+use App\Models\Brand;
 use App\Models\Product;
 use App\Enums\Product\Lifecycle;
 use App\Repositories\ProductRepository;
@@ -15,10 +16,13 @@ class ProductRepositoryTest extends TestCase
 
     private ProductRepository $repository;
 
+    private Brand $brand;
+
     protected function setUp(): void
     {
         parent::setUp();
         $this->repository = app(ProductRepository::class);
+        $this->brand = Brand::factory()->create();
     }
 
     public function test_create_product(): void
@@ -26,7 +30,7 @@ class ProductRepositoryTest extends TestCase
         $data = [
             'name' => $this->faker->word(),
             'sku' => $this->faker->unique()->bothify('SKU-####'),
-            'brand' => $this->faker->company(),
+            'brand_id' => $this->brand->id,
             'description' => $this->faker->sentence(),
             'short_description' => $this->faker->sentence(10),
             'long_description' => $this->faker->paragraph(),
@@ -43,7 +47,7 @@ class ProductRepositoryTest extends TestCase
         $this->assertDatabaseHas('products', [
             'name' => $data['name'],
             'sku' => $data['sku'],
-            'brand' => $data['brand'],
+            'brand_id' => $data['brand_id'],
             'description' => $data['description'],
             'selling_price' => $data['selling_price'],
             'status' => $data['status'],
@@ -86,11 +90,13 @@ class ProductRepositoryTest extends TestCase
 
     public function test_get_filtered_products_by_brand(): void
     {
-        Product::factory()->create(['brand' => 'Apple']);
-        Product::factory()->create(['brand' => 'Samsung']);
-        Product::factory()->create(['brand' => 'Apple Inc']);
+        $brand1 = Brand::factory()->create(['name' => 'Apple']);
+        $brand2 = Brand::factory()->create(['name' => 'Samsung']);
+        Product::factory()->create(['brand_id' => $brand1->id]);
+        Product::factory()->create(['brand_id' => $brand2->id]);
+        Product::factory()->create(['brand_id' => $brand1->id]);
 
-        $results = $this->repository->getFilteredProducts(['brand' => 'Apple']);
+        $results = $this->repository->getFilteredProducts(['brand_id' => $brand1->id]);
 
         $this->assertCount(2, $results->items());
     }
@@ -102,7 +108,7 @@ class ProductRepositoryTest extends TestCase
         $updateData = [
             'name' => 'Updated Name',
             'sku' => 'Updated-SKU-1234',
-            'brand' => 'Updated Brand',
+            'brand_id' => $this->brand->id,
             'description' => 'Updated description',
             'short_description' => 'Updated short description',
             'long_description' => 'Updated long description',
@@ -116,7 +122,7 @@ class ProductRepositoryTest extends TestCase
 
         $this->assertEquals('Updated Name', $updatedProduct->name);
         $this->assertEquals('Updated-SKU-1234', $updatedProduct->sku);
-        $this->assertEquals('Updated Brand', $updatedProduct->brand);
+        $this->assertEquals($this->brand->id, $updatedProduct->brand_id);
         $this->assertEquals('Updated description', $updatedProduct->description);
         $this->assertEquals(150.00, $updatedProduct->selling_price);
 
@@ -124,7 +130,7 @@ class ProductRepositoryTest extends TestCase
             'id' => $product->id,
             'name' => 'Updated Name',
             'sku' => 'Updated-SKU-1234',
-            'brand' => 'Updated Brand',
+            'brand_id' => $this->brand->id,
             'description' => 'Updated description',
             'selling_price' => 150.00,
         ]);
