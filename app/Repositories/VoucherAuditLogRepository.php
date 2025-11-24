@@ -19,22 +19,14 @@ class VoucherAuditLogRepository
             ->with(['voucher', 'user'])
             ->orderBy('created_at', 'desc');
 
-        // Filter by voucher_id
-        if (isset($filters['voucher_id'])) {
-            $query->where('voucher_id', $filters['voucher_id']);
+        if (isset($filters['name'])) {
+            $query->whereHas('user', fn ($q) => $q->where('name', 'like', '%'.$filters['name'].'%'));
         }
 
-        // Filter by user_id
-        if (isset($filters['user_id'])) {
-            $query->where('user_id', $filters['user_id']);
-        }
-
-        // Filter by action
         if (isset($filters['action'])) {
             $query->where('action', $filters['action']);
         }
 
-        // Filter by date range
         if (isset($filters['start_date'])) {
             $query->whereDate('created_at', '>=', $filters['start_date']);
         }

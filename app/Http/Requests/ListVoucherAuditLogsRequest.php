@@ -22,12 +22,11 @@ class ListVoucherAuditLogsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'voucher_id' => ['sometimes', 'integer', 'exists:vouchers,id'],
-            'user_id' => ['sometimes', 'integer', 'exists:users,id'],
-            'start_date' => ['sometimes', 'date'],
-            'end_date' => ['sometimes', 'date', 'after_or_equal:start_date'],
-            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
-            'page' => ['sometimes', 'integer', 'min:1'],
+            'name' => ['sometimes', 'nullable', 'string'],
+            'start_date' => ['sometimes', 'nullable', 'date'],
+            'end_date' => ['sometimes', 'nullable', 'date', 'after_or_equal:start_date'],
+            'per_page' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:100'],
+            'page' => ['sometimes', 'nullable', 'integer', 'min:1'],
         ];
     }
 }
