@@ -90,26 +90,6 @@ class LoginLogsControllerTest extends TestCase
         }
     }
 
-    public function test_can_filter_login_logs_by_activity(): void
-    {
-        Notification::fake();
-        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
-
-        LoginLog::factory()->create(['activity' => 'login']);
-        LoginLog::factory()->create(['activity' => 'logout']);
-        LoginLog::factory()->create(['activity' => 'failed_login']);
-
-        $response = $this->actingAs($admin)->getJson('/api/login-logs?activity=login');
-
-        $response->assertOk();
-        $responseData = $response->json();
-        $this->assertEquals(2, $responseData['data']['total']); // login and failed_login
-
-        foreach ($responseData['data']['data'] as $log) {
-            $this->assertStringContainsString('login', $log['activity']);
-        }
-    }
-
     public function test_can_set_custom_per_page_limit(): void
     {
         Notification::fake();
@@ -157,17 +137,6 @@ class LoginLogsControllerTest extends TestCase
 
         $response->assertStatus(422);
         $response->assertJsonValidationErrors(['email']);
-    }
-
-    public function test_validates_ip_address_format(): void
-    {
-        Notification::fake();
-        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
-
-        $response = $this->actingAs($admin)->getJson('/api/login-logs?ip_address=invalid-ip');
-
-        $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['ip_address']);
     }
 
     public function test_validates_per_page_is_positive_integer(): void

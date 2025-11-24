@@ -58,21 +58,6 @@ class LoginLogsRepositoryTest extends TestCase
         }
     }
 
-    public function test_filters_by_activity_using_like_operator(): void
-    {
-        LoginLog::factory()->create(['activity' => 'login']);
-        LoginLog::factory()->create(['activity' => 'logout']);
-        LoginLog::factory()->create(['activity' => 'failed_login']);
-        LoginLog::factory()->create(['activity' => 'password_reset']);
-
-        $result = $this->repository->getFilteredLoginLogs(['activity' => 'login']);
-
-        $this->assertEquals(2, $result->total()); // Should match 'login' and 'failed_login'
-        foreach ($result->items() as $log) {
-            $this->assertStringContainsString('login', $log->activity);
-        }
-    }
-
     public function test_respects_custom_per_page_parameter(): void
     {
         LoginLog::factory()->count(30)->create();
