@@ -2,8 +2,6 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Validation\Rule;
-use App\Enums\VoucherAuditActions;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ListVoucherAuditLogsRequest extends FormRequest
@@ -26,10 +24,6 @@ class ListVoucherAuditLogsRequest extends FormRequest
         return [
             'voucher_id' => ['sometimes', 'integer', 'exists:vouchers,id'],
             'user_id' => ['sometimes', 'integer', 'exists:users,id'],
-            'action' => ['sometimes', 'string', Rule::in([
-                VoucherAuditActions::VIEWED->value,
-                VoucherAuditActions::COPIED->value,
-            ])],
             'start_date' => ['sometimes', 'date'],
             'end_date' => ['sometimes', 'date', 'after_or_equal:start_date'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],

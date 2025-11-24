@@ -22,7 +22,7 @@ class VoucherAuditLogRepositoryTest extends TestCase
         $this->repository = new VoucherAuditLogRepository;
     }
 
-    public function it_can_get_all_audit_logs_with_pagination()
+    public function test_it_can_get_all_audit_logs_with_pagination()
     {
         $voucher = Voucher::factory()->create();
         $user = User::factory()->create();
@@ -38,7 +38,7 @@ class VoucherAuditLogRepositoryTest extends TestCase
         $this->assertEquals(10, $result->total());
     }
 
-    public function it_filters_by_voucher_id()
+    public function test_it_filters_by_voucher_id()
     {
         $voucher1 = Voucher::factory()->create();
         $voucher2 = Voucher::factory()->create();
@@ -62,7 +62,7 @@ class VoucherAuditLogRepositoryTest extends TestCase
         }
     }
 
-    public function it_filters_by_user_id()
+    public function test_it_filters_by_user_id()
     {
         $voucher = Voucher::factory()->create();
         $user1 = User::factory()->create();
@@ -86,7 +86,7 @@ class VoucherAuditLogRepositoryTest extends TestCase
         }
     }
 
-    public function it_filters_by_action()
+    public function test_it_filters_by_action()
     {
         $voucher = Voucher::factory()->create();
         $user = User::factory()->create();
@@ -111,7 +111,7 @@ class VoucherAuditLogRepositoryTest extends TestCase
         }
     }
 
-    public function it_filters_by_start_date()
+    public function test_it_filters_by_start_date()
     {
         $voucher = Voucher::factory()->create();
         $user = User::factory()->create();
@@ -134,7 +134,7 @@ class VoucherAuditLogRepositoryTest extends TestCase
         $this->assertEquals(5, $result->total());
     }
 
-    public function it_filters_by_end_date()
+    public function test_it_filters_by_end_date()
     {
         $voucher = Voucher::factory()->create();
         $user = User::factory()->create();
@@ -157,7 +157,7 @@ class VoucherAuditLogRepositoryTest extends TestCase
         $this->assertEquals(3, $result->total());
     }
 
-    public function it_filters_by_date_range()
+    public function test_it_filters_by_date_range()
     {
         $voucher = Voucher::factory()->create();
         $user = User::factory()->create();
@@ -197,7 +197,7 @@ class VoucherAuditLogRepositoryTest extends TestCase
         $this->assertEquals(5, $result->total());
     }
 
-    public function it_applies_multiple_filters_together()
+    public function test_it_applies_multiple_filters_together()
     {
         $voucher1 = Voucher::factory()->create();
         $voucher2 = Voucher::factory()->create();
@@ -254,7 +254,7 @@ class VoucherAuditLogRepositoryTest extends TestCase
         $this->assertEquals(3, $result->total());
     }
 
-    public function it_respects_custom_per_page()
+    public function test_it_respects_custom_per_page()
     {
         $voucher = Voucher::factory()->create();
         $user = User::factory()->create();
@@ -271,7 +271,7 @@ class VoucherAuditLogRepositoryTest extends TestCase
         $this->assertEquals(30, $result->total());
     }
 
-    public function it_uses_default_per_page_when_not_specified()
+    public function test_it_uses_default_per_page_when_not_specified()
     {
         $voucher = Voucher::factory()->create();
         $user = User::factory()->create();
@@ -286,7 +286,7 @@ class VoucherAuditLogRepositoryTest extends TestCase
         $this->assertEquals(15, $result->perPage());
     }
 
-    public function it_orders_results_by_created_at_descending()
+    public function test_it_orders_results_by_created_at_descending()
     {
         $voucher = Voucher::factory()->create();
         $user = User::factory()->create();
@@ -317,7 +317,7 @@ class VoucherAuditLogRepositoryTest extends TestCase
         $this->assertEquals($log1->id, $items[2]->id);
     }
 
-    public function it_eager_loads_voucher_relationship()
+    public function test_it_eager_loads_voucher_relationship()
     {
         $voucher = Voucher::factory()->create();
         $user = User::factory()->create();
@@ -334,7 +334,7 @@ class VoucherAuditLogRepositoryTest extends TestCase
         $this->assertEquals($voucher->id, $log->voucher->id);
     }
 
-    public function it_eager_loads_user_relationship()
+    public function test_it_eager_loads_user_relationship()
     {
         $voucher = Voucher::factory()->create();
         $user = User::factory()->create();
@@ -351,7 +351,7 @@ class VoucherAuditLogRepositoryTest extends TestCase
         $this->assertEquals($user->id, $log->user->id);
     }
 
-    public function it_returns_empty_result_when_no_logs_match_filters()
+    public function test_it_returns_empty_result_when_no_logs_match_filters()
     {
         $voucher = Voucher::factory()->create();
         $user = User::factory()->create();

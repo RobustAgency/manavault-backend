@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\Feature\Controllers\Admin;
 
 use Tests\TestCase;
 use App\Models\User;
@@ -21,7 +21,7 @@ class VoucherAuditLogControllerTest extends TestCase
         $this->admin = User::factory()->create(['role' => 'admin']);
     }
 
-    public function it_can_list_all_voucher_audit_logs()
+    public function test_it_can_list_all_voucher_audit_logs()
     {
         $voucher = Voucher::factory()->create();
         $user = User::factory()->create();
@@ -64,7 +64,7 @@ class VoucherAuditLogControllerTest extends TestCase
         $this->assertEquals(5, $response->json('data.total'));
     }
 
-    public function it_can_filter_audit_logs_by_voucher_id()
+    public function test_it_can_filter_audit_logs_by_voucher_id()
     {
         $voucher1 = Voucher::factory()->create();
         $voucher2 = Voucher::factory()->create();
@@ -91,7 +91,7 @@ class VoucherAuditLogControllerTest extends TestCase
         }
     }
 
-    public function it_can_filter_audit_logs_by_user_id()
+    public function test_it_can_filter_audit_logs_by_user_id()
     {
         $voucher = Voucher::factory()->create();
         $user1 = User::factory()->create();
@@ -118,7 +118,7 @@ class VoucherAuditLogControllerTest extends TestCase
         }
     }
 
-    public function it_can_filter_audit_logs_by_action()
+    public function test_it_can_filter_audit_logs_by_action()
     {
         $voucher = Voucher::factory()->create();
         $user = User::factory()->create();
@@ -146,7 +146,7 @@ class VoucherAuditLogControllerTest extends TestCase
         }
     }
 
-    public function it_can_filter_audit_logs_by_date_range()
+    public function test_it_can_filter_audit_logs_by_date_range()
     {
         $voucher = Voucher::factory()->create();
         $user = User::factory()->create();
@@ -180,7 +180,7 @@ class VoucherAuditLogControllerTest extends TestCase
         $this->assertEquals(4, $response->json('data.total'));
     }
 
-    public function it_can_filter_with_multiple_criteria()
+    public function test_it_can_filter_with_multiple_criteria()
     {
         $voucher1 = Voucher::factory()->create();
         $voucher2 = Voucher::factory()->create();
@@ -211,7 +211,7 @@ class VoucherAuditLogControllerTest extends TestCase
         $this->assertEquals(2, $response->json('data.total'));
     }
 
-    public function it_supports_pagination()
+    public function test_it_supports_pagination()
     {
         $voucher = Voucher::factory()->create();
         $user = User::factory()->create();
@@ -232,7 +232,7 @@ class VoucherAuditLogControllerTest extends TestCase
         $this->assertCount(10, $response->json('data.data'));
     }
 
-    public function it_orders_logs_by_created_at_descending()
+    public function test_it_orders_logs_by_created_at_descending()
     {
         $voucher = Voucher::factory()->create();
         $user = User::factory()->create();
@@ -266,14 +266,14 @@ class VoucherAuditLogControllerTest extends TestCase
         $this->assertEquals($log1->id, $data[2]['id']);
     }
 
-    public function it_requires_authentication()
+    public function test_it_requires_authentication()
     {
         $response = $this->getJson('/api/admin/voucher-audit-logs');
 
         $response->assertStatus(401);
     }
 
-    public function it_validates_filter_parameters()
+    public function test_it_validates_filter_parameters()
     {
         $response = $this->actingAs($this->admin, 'supabase')
             ->getJson('/api/admin/voucher-audit-logs?voucher_id=invalid');
@@ -282,7 +282,7 @@ class VoucherAuditLogControllerTest extends TestCase
             ->assertJsonValidationErrors(['voucher_id']);
     }
 
-    public function it_validates_action_enum()
+    public function test_it_validates_action_enum()
     {
         $response = $this->actingAs($this->admin, 'supabase')
             ->getJson('/api/admin/voucher-audit-logs?action=invalid_action');
@@ -291,7 +291,7 @@ class VoucherAuditLogControllerTest extends TestCase
             ->assertJsonValidationErrors(['action']);
     }
 
-    public function it_validates_date_range()
+    public function test_it_validates_date_range()
     {
         $response = $this->actingAs($this->admin, 'supabase')
             ->getJson('/api/admin/voucher-audit-logs?start_date=2025-12-01&end_date=2025-11-01');
@@ -300,7 +300,7 @@ class VoucherAuditLogControllerTest extends TestCase
             ->assertJsonValidationErrors(['end_date']);
     }
 
-    public function it_includes_user_and_voucher_relationships()
+    public function test_it_includes_user_and_voucher_relationships()
     {
         $voucher = Voucher::factory()->create();
         $user = User::factory()->create();
