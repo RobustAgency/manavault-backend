@@ -50,7 +50,7 @@ class PurchaseOrderController extends Controller
 
     public function show(PurchaseOrder $purchaseOrder): JsonResponse
     {
-        $purchaseOrder->load(['items', 'suppliers', 'vouchers']);
+        $purchaseOrder->load(['items.digitalProduct', 'suppliers', 'vouchers']);
 
         return response()->json([
             'error' => false,

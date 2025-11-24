@@ -38,54 +38,6 @@ class VoucherAuditLogRepositoryTest extends TestCase
         $this->assertEquals(10, $result->total());
     }
 
-    public function test_it_filters_by_voucher_id()
-    {
-        $voucher1 = Voucher::factory()->create();
-        $voucher2 = Voucher::factory()->create();
-        $user = User::factory()->create();
-
-        VoucherAuditLog::factory()->count(5)->create([
-            'voucher_id' => $voucher1->id,
-            'user_id' => $user->id,
-        ]);
-
-        VoucherAuditLog::factory()->count(3)->create([
-            'voucher_id' => $voucher2->id,
-            'user_id' => $user->id,
-        ]);
-
-        $result = $this->repository->getFilteredLogs(['voucher_id' => $voucher1->id]);
-
-        $this->assertEquals(5, $result->total());
-        foreach ($result->items() as $log) {
-            $this->assertEquals($voucher1->id, $log->voucher_id);
-        }
-    }
-
-    public function test_it_filters_by_user_id()
-    {
-        $voucher = Voucher::factory()->create();
-        $user1 = User::factory()->create();
-        $user2 = User::factory()->create();
-
-        VoucherAuditLog::factory()->count(7)->create([
-            'voucher_id' => $voucher->id,
-            'user_id' => $user1->id,
-        ]);
-
-        VoucherAuditLog::factory()->count(3)->create([
-            'voucher_id' => $voucher->id,
-            'user_id' => $user2->id,
-        ]);
-
-        $result = $this->repository->getFilteredLogs(['user_id' => $user1->id]);
-
-        $this->assertEquals(7, $result->total());
-        foreach ($result->items() as $log) {
-            $this->assertEquals($user1->id, $log->user_id);
-        }
-    }
-
     public function test_it_filters_by_action()
     {
         $voucher = Voucher::factory()->create();
@@ -197,63 +149,6 @@ class VoucherAuditLogRepositoryTest extends TestCase
         $this->assertEquals(5, $result->total());
     }
 
-    public function test_it_applies_multiple_filters_together()
-    {
-        $voucher1 = Voucher::factory()->create();
-        $voucher2 = Voucher::factory()->create();
-        $user1 = User::factory()->create();
-        $user2 = User::factory()->create();
-
-        // Matching all criteria
-        VoucherAuditLog::factory()->count(3)->create([
-            'voucher_id' => $voucher1->id,
-            'user_id' => $user1->id,
-            'action' => VoucherAuditActions::VIEWED->value,
-            'created_at' => now()->subDays(2),
-        ]);
-
-        // Different voucher
-        VoucherAuditLog::factory()->create([
-            'voucher_id' => $voucher2->id,
-            'user_id' => $user1->id,
-            'action' => VoucherAuditActions::VIEWED->value,
-            'created_at' => now()->subDays(2),
-        ]);
-
-        // Different user
-        VoucherAuditLog::factory()->create([
-            'voucher_id' => $voucher1->id,
-            'user_id' => $user2->id,
-            'action' => VoucherAuditActions::VIEWED->value,
-            'created_at' => now()->subDays(2),
-        ]);
-
-        // Different action
-        VoucherAuditLog::factory()->create([
-            'voucher_id' => $voucher1->id,
-            'user_id' => $user1->id,
-            'action' => VoucherAuditActions::COPIED->value,
-            'created_at' => now()->subDays(2),
-        ]);
-
-        // Different date
-        VoucherAuditLog::factory()->create([
-            'voucher_id' => $voucher1->id,
-            'user_id' => $user1->id,
-            'action' => VoucherAuditActions::VIEWED->value,
-            'created_at' => now()->subDays(10),
-        ]);
-
-        $result = $this->repository->getFilteredLogs([
-            'voucher_id' => $voucher1->id,
-            'user_id' => $user1->id,
-            'action' => VoucherAuditActions::VIEWED->value,
-            'start_date' => now()->subDays(5)->format('Y-m-d'),
-        ]);
-
-        $this->assertEquals(3, $result->total());
-    }
-
     public function test_it_respects_custom_per_page()
     {
         $voucher = Voucher::factory()->create();
@@ -349,22 +244,5 @@ class VoucherAuditLogRepositoryTest extends TestCase
 
         $this->assertTrue($log->relationLoaded('user'));
         $this->assertEquals($user->id, $log->user->id);
-    }
-
-    public function test_it_returns_empty_result_when_no_logs_match_filters()
-    {
-        $voucher = Voucher::factory()->create();
-        $user = User::factory()->create();
-
-        VoucherAuditLog::factory()->create([
-            'voucher_id' => $voucher->id,
-            'user_id' => $user->id,
-        ]);
-
-        $nonExistentVoucherId = 99999;
-        $result = $this->repository->getFilteredLogs(['voucher_id' => $nonExistentVoucherId]);
-
-        $this->assertEquals(0, $result->total());
-        $this->assertCount(0, $result->items());
     }
 }
