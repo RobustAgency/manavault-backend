@@ -16,15 +16,11 @@ class LoginLogsRepository
     {
         $query = LoginLog::query();
         if (! empty($filters['email'])) {
-            $query->where('email', $filters['email']);
+            $query->where('email', 'like', '%'.$filters['email'].'%');
         }
 
         if (! empty($filters['ip_address'])) {
-            $query->where('ip_address', $filters['ip_address']);
-        }
-
-        if (! empty($filters['activity'])) {
-            $query->where('activity', 'like', '%'.$filters['activity'].'%');
+            $query->where('ip_address', 'like', '%'.$filters['ip_address'].'%');
         }
 
         $perPage = $filters['per_page'] ?? 15;
