@@ -66,6 +66,13 @@ class VoucherRepository
         return true;
     }
 
+    public function showVoucherCode(Voucher $voucher): string
+    {
+        $decryptedCode = $this->decryptVoucherCode($voucher);
+
+        return $decryptedCode;
+    }
+
     public function decryptVoucherCode(Voucher $voucher): string
     {
         // Check if the code is encrypted before attempting to decrypt

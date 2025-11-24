@@ -316,7 +316,10 @@ class VoucherControllerTest extends TestCase
             'status' => 'available',
         ]);
 
-        $response = $this->getJson("/api/admin/vouchers/{$voucher->id}");
+        $response = $this->postJson("/api/admin/vouchers/{$voucher->id}/code", [
+            'ip_address' => '127.0.0.1',
+            'user_agent' => 'Mozilla/5.0 (Test Browser)',
+        ]);
 
         $response->assertStatus(200)
             ->assertJson([
@@ -343,7 +346,10 @@ class VoucherControllerTest extends TestCase
             'status' => 'available',
         ]);
 
-        $response = $this->getJson("/api/admin/vouchers/{$voucher->id}");
+        $response = $this->postJson("/api/admin/vouchers/{$voucher->id}/code", [
+            'ip_address' => '192.168.1.1',
+            'user_agent' => 'Mozilla/5.0 (Test Browser)',
+        ]);
 
         $response->assertStatus(200)
             ->assertJson([
@@ -377,7 +383,10 @@ class VoucherControllerTest extends TestCase
         $purchaseOrder = PurchaseOrder::factory()->create();
         $voucher = Voucher::factory()->create(['purchase_order_id' => $purchaseOrder->id]);
 
-        $response = $this->getJson("/api/admin/vouchers/{$voucher->id}");
+        $response = $this->postJson("/api/admin/vouchers/{$voucher->id}/code", [
+            'ip_address' => '127.0.0.1',
+            'user_agent' => 'Mozilla/5.0 (Test Browser)',
+        ]);
 
         $response->assertStatus(401);
     }
@@ -398,7 +407,10 @@ class VoucherControllerTest extends TestCase
         $purchaseOrder = PurchaseOrder::factory()->create();
         $voucher = Voucher::factory()->create(['purchase_order_id' => $purchaseOrder->id]);
 
-        $response = $this->getJson("/api/admin/vouchers/{$voucher->id}");
+        $response = $this->postJson("/api/admin/vouchers/{$voucher->id}/code", [
+            'ip_address' => '10.0.0.1',
+            'user_agent' => 'Mozilla/5.0 (Test Browser)',
+        ]);
 
         $response->assertStatus(403);
     }
