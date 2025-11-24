@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\DigitalStockController;
 use App\Http\Controllers\Admin\PurchaseOrderController;
 use App\Http\Controllers\Admin\DigitalProductController;
+use App\Http\Controllers\Admin\VoucherAuditLogController;
 
 Route::middleware(['auth:supabase', 'role:super_admin,admin'])->prefix('/admin')->group(function () {
 
@@ -54,7 +55,7 @@ Route::middleware(['auth:supabase', 'role:super_admin,admin'])->prefix('/admin')
     Route::prefix('/vouchers')->controller(VoucherController::class)->group(function () {
         Route::get('', 'index');
         Route::post('store', 'store');
-        Route::get('/{voucher}', 'show');
+        Route::post('/{voucher}/code', 'show');
     });
 
     Route::prefix('/digital-stocks')->controller(DigitalStockController::class)->group(function () {
@@ -64,5 +65,9 @@ Route::middleware(['auth:supabase', 'role:super_admin,admin'])->prefix('/admin')
     Route::prefix('/brands')->controller(BrandController::class)->group(function () {
         Route::get('', 'index');
         Route::post('', 'store');
+    });
+
+    Route::prefix('/voucher-audit-logs')->controller(VoucherAuditLogController::class)->group(function () {
+        Route::get('', 'index');
     });
 });

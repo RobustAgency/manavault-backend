@@ -5,14 +5,20 @@ namespace App\Http\Controllers\Admin;
 use App\Models\Voucher;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
+use App\Services\VoucherAuditService;
 use App\Http\Resources\VoucherResource;
 use App\Repositories\VoucherRepository;
 use App\Http\Requests\ListVouchersRequest;
+use App\Http\Requests\Voucher\ShowVoucherRequest;
 use App\Http\Requests\Voucher\StoreVoucherRequest;
 
 class VoucherController extends Controller
 {
-    public function __construct(private VoucherRepository $voucherRepository) {}
+    public function __construct(
+        private VoucherRepository $voucherRepository,
+        private VoucherAuditService $voucherAuditService,
+    ) {}
 
     public function index(ListVouchersRequest $request): JsonResponse
     {
@@ -51,9 +57,12 @@ class VoucherController extends Controller
         }
     }
 
-    public function show(Voucher $voucher): JsonResponse
+    public function show(Voucher $voucher, ShowVoucherRequest $request): JsonResponse
     {
-        $voucherCode = $this->voucherRepository->decryptVoucherCode($voucher);
+        $user = Auth::user();
+        $validated = $request->validated();
+        $voucherCode = $this->voucherRepository->showVoucherCode($voucher);
+        $this->voucherAuditService->voucherViewLog($voucher, $user, $validated);
 
         return response()->json([
             'error' => false,
