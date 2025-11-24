@@ -26,6 +26,7 @@ class ListProductRequest extends FormRequest
         return [
             'supplier_id' => ['nullable', 'exists:suppliers,id'],
             'name' => ['nullable', 'string', 'max:255'],
+            'brand_id' => ['nullable', 'exists:brands,id'],
             'status' => ['nullable', 'string', Rule::in(array_map(fn ($c) => $c->value, Lifecycle::cases()))],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];

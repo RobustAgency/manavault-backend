@@ -29,7 +29,7 @@ class ProductController extends Controller
 
     public function show(Product $product): JsonResponse
     {
-        $product->load('digitalProducts.supplier');
+        $product->load(['digitalProducts.supplier', 'brand']);
 
         return response()->json([
             'error' => false,
