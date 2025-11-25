@@ -11,6 +11,8 @@ class DigitalProduct extends Model
     /** @use HasFactory<\Database\Factories\DigitalProductFactory> */
     use HasFactory;
 
+    public const LOW_QUANTITY_THRESHOLD = 5;
+
     protected $fillable = [
         'supplier_id',
         'name',
