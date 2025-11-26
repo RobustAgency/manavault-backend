@@ -44,7 +44,6 @@ class DigitalStockControllerTest extends TestCase
                             'brand',
                             'description',
                             'cost_price',
-                            'status',
                             'quantity',
                             'supplier_id',
                             'supplier_name',

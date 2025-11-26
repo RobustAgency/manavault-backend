@@ -30,4 +30,12 @@ class Voucher extends Model
     {
         return $this->belongsTo(PurchaseOrder::class);
     }
+
+    /**
+     * @return BelongsTo<PurchaseOrderItem, $this>
+     */
+    public function purchaseOrderItem(): BelongsTo
+    {
+        return $this->belongsTo(PurchaseOrderItem::class);
+    }
 }

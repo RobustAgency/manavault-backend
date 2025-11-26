@@ -18,7 +18,6 @@ class DigitalProduct extends Model
         'brand',
         'description',
         'cost_price',
-        'status',
         'metadata',
         'source',
         'last_synced_at',

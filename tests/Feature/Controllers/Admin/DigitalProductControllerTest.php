@@ -45,7 +45,6 @@ class DigitalProductControllerTest extends TestCase
                     'brand' => 'Test Brand',
                     'description' => 'Product description',
                     'cost_price' => 149.99,
-                    'status' => 'active',
                     'metadata' => ['external_id' => 'ext-123'],
                 ],
             ],
@@ -63,7 +62,6 @@ class DigitalProductControllerTest extends TestCase
                         'name',
                         'brand',
                         'cost_price',
-                        'status',
                     ],
                 ],
                 'message',
@@ -95,7 +93,6 @@ class DigitalProductControllerTest extends TestCase
                     'sku' => 'SKU-001',
                     'brand' => 'Brand A',
                     'cost_price' => 10.00,
-                    'status' => 'active',
                 ],
                 [
                     'supplier_id' => $supplier->id,
@@ -103,7 +100,6 @@ class DigitalProductControllerTest extends TestCase
                     'sku' => 'SKU-002',
                     'brand' => 'Brand B',
                     'cost_price' => 20.00,
-                    'status' => 'active',
                 ],
                 [
                     'supplier_id' => $supplier->id,
@@ -111,7 +107,6 @@ class DigitalProductControllerTest extends TestCase
                     'sku' => 'SKU-003',
                     'brand' => 'Brand C',
                     'cost_price' => 30.00,
-                    'status' => 'inactive',
                 ],
             ],
         ];
@@ -146,7 +141,6 @@ class DigitalProductControllerTest extends TestCase
                 'products.0.supplier_id',
                 'products.0.sku',
                 'products.0.cost_price',
-                'products.0.status',
             ]);
     }
 
@@ -163,7 +157,6 @@ class DigitalProductControllerTest extends TestCase
             'name' => 'Updated Name',
             'brand' => 'Updated Brand',
             'cost_price' => 199.99,
-            'status' => 'inactive',
         ];
 
         $response = $this->postJson("/api/admin/digital-products/{$digitalProduct->id}", $updateData);
@@ -176,7 +169,6 @@ class DigitalProductControllerTest extends TestCase
                     'name',
                     'brand',
                     'cost_price',
-                    'status',
                 ],
                 'message',
             ])
@@ -187,7 +179,6 @@ class DigitalProductControllerTest extends TestCase
                     'id' => $digitalProduct->id,
                     'name' => 'Updated Name',
                     'cost_price' => '199.99',
-                    'status' => 'inactive',
                 ],
             ]);
 
@@ -237,7 +228,6 @@ class DigitalProductControllerTest extends TestCase
                     'name' => 'Test Product',
                     'sku' => 'TEST-SKU',
                     'cost_price' => 99.99,
-                    'status' => 'active',
                 ],
             ],
         ];

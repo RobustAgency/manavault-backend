@@ -37,7 +37,6 @@ class SyncDigitalProducts
                 'description' => $item['description'] ?? null,
                 'cost_price' => $item['price'] ?? null,
                 'currency' => $item['currency'] ?? null,
-                'status' => $item['inStock'] ?? true ? 'active' : 'inactive',
             ]);
         }
 
