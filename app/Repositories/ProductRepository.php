@@ -4,10 +4,13 @@ namespace App\Repositories;
 
 use App\Models\Product;
 use Illuminate\Http\UploadedFile;
+use App\Services\ImageUploadService;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class ProductRepository
 {
+    public function __construct(private ImageUploadService $imageUploadService) {}
+
     /**
      * Get paginated products filtered by the provided criteria.
      *
@@ -38,7 +41,7 @@ class ProductRepository
     {
         $image = $data['image'] ?? null;
         if ($image instanceof UploadedFile) {
-            $data['image'] = $this->uploadProductImage($image);
+            $data['image'] = $this->imageUploadService->upload($image, 'uploads/products');
         }
 
         return Product::create($data);
@@ -48,7 +51,8 @@ class ProductRepository
     {
         $image = $data['image'] ?? null;
         if ($image instanceof UploadedFile) {
-            $data['image'] = $this->uploadProductImage($image);
+            $oldImage = $product->image;
+            $data['image'] = $this->imageUploadService->replace($image, 'uploads/products', $oldImage);
         }
         $product->update($data);
 
@@ -57,11 +61,10 @@ class ProductRepository
 
     public function deleteProduct(Product $product): bool
     {
-        return $product->delete();
-    }
+        if ($product->image) {
+            $this->imageUploadService->delete($product->image);
+        }
 
-    public function uploadProductImage(UploadedFile $image): string|false
-    {
-        return $image->store('uploads/products', 'public');
+        return $product->delete();
     }
 }

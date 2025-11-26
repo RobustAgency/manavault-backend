@@ -4,7 +4,7 @@ namespace App\Http\Requests\Brand;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreBrandRequest extends FormRequest
+class UpdateBrandRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -21,9 +21,13 @@ class StoreBrandRequest extends FormRequest
      */
     public function rules(): array
     {
+
+        $brand = $this->route('brand');
+        $brandId = is_object($brand) ? ($brand->id ?? null) : $brand;
+
         return [
-            'name' => ['required', 'string', 'max:255', 'unique:brands,name'],
-            'image' => ['nullable', 'file', 'mimes:jpeg,png,jpg', 'max:2048'],
+            'name' => ['sometimes', 'string', 'max:255', 'unique:brands,name,'.$brandId],
+            'image' => ['sometimes', 'nullable', 'file', 'mimes:jpeg,png,jpg', 'max:2048'],
         ];
     }
 
