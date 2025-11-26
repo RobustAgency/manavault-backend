@@ -4,7 +4,9 @@ namespace Tests\Feature\Repositories;
 
 use Tests\TestCase;
 use App\Models\Brand;
+use Illuminate\Http\UploadedFile;
 use App\Repositories\BrandRepository;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -116,5 +118,115 @@ class BrandRepositoryTest extends TestCase
         $brands = $this->repository->getFilteredBrands(['name' => 'Puma']);
 
         $this->assertCount(0, $brands->items());
+    }
+
+    public function test_create_brand_with_image(): void
+    {
+        Storage::fake('public');
+
+        $file = UploadedFile::fake()->image('brand-logo.jpg');
+
+        $data = [
+            'name' => 'Brand with Image',
+            'image' => $file,
+        ];
+
+        $brand = $this->repository->createBrand($data);
+
+        $this->assertInstanceOf(Brand::class, $brand);
+        $this->assertEquals('Brand with Image', $brand->name);
+        $this->assertNotNull($brand->image);
+        $this->assertDatabaseHas('brands', ['name' => 'Brand with Image']);
+
+        $this->assertTrue(Storage::disk('public')->exists($brand->image));
+    }
+
+    public function test_update_brand_with_new_image(): void
+    {
+        Storage::fake('public');
+
+        $oldFile = UploadedFile::fake()->image('old-logo.jpg');
+        $brand = $this->repository->createBrand([
+            'name' => 'Brand',
+            'image' => $oldFile,
+        ]);
+
+        $oldImagePath = $brand->image;
+
+        $newFile = UploadedFile::fake()->image('new-logo.jpg');
+        $updatedBrand = $this->repository->updateBrand($brand, [
+            'name' => 'Updated Brand',
+            'image' => $newFile,
+        ]);
+
+        $this->assertEquals('Updated Brand', $updatedBrand->name);
+        $this->assertNotEquals($oldImagePath, $updatedBrand->image);
+        $this->assertTrue(Storage::disk('public')->exists($updatedBrand->image));
+        $this->assertFalse(Storage::disk('public')->exists($oldImagePath));
+    }
+
+    public function test_update_brand_without_changing_image(): void
+    {
+        Storage::fake('public');
+
+        $file = UploadedFile::fake()->image('logo.jpg');
+        $brand = $this->repository->createBrand([
+            'name' => 'Brand',
+            'image' => $file,
+        ]);
+
+        $originalImage = $brand->image;
+
+        $updatedBrand = $this->repository->updateBrand($brand, [
+            'name' => 'Updated Name',
+        ]);
+
+        $this->assertEquals('Updated Name', $updatedBrand->name);
+        $this->assertEquals($originalImage, $updatedBrand->image);
+        $this->assertTrue(Storage::disk('public')->exists($originalImage));
+    }
+
+    public function test_delete_brand_removes_associated_image(): void
+    {
+        Storage::fake('public');
+
+        $file = UploadedFile::fake()->image('logo.jpg');
+        $brand = $this->repository->createBrand([
+            'name' => 'Brand with Image',
+            'image' => $file,
+        ]);
+
+        $imagePath = $brand->image;
+        $this->assertTrue(Storage::disk('public')->exists($imagePath));
+
+        $result = $this->repository->deleteBrand($brand);
+
+        $this->assertTrue($result);
+        $this->assertDatabaseMissing('brands', ['id' => $brand->id]);
+        $this->assertFalse(Storage::disk('public')->exists($imagePath));
+    }
+
+    public function test_delete_brand_without_image(): void
+    {
+        $brand = Brand::factory()->create(['name' => 'Brand without Image']);
+
+        $result = $this->repository->deleteBrand($brand);
+
+        $this->assertTrue($result);
+        $this->assertDatabaseMissing('brands', ['id' => $brand->id]);
+    }
+
+    public function test_update_brand_returns_fresh_instance(): void
+    {
+        $brand = Brand::factory()->create(['name' => 'Original Name']);
+
+        $updatedBrand = $this->repository->updateBrand($brand, ['name' => 'New Name']);
+
+        $this->assertNotSame($brand, $updatedBrand);
+        $this->assertEquals('New Name', $updatedBrand->name);
+
+        // Verify the original instance is not automatically updated
+        $brand->refresh();
+        $this->assertEquals('New Name', $brand->name);
     }
 }

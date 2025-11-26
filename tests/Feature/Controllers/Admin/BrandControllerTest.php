@@ -142,6 +142,132 @@ class BrandControllerTest extends TestCase
             ->assertJsonValidationErrors(['name']);
     }
 
+    public function test_admin_can_show_single_brand(): void
+    {
+        $this->actingAs($this->admin);
+
+        $brand = Brand::factory()->create(['name' => 'Test Brand']);
+
+        $response = $this->getJson("/api/admin/brands/{$brand->id}");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'error' => false,
+                'message' => 'Brand retrieved successfully.',
+                'data' => [
+                    'id' => $brand->id,
+                    'name' => 'Test Brand',
+                ],
+            ]);
+    }
+
+    public function test_admin_can_update_brand(): void
+    {
+        $this->actingAs($this->admin);
+
+        $brand = Brand::factory()->create(['name' => 'Old Brand Name']);
+
+        $response = $this->putJson("/api/admin/brands/{$brand->id}", [
+            'name' => 'Updated Brand Name',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'error' => false,
+                'message' => 'Brand updated successfully.',
+                'data' => [
+                    'name' => 'Updated Brand Name',
+                ],
+            ]);
+
+        $this->assertDatabaseHas('brands', [
+            'id' => $brand->id,
+            'name' => 'Updated Brand Name',
+        ]);
+
+        $this->assertDatabaseMissing('brands', ['name' => 'Old Brand Name']);
+    }
+
+    public function test_update_brand_validates_name_is_required(): void
+    {
+        $this->actingAs($this->admin);
+
+        $brand = Brand::factory()->create();
+
+        $response = $this->putJson("/api/admin/brands/{$brand->id}", [
+            'name' => '',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['name']);
+    }
+
+    public function test_update_brand_validates_name_is_unique(): void
+    {
+        $this->actingAs($this->admin);
+
+        $brand1 = Brand::factory()->create(['name' => 'Brand One']);
+        $brand2 = Brand::factory()->create(['name' => 'Brand Two']);
+
+        $response = $this->putJson("/api/admin/brands/{$brand2->id}", [
+            'name' => 'Brand One',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['name']);
+    }
+
+    public function test_update_brand_allows_same_name(): void
+    {
+        $this->actingAs($this->admin);
+
+        $brand = Brand::factory()->create(['name' => 'Brand Name']);
+
+        $response = $this->putJson("/api/admin/brands/{$brand->id}", [
+            'name' => 'Brand Name',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'error' => false,
+                'data' => [
+                    'name' => 'Brand Name',
+                ],
+            ]);
+    }
+
+    public function test_update_brand_validates_name_max_length(): void
+    {
+        $this->actingAs($this->admin);
+
+        $brand = Brand::factory()->create();
+
+        $response = $this->putJson("/api/admin/brands/{$brand->id}", [
+            'name' => str_repeat('a', 256),
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['name']);
+    }
+
+    public function test_admin_can_delete_brand(): void
+    {
+        $this->actingAs($this->admin);
+
+        $brand = Brand::factory()->create(['name' => 'Brand to Delete']);
+
+        $response = $this->deleteJson("/api/admin/brands/{$brand->id}");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'error' => false,
+                'message' => 'Brand deleted successfully.',
+                'data' => null,
+            ]);
+
+        $this->assertDatabaseMissing('brands', ['id' => $brand->id]);
+    }
+
     public function test_show_brand_returns_404_for_nonexistent_brand(): void
     {
         $this->actingAs($this->admin);
@@ -194,6 +320,41 @@ class BrandControllerTest extends TestCase
         $response = $this->postJson('/api/admin/brands', [
             'name' => 'New Brand',
         ]);
+
+        $response->assertStatus(403);
+    }
+
+    public function test_non_admin_user_cannot_show_brand(): void
+    {
+        $this->actingAs($this->user);
+
+        $brand = Brand::factory()->create();
+
+        $response = $this->getJson("/api/admin/brands/{$brand->id}");
+
+        $response->assertStatus(403);
+    }
+
+    public function test_non_admin_user_cannot_update_brand(): void
+    {
+        $this->actingAs($this->user);
+
+        $brand = Brand::factory()->create();
+
+        $response = $this->putJson("/api/admin/brands/{$brand->id}", [
+            'name' => 'Updated Name',
+        ]);
+
+        $response->assertStatus(403);
+    }
+
+    public function test_non_admin_user_cannot_delete_brand(): void
+    {
+        $this->actingAs($this->user);
+
+        $brand = Brand::factory()->create();
+
+        $response = $this->deleteJson("/api/admin/brands/{$brand->id}");
 
         $response->assertStatus(403);
     }

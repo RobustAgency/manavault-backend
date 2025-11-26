@@ -65,6 +65,9 @@ Route::middleware(['auth:supabase', 'role:super_admin,admin'])->prefix('/admin')
     Route::prefix('/brands')->controller(BrandController::class)->group(function () {
         Route::get('', 'index');
         Route::post('', 'store');
+        Route::get('/{brand}', 'show');
+        Route::match(['put', 'post'], '/{brand}', 'update');
+        Route::delete('/{brand}', 'destroy');
     });
 
     Route::prefix('/voucher-audit-logs')->controller(VoucherAuditLogController::class)->group(function () {
