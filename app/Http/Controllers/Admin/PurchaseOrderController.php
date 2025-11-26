@@ -37,7 +37,7 @@ class PurchaseOrderController extends Controller
         } catch (\RuntimeException $e) {
             return response()->json([
                 'error' => true,
-                'message' => 'Failed to create purchase order: '.$e->getMessage(),
+                'message' => $e->getMessage(),
             ], 500);
         }
 

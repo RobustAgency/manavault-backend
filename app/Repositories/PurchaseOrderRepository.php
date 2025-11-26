@@ -130,7 +130,8 @@ class PurchaseOrderRepository
                     'supplier_id' => $supplier->id,
                     'error' => $e->getMessage(),
                 ]);
-                $status = 'failed';
+                $productName = isset($orderItems[0]['digital_product']) ? $orderItems[0]['digital_product']->name : 'Unknown Product';
+                throw new \RuntimeException('Can not create purchase order against '.$supplier->name.' '.$productName);
             }
         }
 
