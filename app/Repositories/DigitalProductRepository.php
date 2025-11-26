@@ -29,10 +29,6 @@ class DigitalProductRepository
             $query->where('supplier_id', $filters['supplier_id']);
         }
 
-        if (isset($filters['status'])) {
-            $query->where('status', $filters['status']);
-        }
-
         $per_page = $filters['per_page'] ?? 10;
 
         return $query->paginate($per_page);
