@@ -26,7 +26,6 @@ class DigitalProductFactory extends Factory
             'brand' => $this->faker->company(),
             'description' => $this->faker->sentence(),
             'cost_price' => $costPrice,
-            'status' => $this->faker->randomElement(['active', 'inactive']),
             'metadata' => [
                 'external_id' => $this->faker->uuid(),
                 'category' => $this->faker->randomElement(['Gift Cards', 'Gaming', 'Entertainment']),

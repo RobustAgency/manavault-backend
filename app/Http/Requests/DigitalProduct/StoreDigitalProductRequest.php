@@ -29,7 +29,6 @@ class StoreDigitalProductRequest extends FormRequest
             'products.*.brand' => ['nullable', 'string', 'max:255'],
             'products.*.description' => ['nullable', 'string'],
             'products.*.cost_price' => ['required', 'numeric', 'min:0'],
-            'products.*.status' => ['required', 'string', 'in:active,inactive'],
             'products.*.metadata' => ['nullable', 'array'],
         ];
     }

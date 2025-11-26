@@ -26,7 +26,6 @@ class DigitalProductResource extends JsonResource
             'brand' => $this->brand,
             'description' => $this->description,
             'cost_price' => $this->cost_price,
-            'status' => $this->status,
             'metadata' => $this->metadata,
             'last_synced_at' => $this->last_synced_at?->toDateTimeString(),
             'created_at' => $this->created_at->toDateTimeString(),

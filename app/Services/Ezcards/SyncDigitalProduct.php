@@ -57,7 +57,6 @@ class SyncDigitalProduct
                         'brand' => $item['brand'] ?? null,
                         'description' => $item['description'] ?? null,
                         'cost_price' => $item['prices'][0]['price'] ?? 0,
-                        'status' => $item['status'] ?? 'active',
                         'metadata' => $item,
                         'source' => 'api',
                         'last_synced_at' => now(),

@@ -32,7 +32,6 @@ class DigitalProductRepositoryTest extends TestCase
             'brand' => $this->faker->company(),
             'description' => $this->faker->sentence(),
             'cost_price' => $this->faker->randomFloat(2, 10, 100),
-            'status' => 'active',
             'metadata' => ['external_id' => $this->faker->uuid()],
         ];
 
@@ -43,7 +42,6 @@ class DigitalProductRepositoryTest extends TestCase
             'name' => $data['name'],
             'brand' => $data['brand'],
             'cost_price' => $data['cost_price'],
-            'status' => $data['status'],
         ]);
     }
 
@@ -58,7 +56,6 @@ class DigitalProductRepositoryTest extends TestCase
                 'sku' => 'SKU-001',
                 'brand' => 'Brand A',
                 'cost_price' => 10.00,
-                'status' => 'active',
             ],
             [
                 'supplier_id' => $supplier->id,
@@ -66,7 +63,6 @@ class DigitalProductRepositoryTest extends TestCase
                 'sku' => 'SKU-002',
                 'brand' => 'Brand B',
                 'cost_price' => 20.00,
-                'status' => 'active',
             ],
             [
                 'supplier_id' => $supplier->id,
@@ -74,7 +70,6 @@ class DigitalProductRepositoryTest extends TestCase
                 'sku' => 'SKU-003',
                 'brand' => 'Brand C',
                 'cost_price' => 30.00,
-                'status' => 'inactive',
             ],
         ];
 
@@ -95,12 +90,10 @@ class DigitalProductRepositoryTest extends TestCase
         DigitalProduct::factory()->count(5)->create([
             'supplier_id' => $supplier1->id,
             'name' => 'Steam Gift Card',
-            'status' => 'active',
         ]);
         DigitalProduct::factory()->count(3)->create([
             'supplier_id' => $supplier2->id,
             'name' => 'PlayStation Card',
-            'status' => 'inactive',
         ]);
 
         $allProducts = $this->repository->getFilteredDigitalProducts();
@@ -111,9 +104,6 @@ class DigitalProductRepositoryTest extends TestCase
 
         $filteredBySupplier = $this->repository->getFilteredDigitalProducts(['supplier_id' => $supplier1->id]);
         $this->assertCount(5, $filteredBySupplier->items());
-
-        $filteredByStatus = $this->repository->getFilteredDigitalProducts(['status' => 'active']);
-        $this->assertCount(5, $filteredByStatus->items());
     }
 
     public function test_get_filtered_digital_products_by_brand(): void
@@ -138,7 +128,6 @@ class DigitalProductRepositoryTest extends TestCase
             'name' => 'Updated Name',
             'brand' => 'Updated Brand',
             'cost_price' => 25.00,
-            'status' => 'inactive',
         ];
 
         $updatedProduct = $this->repository->updateDigitalProduct($digitalProduct, $updateData);
@@ -146,7 +135,6 @@ class DigitalProductRepositoryTest extends TestCase
         $this->assertEquals('Updated Name', $updatedProduct->name);
         $this->assertEquals('Updated Brand', $updatedProduct->brand);
         $this->assertEquals(25.00, $updatedProduct->cost_price);
-        $this->assertEquals('inactive', $updatedProduct->status);
 
         $this->assertDatabaseHas('digital_products', [
             'id' => $digitalProduct->id,
@@ -180,18 +168,5 @@ class DigitalProductRepositoryTest extends TestCase
 
         $this->assertCount(3, $supplier1Products);
         $this->assertCount(2, $supplier2Products);
-    }
-
-    public function test_get_active_products(): void
-    {
-        DigitalProduct::factory()->count(5)->create(['status' => 'active']);
-        DigitalProduct::factory()->count(3)->create(['status' => 'inactive']);
-
-        $activeProducts = $this->repository->getActiveProducts();
-
-        $this->assertCount(5, $activeProducts);
-        $activeProducts->each(function ($product) {
-            $this->assertEquals('active', $product->status);
-        });
     }
 }
