@@ -5,6 +5,7 @@ namespace Tests\Feature\Repositories;
 use Tests\TestCase;
 use App\Models\Voucher;
 use App\Models\PurchaseOrder;
+use App\Models\DigitalProduct;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Http\UploadedFile;
 use App\Services\VoucherCipherService;
@@ -40,11 +41,12 @@ class VoucherRepositoryTest extends TestCase
 
     public function test_import_vouchers_with_valid_csv(): void
     {
-        $csvFile = $this->createValidVoucherCsv([
-            'VCH-001',
-            'VCH-002',
-            'VCH-003',
-        ]);
+        $voucherRows = [
+            ['code' => 'VCH-001', 'digital_product_id' => 1],
+            ['code' => 'VCH-002', 'digital_product_id' => 1],
+            ['code' => 'VCH-003', 'digital_product_id' => 1],
+        ];
+        $csvFile = $this->createValidVoucherCsv($voucherRows);
 
         // Create UploadedFile from the temp file
         $uploadedFile = new UploadedFile($csvFile, 'vouchers.csv', 'text/csv', null, true);
@@ -75,55 +77,80 @@ class VoucherRepositoryTest extends TestCase
         $this->cleanupTempFile($csvFile);
     }
 
+    private function createValidVoucherCsv(array $voucherRows): string
+    {
+        $csvFile = tempnam(sys_get_temp_dir(), 'voucher_test_').'.csv';
+        $handle = fopen($csvFile, 'w');
+        // Write header
+        fputcsv($handle, ['code', 'digital_product_id']);
+        // Write voucher codes
+        foreach ($voucherRows as $row) {
+            fputcsv($handle, [$row['code'], $row['digital_product_id']]);
+        }
+        fclose($handle);
+
+        return $csvFile;
+    }
+
     public function test_import_vouchers_with_valid_xlsx(): void
     {
-        // Create a purchase order with 2 items for this specific test
         $purchaseOrder = PurchaseOrder::factory()->create();
+        $digitalProduct = DigitalProduct::factory()->create();
         PurchaseOrderItem::factory()
             ->forPurchaseOrder($purchaseOrder)
             ->withQuantity(2)
-            ->create();
-
-        $xlsxFile = $this->createValidVoucherXlsx([
-            'VCH-XLSX-001',
-            'VCH-XLSX-002',
-        ]);
-
-        // Create UploadedFile from the temp file
+            ->create([
+                'digital_product_id' => $digitalProduct->id,
+            ]);
+        $voucherRows = [
+            ['code' => 'VCH-XLSX-001', 'digital_product_id' => $digitalProduct->id],
+            ['code' => 'VCH-XLSX-002', 'digital_product_id' => $digitalProduct->id],
+        ];
+        $xlsxFile = $this->createValidVoucherXlsx($voucherRows);
         $uploadedFile = new UploadedFile($xlsxFile, 'vouchers.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true);
-
         $data = [
             'file' => $uploadedFile,
             'purchase_order_id' => $purchaseOrder->id,
         ];
-
         $result = $this->voucherRepository->storeVouchers($data);
-
         $this->assertTrue($result);
-
-        // Verify vouchers were created
         $this->assertEquals(2, Voucher::where('purchase_order_id', $purchaseOrder->id)->count());
-
-        // Verify vouchers are encrypted in database
         $vouchers = Voucher::where('purchase_order_id', $purchaseOrder->id)->get();
         foreach ($vouchers as $voucher) {
             $this->assertTrue($this->voucherCipherService->isEncrypted($voucher->code));
         }
-
-        // Verify we can decrypt them back to original values
         $this->assertEquals('VCH-XLSX-001', $this->voucherRepository->decryptVoucherCode($vouchers[0]));
         $this->assertEquals('VCH-XLSX-002', $this->voucherRepository->decryptVoucherCode($vouchers[1]));
-
         $this->cleanupTempFile($xlsxFile);
+    }
+
+    private function createValidVoucherXlsx(array $voucherRows): string
+    {
+        $xlsxFile = tempnam(sys_get_temp_dir(), 'voucher_test_').'.xlsx';
+        $spreadsheet = new Spreadsheet;
+        $sheet = $spreadsheet->getActiveSheet();
+        // Write header
+        $sheet->setCellValue('A1', 'code');
+        $sheet->setCellValue('B1', 'digital_product_id');
+        $row = 2;
+        foreach ($voucherRows as $voucher) {
+            $sheet->setCellValue("A{$row}", $voucher['code']);
+            $sheet->setCellValue("B{$row}", $voucher['digital_product_id']);
+            $row++;
+        }
+        $writer = new Xlsx($spreadsheet);
+        $writer->save($xlsxFile);
+
+        return $xlsxFile;
     }
 
     public function test_store_vouchers_with_voucher_codes_array(): void
     {
         $data = [
             'voucher_codes' => [
-                'CODE-001',
-                'CODE-002',
-                'CODE-003',
+                ['code' => 'CODE-001', 'digitalProductID' => 1],
+                ['code' => 'CODE-002', 'digitalProductID' => 1],
+                ['code' => 'CODE-003', 'digitalProductID' => 1],
             ],
             'purchase_order_id' => $this->purchaseOrder->id,
         ];
@@ -156,7 +183,6 @@ class VoucherRepositoryTest extends TestCase
             'voucher_codes' => [
                 'CODE-001',
                 'CODE-002',
-                // Missing one code - purchase order has quantity of 3
             ],
             'purchase_order_id' => $this->purchaseOrder->id,
         ];
@@ -217,51 +243,6 @@ class VoucherRepositoryTest extends TestCase
         // Verify both can be decrypted/retrieved correctly
         $this->assertEquals($encryptedPlainCode, $this->voucherRepository->decryptVoucherCode($encryptedVoucher));
         $this->assertEquals($legacyPlainCode, $this->voucherRepository->decryptVoucherCode($legacyVoucher));
-    }
-
-    /**
-     * Create a valid CSV file with voucher codes
-     */
-    private function createValidVoucherCsv(array $voucherCodes): string
-    {
-        $csvFile = tempnam(sys_get_temp_dir(), 'voucher_test_').'.csv';
-
-        $handle = fopen($csvFile, 'w');
-
-        // Write header
-        fputcsv($handle, ['code']);
-
-        // Write voucher codes
-        foreach ($voucherCodes as $code) {
-            fputcsv($handle, [$code]);
-        }
-
-        fclose($handle);
-
-        return $csvFile;
-    }
-
-    private function createValidVoucherXlsx(array $voucherCodes): string
-    {
-        $xlsxFile = tempnam(sys_get_temp_dir(), 'voucher_test_').'.xlsx';
-
-        $spreadsheet = new Spreadsheet;
-        $sheet = $spreadsheet->getActiveSheet();
-
-        // Write header
-        $sheet->setCellValue('A1', 'code');
-
-        // Write voucher codes
-        $row = 2;
-        foreach ($voucherCodes as $code) {
-            $sheet->setCellValue("A{$row}", $code);
-            $row++;
-        }
-
-        $writer = new Xlsx($spreadsheet);
-        $writer->save($xlsxFile);
-
-        return $xlsxFile;
     }
 
     /**

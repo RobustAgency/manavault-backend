@@ -4,8 +4,8 @@ namespace App\Imports;
 
 use RuntimeException;
 use App\Models\Voucher;
+use App\Models\PurchaseOrder;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use App\Services\VoucherCipherService;
 use Illuminate\Support\Facades\Validator;
 use Maatwebsite\Excel\Concerns\ToCollection;
@@ -46,26 +46,32 @@ class VoucherImport implements ToCollection, WithBatchInserts, WithChunkReading,
             throw new RuntimeException("The number of voucher codes ({$totalRows}) does not match the total quantity of the purchase order ({$this->purchaseOrderTotalQuantity}).");
         }
 
-        DB::beginTransaction();
         try {
+            $purchaseOrder = PurchaseOrder::find($this->purchaseOrderID);
             foreach ($rows as $row) {
                 // @phpstan-ignore function.impossibleType
                 $rowData = is_array($row) ? $row : $row->toArray();
+
                 $this->validateRow($rowData);
                 $code = $this->voucherCipherService->encryptCode($rowData['code']);
+                $digitalProductID = $rowData['digital_product_id'];
+                $purchaseOrderItem = $purchaseOrder->items->firstWhere('digital_product_id', $digitalProductID);
+
+                if (! $purchaseOrderItem) {
+                    throw new RuntimeException("Digital product ID {$digitalProductID} does not exist in the purchase order items.");
+                }
+
                 Voucher::create([
                     'code' => $code,
                     'purchase_order_id' => $this->purchaseOrderID,
+                    'purchase_order_item_id' => $purchaseOrderItem->id,
                     'status' => 'available',
                 ]);
                 $this->successCount++;
             }
-            DB::commit();
         } catch (ValidationException $e) {
-            DB::rollBack();
             throw new RuntimeException($e->getMessage());
         } catch (\Exception $e) {
-            DB::rollBack();
             throw $e;
         }
     }
@@ -74,6 +80,7 @@ class VoucherImport implements ToCollection, WithBatchInserts, WithChunkReading,
     {
         $validator = Validator::make($data, [
             'code' => 'required|string|max:255|unique:vouchers,code',
+            'digital_product_id' => 'required|integer|exists:digital_products,id',
         ]);
 
         if ($validator->fails()) {

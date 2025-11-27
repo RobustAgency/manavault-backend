@@ -6,9 +6,11 @@ use App\Models\Supplier;
 use App\Models\PurchaseOrder;
 use App\Models\DigitalProduct;
 use App\Models\PurchaseOrderItem;
+use App\Enums\PurchaseOrderStatus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\PurchaseOrderSupplier;
+use App\Enums\PurchaseOrderSupplierStatus;
 use Illuminate\Pagination\LengthAwarePaginator;
 use App\Services\Ezcards\EzcardsPlaceOrderService;
 use App\Services\Gift2Games\Gift2GamesVoucherService;
@@ -64,7 +66,7 @@ class PurchaseOrderRepository
             $purchaseOrder = PurchaseOrder::create([
                 'total_price' => 0,
                 'order_number' => $orderNumber,
-                'status' => 'completed',
+                'status' => PurchaseOrderStatus::PROCESSING->value,
             ]);
 
             foreach ($data as $supplierOrderData) {
@@ -76,7 +78,7 @@ class PurchaseOrderRepository
             }
 
             // Update the overall purchase order status based on all suppliers
-            $this->updatePurchaseOrderStatus($purchaseOrder);
+            $this->purchaseOrderStatusService->updateStatus($purchaseOrder);
 
             DB::commit();
 
@@ -89,7 +91,7 @@ class PurchaseOrderRepository
 
     private function processPurchaseOrderItems(PurchaseOrder $purchaseOrder, Supplier $supplier, array $items, string $orderNumber): void
     {
-        $status = 'completed';
+        $status = PurchaseOrderSupplierStatus::PROCESSING->value;
         $totalPrice = $purchaseOrder->total_price;
         $orderItems = [];
         $transactionId = null;
@@ -115,7 +117,6 @@ class PurchaseOrderRepository
 
         if ($this->isExternalSupplier($supplier)) {
             try {
-                $status = 'processing';
                 $externalOrderResponse = $this->placeExternalOrder($supplier, $orderItems, $orderNumber);
                 $transactionId = $externalOrderResponse['transactionId'] ?? null;
 
@@ -130,7 +131,8 @@ class PurchaseOrderRepository
                     'supplier_id' => $supplier->id,
                     'error' => $e->getMessage(),
                 ]);
-                $status = 'failed';
+                $productName = isset($orderItems[0]['digital_product']) ? $orderItems[0]['digital_product']->name : 'Unknown Product';
+                throw new \RuntimeException('Can not create purchase order against '.$supplier->name.' '.$productName);
             }
         }
 
@@ -157,7 +159,7 @@ class PurchaseOrderRepository
             // For Gift2Games, vouchers are returned immediately in the order response
             // Use the Gift2GamesVoucherService to process and store them
             $this->gift2GamesVoucherService->storeVouchers($purchaseOrder, $externalOrderResponse);
-            $status = 'completed';
+            $status = PurchaseOrderSupplierStatus::COMPLETED->value;
 
             // Update the supplier status to completed after vouchers are stored
             $purchaseOrderSupplier->update(['status' => $status]);
@@ -175,14 +177,6 @@ class PurchaseOrderRepository
         $purchaseOrder->update([
             'total_price' => $totalPrice,
         ]);
-    }
-
-    /**
-     * Update the overall purchase order status based on all supplier statuses.
-     */
-    private function updatePurchaseOrderStatus(PurchaseOrder $purchaseOrder): void
-    {
-        $this->purchaseOrderStatusService->updateStatus($purchaseOrder);
     }
 
     private function generateOrderNumber(): string

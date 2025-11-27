@@ -66,8 +66,17 @@ class PurchaseOrder extends Model
     /**
      * Get the total quantity of all items in this purchase order.
      */
-    public function getTotalQuantity(): int
+    public function totalQuantity(): int
     {
         return (int) $this->items()->sum('quantity');
+    }
+
+    public function totalQuantityByInternalSupplier(): int
+    {
+        return (int) $this->items()
+            ->whereHas('digitalProduct.supplier', function ($query) {
+                $query->where('type', 'internal');
+            })
+            ->sum('quantity');
     }
 }

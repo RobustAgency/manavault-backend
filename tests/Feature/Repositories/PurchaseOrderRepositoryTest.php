@@ -170,7 +170,7 @@ class PurchaseOrderRepositoryTest extends TestCase
         $purchaseOrder = $this->repository->createPurchaseOrder($data);
 
         $this->assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
-        $this->assertEquals('completed', $purchaseOrder->status);
+        $this->assertEquals('processing', $purchaseOrder->status);
         $this->assertCount(1, $purchaseOrder->items);
         $this->assertEquals(75.00, $purchaseOrder->total_price);
     }
