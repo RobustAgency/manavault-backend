@@ -6,6 +6,7 @@ use Tests\TestCase;
 use App\Models\User;
 use App\Models\Voucher;
 use App\Models\PurchaseOrder;
+use App\Models\DigitalProduct;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Http\UploadedFile;
 use App\Services\VoucherCipherService;
@@ -37,10 +38,14 @@ class VoucherControllerTest extends TestCase
         $this->actingAs($this->admin);
 
         $purchaseOrder = PurchaseOrder::factory()->create();
-        PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(3)->create();
+        $digitalProduct = DigitalProduct::factory()->create();
+
+        PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(3)->create([
+            'digital_product_id' => $digitalProduct->id,
+        ]);
 
         // Create a real CSV file with 3 voucher codes to match purchase order quantity
-        $csvContent = "code\nVCH-001\nVCH-002\nVCH-003";
+        $csvContent = "code,digital_product_id\nVCH-001,{$digitalProduct->id}\nVCH-002,{$digitalProduct->id}\nVCH-003,{$digitalProduct->id}";
         $file = UploadedFile::fake()->createWithContent('vouchers.csv', $csvContent);
 
         $response = $this->postJson('/api/admin/vouchers/store', [
@@ -60,13 +65,17 @@ class VoucherControllerTest extends TestCase
         $this->actingAs($this->admin);
 
         $purchaseOrder = PurchaseOrder::factory()->create();
-        PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(3)->create();
+        $digitalProduct = DigitalProduct::factory()->create();
+
+        PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(3)->create([
+            'digital_product_id' => $digitalProduct->id,
+        ]);
 
         $response = $this->postJson('/api/admin/vouchers/store', [
             'voucher_codes' => [
-                'CODE-001',
-                'CODE-002',
-                'CODE-003',
+                ['code' => 'CODE-001', 'digitalProductID' => $digitalProduct->id],
+                ['code' => 'CODE-002', 'digitalProductID' => $digitalProduct->id],
+                ['code' => 'CODE-003', 'digitalProductID' => $digitalProduct->id],
             ],
             'purchase_order_id' => $purchaseOrder->id,
         ]);

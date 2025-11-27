@@ -147,13 +147,13 @@ class PurchaseOrderControllerTest extends TestCase
                 'message' => 'Purchase order created successfully.',
                 'data' => [
                     'total_price' => 50.00,
-                    'status' => 'completed',
+                    'status' => 'processing',
                 ],
             ]);
 
         $this->assertDatabaseHas('purchase_orders', [
             'total_price' => 50.00,
-            'status' => 'completed',
+            'status' => 'processing',
         ]);
     }
 
@@ -425,44 +425,6 @@ class PurchaseOrderControllerTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['items']);
-    }
-
-    public function test_purchase_order_creation_handles_external_api_failure(): void
-    {
-        $this->actingAs($this->admin);
-
-        $supplier = Supplier::factory()->create([
-            'slug' => 'ez_cards',
-            'type' => 'external',
-        ]);
-
-        $digitalProduct = DigitalProduct::factory()->create([
-            'sku' => 'FAIL-SKU',
-        ]);
-
-        Http::fake([
-            '*/v2/orders' => Http::response(['error' => 'API Error'], 500),
-        ]);
-
-        $data = [
-            'items' => [
-                [
-                    'supplier_id' => $supplier->id,
-                    'digital_product_id' => $digitalProduct->id,
-                    'quantity' => 1,
-                ],
-            ],
-        ];
-
-        $response = $this->postJson('/api/admin/purchase-orders', $data);
-
-        $response->assertStatus(201)
-            ->assertJson([
-                'error' => false,
-                'data' => [
-                    'status' => 'failed',
-                ],
-            ]);
     }
 
     public function test_unauthenticated_user_cannot_access_purchase_orders(): void

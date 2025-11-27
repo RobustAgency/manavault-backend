@@ -6,10 +6,14 @@ use App\Models\Voucher;
 use App\Models\PurchaseOrder;
 use Illuminate\Support\Facades\Log;
 use App\Services\VoucherCipherService;
+use App\Services\PurchaseOrder\PurchaseOrderStatusService;
 
 class Gift2GamesVoucherService
 {
-    public function __construct(private VoucherCipherService $voucherCipherService) {}
+    public function __construct(
+        private VoucherCipherService $voucherCipherService,
+        private PurchaseOrderStatusService $purchaseOrderStatusService
+    ) {}
 
     /**
      * Process and store vouchers from Gift2Games order response.
@@ -96,30 +100,7 @@ class Gift2GamesVoucherService
 
                 $vouchersAdded++;
             }
-
-            // Check if all vouchers were created successfully
-            $totalExpectedVouchers = $purchaseOrder->getTotalQuantity();
-            $totalCreatedVouchers = Voucher::where('purchase_order_id', $purchaseOrder->id)->count();
-
-            if ($totalCreatedVouchers >= $totalExpectedVouchers) {
-                $purchaseOrder->update([
-                    'status' => 'completed',
-                ]);
-                $result['status_updated'] = true;
-
-                Log::info('Gift2Games purchase order completed', [
-                    'purchase_order_id' => $purchaseOrder->id,
-                    'order_number' => $purchaseOrder->order_number,
-                    'total_vouchers' => $totalCreatedVouchers,
-                ]);
-            } else {
-                Log::info('Gift2Games purchase order still processing', [
-                    'purchase_order_id' => $purchaseOrder->id,
-                    'order_number' => $purchaseOrder->order_number,
-                    'expected_vouchers' => $totalExpectedVouchers,
-                    'created_vouchers' => $totalCreatedVouchers,
-                ]);
-            }
+            $this->purchaseOrderStatusService->updateStatus($purchaseOrder);
 
             $result['vouchers_added'] = $vouchersAdded;
         } catch (\Exception $e) {

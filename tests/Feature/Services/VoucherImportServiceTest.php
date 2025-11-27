@@ -49,7 +49,7 @@ class VoucherImportServiceTest extends TestCase
             'purchase_order_id' => $this->purchaseOrder->id,
         ];
 
-        $totalQuantity = $this->purchaseOrder->getTotalQuantity();
+        $totalQuantity = $this->purchaseOrder->totalQuantity();
         $result = $this->service->processFile($data, $totalQuantity);
 
         $this->assertTrue($result);
@@ -70,7 +70,7 @@ class VoucherImportServiceTest extends TestCase
             'purchase_order_id' => $this->purchaseOrder->id,
         ];
 
-        $totalQuantity = $this->purchaseOrder->getTotalQuantity();
+        $totalQuantity = $this->purchaseOrder->totalQuantity();
         $result = $this->service->processFile($data, $totalQuantity);
 
         $this->assertTrue($result);
@@ -91,7 +91,7 @@ class VoucherImportServiceTest extends TestCase
             'purchase_order_id' => $this->purchaseOrder->id,
         ];
 
-        $totalQuantity = $this->purchaseOrder->getTotalQuantity();
+        $totalQuantity = $this->purchaseOrder->totalQuantity();
         $result = $this->service->processFile($data, $totalQuantity);
 
         $this->assertTrue($result);
@@ -114,7 +114,7 @@ class VoucherImportServiceTest extends TestCase
             'purchase_order_id' => $this->purchaseOrder->id,
         ];
 
-        $totalQuantity = $this->purchaseOrder->getTotalQuantity();
+        $totalQuantity = $this->purchaseOrder->totalQuantity();
         $result = $this->service->processFile($data, $totalQuantity);
 
         $this->assertTrue($result);
@@ -140,7 +140,7 @@ class VoucherImportServiceTest extends TestCase
             'purchase_order_id' => $this->purchaseOrder->id,
         ];
 
-        $totalQuantity = $this->purchaseOrder->getTotalQuantity();
+        $totalQuantity = $this->purchaseOrder->totalQuantity();
         $result = $this->service->processFile($data, $totalQuantity);
 
         $this->assertTrue($result);
@@ -159,7 +159,7 @@ class VoucherImportServiceTest extends TestCase
             'purchase_order_id' => $this->purchaseOrder->id,
         ];
 
-        $totalQuantity = $this->purchaseOrder->getTotalQuantity();
+        $totalQuantity = $this->purchaseOrder->totalQuantity();
         $result = $this->service->processFile($data, $totalQuantity);
 
         $this->assertFalse($result);
@@ -186,7 +186,7 @@ class VoucherImportServiceTest extends TestCase
             'purchase_order_id' => $this->purchaseOrder->id,
         ];
 
-        $totalQuantity = $this->purchaseOrder->getTotalQuantity();
+        $totalQuantity = $this->purchaseOrder->totalQuantity();
         $result = $this->service->processFile($data, $totalQuantity);
 
         $this->assertTrue($result);
@@ -214,7 +214,7 @@ class VoucherImportServiceTest extends TestCase
             'purchase_order_id' => $this->purchaseOrder->id,
         ];
 
-        $totalQuantity = $this->purchaseOrder->getTotalQuantity();
+        $totalQuantity = $this->purchaseOrder->totalQuantity();
         $result = $this->service->processFile($data, $totalQuantity);
 
         $this->assertTrue($result);
@@ -245,7 +245,7 @@ class VoucherImportServiceTest extends TestCase
             'purchase_order_id' => $this->purchaseOrder->id,
         ];
 
-        $totalQuantity = $this->purchaseOrder->getTotalQuantity();
+        $totalQuantity = $this->purchaseOrder->totalQuantity();
         $result = $this->service->processFile($data, $totalQuantity);
 
         $this->assertFalse($result);
