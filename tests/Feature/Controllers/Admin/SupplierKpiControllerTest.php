@@ -4,9 +4,8 @@ namespace Tests\Feature\Controllers\Admin;
 
 use Tests\TestCase;
 use App\Models\User;
+use App\Enums\UserRole;
 use App\Models\Supplier;
-use App\Models\PurchaseOrder;
-use App\Models\DigitalProduct;
 use App\Models\PurchaseOrderItem;
 use App\Models\PurchaseOrderSupplier;
 use App\Enums\PurchaseOrderSupplierStatus;
@@ -16,68 +15,47 @@ class SupplierKpiControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_can_view_supplier_kpis(): void
+    public function test_index_returns_supplier_kpis()
     {
-        $supplier = Supplier::factory()->create();
-        $user = User::factory()->create(['role' => 'admin']);
-        $digitalProduct = DigitalProduct::factory()->forSupplier($supplier)->create();
-
-        $purchaseOrders = PurchaseOrder::factory()->count(3)->create();
-
-        PurchaseOrderSupplier::query()->create([
-            'purchase_order_id' => $purchaseOrders[0]->id,
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+        $supplier = Supplier::factory()->create(['name' => 'Test Supplier']);
+        PurchaseOrderSupplier::factory()->create([
             'supplier_id' => $supplier->id,
             'status' => PurchaseOrderSupplierStatus::COMPLETED->value,
         ]);
-
-        PurchaseOrderSupplier::query()->create([
-            'purchase_order_id' => $purchaseOrders[1]->id,
-            'supplier_id' => $supplier->id,
-            'status' => PurchaseOrderSupplierStatus::COMPLETED->value,
-        ]);
-
-        PurchaseOrderSupplier::query()->create([
-            'purchase_order_id' => $purchaseOrders[2]->id,
+        PurchaseOrderSupplier::factory()->create([
             'supplier_id' => $supplier->id,
             'status' => PurchaseOrderSupplierStatus::PROCESSING->value,
         ]);
-
-        PurchaseOrderItem::query()->create([
-            'purchase_order_id' => $purchaseOrders[0]->id,
+        PurchaseOrderItem::factory()->create([
             'supplier_id' => $supplier->id,
-            'digital_product_id' => $digitalProduct->id,
-            'quantity' => 5,
-            'unit_cost' => 10,
-            'subtotal' => 50,
-        ]);
-
-        PurchaseOrderItem::query()->create([
-            'purchase_order_id' => $purchaseOrders[1]->id,
-            'supplier_id' => $supplier->id,
-            'digital_product_id' => $digitalProduct->id,
             'quantity' => 10,
-            'unit_cost' => 12,
-            'subtotal' => 120,
+            'subtotal' => 100.0,
         ]);
 
-        $this->actingAs($user);
-
-        $response = $this->getJson("/api/admin/suppliers/{$supplier->id}/kpis");
+        $response = $this->actingAs($admin)->getJson('/api/admin/suppliers/kpis');
 
         $response->assertStatus(200)
-            ->assertJson([
-                'error' => false,
+            ->assertJsonStructure([
+                'error',
                 'data' => [
-                    'supplier_id' => $supplier->id,
-                    'total_purchase_orders' => 3,
-                    'completed_purchase_orders' => 2,
-                    'processing_purchase_orders' => 1,
-                    'total_quantity_ordered' => 15,
-                    'total_amount_spent' => 170.00,
-                    'average_order_value' => 56.67,
-                    'completion_rate' => 66.67,
+                    'data' => [
+                        ['supplier_id', 'supplier_name', 'total_purchase_orders', 'completed_purchase_orders', 'processing_purchase_orders', 'total_quantity_ordered', 'total_amount_spent', 'average_order_value', 'completion_rate'],
+                    ],
+                    'current_page', 'last_page', 'per_page', 'total',
                 ],
-                'message' => 'Supplier KPIs retrieved successfully.',
+                'message',
             ]);
+
+        $kpi = $response->json('data.data.0');
+        $this->assertEquals($supplier->id, $kpi['supplier_id']);
+        $this->assertEquals('Test Supplier', $kpi['supplier_name']);
+        $this->assertEquals(2, $kpi['total_purchase_orders']);
+        $this->assertEquals(1, $kpi['completed_purchase_orders']);
+        $this->assertEquals(1, $kpi['processing_purchase_orders']);
+        $this->assertEquals(10, $kpi['total_quantity_ordered']);
+        $this->assertEquals(100.0, $kpi['total_amount_spent']);
+        $this->assertEquals(50.0, $kpi['average_order_value']);
+        $this->assertEquals(50.0, $kpi['completion_rate']);
     }
 }

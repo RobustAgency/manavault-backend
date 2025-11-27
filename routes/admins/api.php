@@ -23,7 +23,7 @@ Route::middleware(['auth:supabase', 'role:super_admin,admin'])->prefix('/admin')
     });
 
     Route::prefix('/suppliers')->group(function () {
-        Route::get('/{supplier}/kpis', [SupplierKpiController::class, 'show']);
+        Route::get('/kpis', [SupplierKpiController::class, 'index']);
 
         Route::controller(SupplierController::class)->group(function () {
             Route::get('', 'index');

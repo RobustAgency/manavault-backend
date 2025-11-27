@@ -2,22 +2,22 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Models\Supplier;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
-use App\Services\Supplier\SupplierKpiService;
+use App\Repositories\SupplierKpiRepository;
+use App\Http\Requests\Suppliers\ListSupplierKpiRequest;
 
 class SupplierKpiController extends Controller
 {
-    public function __construct(private SupplierKpiService $supplierKpiService) {}
+    public function __construct(private SupplierKpiRepository $supplierKpiRepository) {}
 
-    public function show(Supplier $supplier): JsonResponse
+    public function index(ListSupplierKpiRequest $request): JsonResponse
     {
-        $kpis = $this->supplierKpiService->getSupplierKpis($supplier);
+        $supplierKPIs = $this->supplierKpiRepository->getFilteredSuppliersKpis($request->validated());
 
         return response()->json([
             'error' => false,
-            'data' => $kpis,
+            'data' => $supplierKPIs,
             'message' => 'Supplier KPIs retrieved successfully.',
         ]);
     }
