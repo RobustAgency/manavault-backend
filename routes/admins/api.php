@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\Admin\SupplierController;
+use App\Http\Controllers\Admin\SupplierKpiController;
 use App\Http\Controllers\Admin\DigitalStockController;
 use App\Http\Controllers\Admin\PurchaseOrderController;
 use App\Http\Controllers\Admin\DigitalProductController;
@@ -21,12 +22,16 @@ Route::middleware(['auth:supabase', 'role:super_admin,admin'])->prefix('/admin')
         Route::post('/{user}/revoke-approval', 'revokeApproval');
     });
 
-    Route::prefix('/suppliers')->controller(SupplierController::class)->group(function () {
-        Route::get('', 'index');
-        Route::post('', 'store');
-        Route::get('/{supplier}', 'show');
-        Route::post('/{supplier}', 'update');
-        Route::delete('/{supplier}', 'destroy');
+    Route::prefix('/suppliers')->group(function () {
+        Route::get('/{supplier}/kpis', [SupplierKpiController::class, 'show']);
+
+        Route::controller(SupplierController::class)->group(function () {
+            Route::get('', 'index');
+            Route::post('', 'store');
+            Route::get('/{supplier}', 'show');
+            Route::post('/{supplier}', 'update');
+            Route::delete('/{supplier}', 'destroy');
+        });
     });
 
     Route::prefix('/products')->group(function () {
