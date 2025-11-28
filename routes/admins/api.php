@@ -65,6 +65,7 @@ Route::middleware(['auth:supabase', 'role:super_admin,admin'])->prefix('/admin')
 
     Route::prefix('/digital-stocks')->controller(DigitalStockController::class)->group(function () {
         Route::get('', 'index');
+        Route::get('/low-stock', 'lowStockProducts');
     });
 
     Route::prefix('/brands')->controller(BrandController::class)->group(function () {

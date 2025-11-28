@@ -22,4 +22,16 @@ class DigitalStockController extends Controller
             'message' => 'Digital stocks retrieved successfully.',
         ]);
     }
+
+    public function lowStockProducts(ListDigitalStockRequest $request): JsonResponse
+    {
+        $filters = $request->validated();
+        $lowStockProducts = $this->repository->getLowDigitalStocks($filters);
+
+        return response()->json([
+            'error' => false,
+            'data' => $lowStockProducts,
+            'message' => 'Low stock digital products retrieved successfully.',
+        ]);
+    }
 }
