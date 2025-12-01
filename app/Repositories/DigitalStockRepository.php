@@ -13,8 +13,36 @@ class DigitalStockRepository
      */
     public function getPaginatedDigitalStocks(array $filters = [])
     {
+        $query = $this->buildBaseQuery($filters);
         $perPage = $filters['per_page'] ?? 15;
 
+        return $query->paginate($perPage);
+    }
+
+    /**
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator<int, DigitalProduct>
+     */
+    public function getLowDigitalStocks(array $filters = [])
+    {
+        $query = $this->buildBaseQuery($filters);
+
+        $threshold = DigitalProduct::LOW_QUANTITY_THRESHOLD;
+        $query->where(function (Builder $query) use ($threshold) {
+            $query->whereRaw('COALESCE(poi_totals.total_quantity, 0) < ?', [$threshold]);
+        });
+
+        $perPage = $filters['per_page'] ?? 15;
+
+        return $query->paginate($perPage);
+    }
+
+    /**
+     * Build the base query for digital products with supplier and quantity joins
+     *
+     * @return \Illuminate\Database\Eloquent\Builder<DigitalProduct>
+     */
+    private function buildBaseQuery(array $filters = []): Builder
+    {
         $quantitySubquery = DB::table('purchase_order_items')
             ->select('digital_product_id')
             ->selectRaw('SUM(quantity) as total_quantity')
@@ -42,7 +70,7 @@ class DigitalStockRepository
                 });
         });
 
-        // Filter by supplier_id if provided
+        // Apply filters
         if (isset($filters['supplier_id'])) {
             $query->where('digital_products.supplier_id', $filters['supplier_id']);
         }
@@ -57,6 +85,6 @@ class DigitalStockRepository
 
         $query->orderBy('digital_products.id');
 
-        return $query->paginate($perPage);
+        return $query;
     }
 }

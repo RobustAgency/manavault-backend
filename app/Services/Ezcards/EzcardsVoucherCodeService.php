@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\PurchaseOrderSupplier;
 use App\Services\VoucherCipherService;
 use App\Actions\Ezcards\GetVoucherCodes;
+use App\Enums\PurchaseOrderSupplierStatus;
 use App\Services\PurchaseOrder\PurchaseOrderStatusService;
 
 class EzcardsVoucherCodeService
@@ -124,54 +125,11 @@ class EzcardsVoucherCodeService
         $vouchersAdded = $this->storeVoucherCodes($purchaseOrder, $voucherCodesResponse);
         $result['vouchers_added'] = $vouchersAdded;
 
-        // Only mark as completed if ALL vouchers are stored and available
-        if ($this->areAllVouchersCompleted($purchaseOrder)) {
-            $this->markPurchaseOrderAsProcessed($purchaseOrder, $purchaseOrderSupplier);
-            Log::info('Purchase order marked as completed', [
-                'purchase_order_id' => $purchaseOrder->id,
-                'order_number' => $purchaseOrder->order_number,
-            ]);
-        } else {
-            Log::info('Purchase order still processing - not all vouchers ready', [
-                'purchase_order_id' => $purchaseOrder->id,
-                'order_number' => $purchaseOrder->order_number,
-                'expected_quantity' => $purchaseOrder->getTotalQuantity(),
-                'current_available' => $purchaseOrder->vouchers()->where('status', 'available')->count(),
-            ]);
-        }
+        $this->purchaseOrderStatusService->updateStatus($purchaseOrder);
+
+        $purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
 
         return $result;
-    }
-
-    /**
-     * Check if all voucher codes for a purchase order are completed.
-     */
-    private function areAllVouchersCompleted(PurchaseOrder $purchaseOrder): bool
-    {
-        // Refresh the vouchers relationship
-        $purchaseOrder->load('vouchers');
-
-        $totalVouchers = $purchaseOrder->vouchers()->count();
-
-        // If no vouchers exist yet, return false
-        if ($totalVouchers === 0) {
-            return false;
-        }
-
-        // Get the total quantity from all purchase order items
-        $expectedQuantity = $purchaseOrder->getTotalQuantity();
-
-        // Check if we have the expected number of vouchers
-        if ($totalVouchers < $expectedQuantity) {
-            return false;
-        }
-
-        // Check if all vouchers have available status
-        $availableVouchers = $purchaseOrder->vouchers()
-            ->where('status', 'available')
-            ->count();
-
-        return $availableVouchers === $expectedQuantity;
     }
 
     /**
@@ -296,25 +254,5 @@ class EzcardsVoucherCodeService
         }
 
         return $vouchersAdded;
-    }
-
-    /**
-     * Mark a purchase order as fully processed.
-     */
-    private function markPurchaseOrderAsProcessed(PurchaseOrder $purchaseOrder, PurchaseOrderSupplier $purchaseOrderSupplier): void
-    {
-        // Update the purchase order supplier status to completed
-        $purchaseOrderSupplier->update([
-            'status' => 'completed',
-        ]);
-
-        Log::info('Purchase order supplier marked as completed', [
-            'purchase_order_id' => $purchaseOrder->id,
-            'supplier_id' => $purchaseOrderSupplier->supplier_id,
-            'transaction_id' => $purchaseOrderSupplier->transaction_id,
-        ]);
-
-        // Update the overall purchase order status based on all supplier statuses
-        $this->purchaseOrderStatusService->updateStatus($purchaseOrder);
     }
 }

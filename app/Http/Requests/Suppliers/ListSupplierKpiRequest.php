@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests\Admin;
+namespace App\Http\Requests\Suppliers;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class ListDigitalStockRequest extends FormRequest
+class ListSupplierKpiRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -22,9 +22,8 @@ class ListDigitalStockRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
-            'supplier_id' => ['sometimes', 'integer', 'exists:suppliers,id'],
-            'name' => ['sometimes', 'string', 'max:255'],
+            'supplier_id' => 'sometimes|integer|exists:suppliers,id',
+            'per_page' => 'sometimes|integer|min:1',
         ];
     }
 }
