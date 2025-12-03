@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\Supplier;
+use App\Enums\SupplierType;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class SupplierRepository
@@ -37,6 +38,7 @@ class SupplierRepository
     public function createSupplier(array $data): Supplier
     {
         $data['slug'] = strtolower(str_replace(' ', '_', $data['name']));
+        $data['type'] = SupplierType::INTERNAL->value;
 
         return Supplier::create($data);
     }

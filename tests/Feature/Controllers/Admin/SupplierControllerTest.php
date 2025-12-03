@@ -5,6 +5,7 @@ namespace Tests\Feature\Controllers\Admin;
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Supplier;
+use App\Enums\SupplierType;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -52,13 +53,12 @@ class SupplierControllerTest extends TestCase
             ]);
     }
 
-    public function test_admin_create_supplier(): void
+    public function test_admin_can_create_only_internal_supplier(): void
     {
         $user = User::factory()->create(['role' => 'admin']);
         $this->actingAs($user);
         $supplierData = [
             'name' => $this->faker->company,
-            'type' => $this->faker->randomElement(['internal', 'external']),
             'contact_email' => $this->faker->unique()->safeEmail,
             'contact_phone' => $this->faker->phoneNumber,
             'status' => $this->faker->randomElement(['active', 'inactive']),
@@ -85,6 +85,7 @@ class SupplierControllerTest extends TestCase
         $this->assertDatabaseHas('suppliers', [
             'name' => $supplierData['name'],
             'contact_email' => $supplierData['contact_email'],
+            'type' => SupplierType::INTERNAL->value,
         ]);
     }
 
@@ -95,7 +96,6 @@ class SupplierControllerTest extends TestCase
         $this->actingAs($user);
         $updateData = [
             'name' => $this->faker->company,
-            'type' => $this->faker->randomElement(['internal', 'external']),
             'status' => $this->faker->randomElement(['active', 'inactive']),
         ];
 
@@ -111,7 +111,7 @@ class SupplierControllerTest extends TestCase
         $this->assertDatabaseHas('suppliers', [
             'id' => $supplier->id,
             'name' => $updateData['name'],
-            'type' => $updateData['type'],
+            'type' => SupplierType::INTERNAL->value,
         ]);
     }
 

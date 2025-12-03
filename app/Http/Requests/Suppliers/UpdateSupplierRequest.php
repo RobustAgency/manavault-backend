@@ -23,7 +23,6 @@ class UpdateSupplierRequest extends FormRequest
     {
         return [
             'name' => ['sometimes', 'required', 'string', 'max:255'],
-            'type' => ['sometimes', 'required', 'string', 'in:internal,external'],
             'contact_email' => ['nullable', 'email', 'max:255'],
             'contact_phone' => ['nullable', 'string', 'max:20'],
             'status' => ['nullable', 'string', 'in:active,inactive'],
