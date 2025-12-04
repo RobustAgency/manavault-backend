@@ -39,6 +39,8 @@ class DigitalProductRepository
      */
     public function createDigitalProduct(array $data): DigitalProduct
     {
+        $data['last_synced_at'] = now();
+
         return DigitalProduct::create($data);
     }
 
