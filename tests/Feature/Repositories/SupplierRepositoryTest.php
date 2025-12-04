@@ -4,6 +4,7 @@ namespace Tests\Feature\Repositories;
 
 use Tests\TestCase;
 use App\Models\Supplier;
+use App\Enums\SupplierType;
 use App\Repositories\SupplierRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -23,7 +24,6 @@ class SupplierRepositoryTest extends TestCase
     {
         $data = [
             'name' => 'Test Supplier',
-            'type' => 'internal',
             'contact_email' => 'test@example.com',
             'contact_phone' => '1234567890',
             'status' => 'active',
@@ -38,6 +38,7 @@ class SupplierRepositoryTest extends TestCase
         $this->assertDatabaseHas('suppliers', [
             'name' => 'Test Supplier',
             'slug' => 'test_supplier',
+            'type' => SupplierType::INTERNAL->value,
         ]);
     }
 
