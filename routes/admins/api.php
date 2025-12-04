@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\Admin\SupplierController;
+use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\SupplierKpiController;
 use App\Http\Controllers\Admin\DigitalStockController;
 use App\Http\Controllers\Admin\PurchaseOrderController;
@@ -77,6 +78,10 @@ Route::middleware(['auth:supabase', 'role:super_admin,admin'])->prefix('/admin')
     });
 
     Route::prefix('/voucher-audit-logs')->controller(VoucherAuditLogController::class)->group(function () {
+        Route::get('', 'index');
+    });
+
+    Route::prefix('/activity-logs')->controller(ActivityLogController::class)->group(function () {
         Route::get('', 'index');
     });
 });
