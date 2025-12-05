@@ -19,6 +19,8 @@ class DigitalProduct extends Model
         'sku',
         'brand',
         'description',
+        'tags',
+        'region',
         'cost_price',
         'metadata',
         'source',
@@ -26,6 +28,7 @@ class DigitalProduct extends Model
     ];
 
     protected $casts = [
+        'tags' => 'array',
         'metadata' => 'array',
         'cost_price' => 'decimal:2',
         'last_synced_at' => 'datetime',
