@@ -25,6 +25,8 @@ class DigitalProductFactory extends Factory
             'sku' => $this->faker->unique()->regexify('[A-Z]{3}-[0-9]{5}'),
             'brand' => $this->faker->company(),
             'description' => $this->faker->sentence(),
+            'tags' => $this->faker->randomElements(['gift card', 'gaming', 'entertainment', 'software', 'subscription'], $this->faker->numberBetween(1, 3)),
+            'region' => $this->faker->randomElement(['US', 'EU', 'ASIA']),
             'cost_price' => $costPrice,
             'metadata' => [
                 'external_id' => $this->faker->uuid(),
