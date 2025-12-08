@@ -76,7 +76,7 @@ class ProductController extends Controller
     {
         $validated = $request->validated();
 
-        $product->digitalProducts()->sync($validated['digital_product_ids']);
+        $product->digitalProducts()->syncWithoutDetaching($validated['digital_product_ids']);
 
         return response()->json([
             'error' => false,
