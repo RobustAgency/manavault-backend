@@ -6,6 +6,7 @@ use Tests\TestCase;
 use App\Models\User;
 use App\Models\Brand;
 use App\Models\Product;
+use App\Models\DigitalProduct;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Foundation\Testing\WithFaker;
@@ -325,5 +326,43 @@ class ProductControllerTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['per_page']);
+    }
+
+    public function test_assign_digital_products_to_product(): void
+    {
+        $this->actingAs($this->admin);
+
+        $product = Product::factory()->create();
+        $digitalProducts = DigitalProduct::factory()->count(3)->create();
+
+        $response = $this->postJson('/api/admin/products/'.$product->id.'/digital_products', [
+            'digital_product_ids' => $digitalProducts->pluck('id')->toArray(),
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'error',
+            'message',
+        ]);
+        $response->assertJsonPath('error', false);
+
+        foreach ($digitalProducts as $digitalProduct) {
+            $this->assertDatabaseHas('product_supplier', [
+                'product_id' => $product->id,
+                'digital_product_id' => $digitalProduct->id,
+            ]);
+        }
+    }
+
+    public function test_assign_digital_products_with_invalid_product(): void
+    {
+        $this->actingAs($this->admin);
+
+        $response = $this->postJson('/api/admin/products/999999/digital_products', [
+            'digital_product_ids' => [1, 2, 3],
+        ]
+        );
+
+        $response->assertStatus(404);
     }
 }

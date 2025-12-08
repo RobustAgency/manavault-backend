@@ -44,6 +44,8 @@ class DigitalProductControllerTest extends TestCase
                     'sku' => 'SKU-12345',
                     'brand' => 'Test Brand',
                     'description' => 'Product description',
+                    'tags' => ['software', 'productivity'],
+                    'region' => 'US',
                     'cost_price' => 149.99,
                     'metadata' => ['external_id' => 'ext-123'],
                 ],
@@ -60,7 +62,11 @@ class DigitalProductControllerTest extends TestCase
                         'id',
                         'supplier_id',
                         'name',
+                        'sku',
                         'brand',
+                        'description',
+                        'tags',
+                        'region',
                         'cost_price',
                     ],
                 ],
@@ -76,6 +82,8 @@ class DigitalProductControllerTest extends TestCase
             'sku' => 'SKU-12345',
             'brand' => 'Test Brand',
             'cost_price' => 149.99,
+            'region' => 'US',
+            'tags' => json_encode(['software', 'productivity']),
         ]);
     }
 

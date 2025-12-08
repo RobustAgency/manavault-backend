@@ -25,6 +25,8 @@ class DigitalProductResource extends JsonResource
             'sku' => $this->sku,
             'brand' => $this->brand,
             'description' => $this->description,
+            'tags' => $this->tags,
+            'region' => $this->region,
             'cost_price' => $this->cost_price,
             'metadata' => $this->metadata,
             'last_synced_at' => $this->last_synced_at?->toDateTimeString(),
