@@ -5,6 +5,8 @@ namespace App\Repositories;
 use App\Models\Product;
 use Illuminate\Http\UploadedFile;
 use App\Services\ImageUploadService;
+use App\Enums\PriceRuleCondition\Operator;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class ProductRepository
@@ -66,5 +68,46 @@ class ProductRepository
         }
 
         return $product->delete();
+    }
+
+    /**
+     * Get products that match dynamic conditions (used by pricing rules).
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, Product>
+     */
+    public function getProductsByConditions(array $conditions, string $matchType = 'all'): Collection
+    {
+        $query = Product::query();
+
+        $applyCondition = function ($q, array $condition) {
+            $field = $condition['field'];
+            $operator = $condition['operator'];
+            $value = $condition['value'];
+
+            match ($operator) {
+                Operator::EQUAL->value => $q->where($field, $value),
+                Operator::NOT_EQUAL->value => $q->where($field, '!=', $value),
+                Operator::GREATER_THAN->value => $q->where($field, '>', $value),
+                Operator::LESS_THAN->value => $q->where($field, '<', $value),
+                Operator::GREATER_THAN_OR_EQUAL->value => $q->where($field, '>=', $value),
+                Operator::LESS_THAN_OR_EQUAL->value => $q->where($field, '<=', $value),
+                Operator::CONTAINS->value => $q->where($field, 'LIKE', "%{$value}%"),
+                default => null,
+            };
+        };
+
+        if ($matchType === 'any') {
+            $query->where(function ($q) use ($conditions, $applyCondition) {
+                foreach ($conditions as $condition) {
+                    $q->orWhere(fn ($sub) => $applyCondition($sub, $condition));
+                }
+            });
+        } else {
+            foreach ($conditions as $condition) {
+                $applyCondition($query, $condition);
+            }
+        }
+
+        return $query->get();
     }
 }
