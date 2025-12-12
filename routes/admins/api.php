@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\Admin\SupplierController;
+use App\Http\Controllers\Admin\PriceRuleController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\SupplierKpiController;
 use App\Http\Controllers\Admin\DigitalStockController;
@@ -83,5 +84,13 @@ Route::middleware(['auth:supabase', 'role:super_admin,admin'])->prefix('/admin')
 
     Route::prefix('/activity-logs')->controller(ActivityLogController::class)->group(function () {
         Route::get('', 'index');
+    });
+
+    Route::prefix('/price-rules')->controller(PriceRuleController::class)->group(function () {
+        Route::get('', 'index');
+        Route::post('', 'store');
+        Route::get('/{priceRule}', 'show');
+        Route::post('/{priceRule}', 'update');
+        Route::delete('/{priceRule}', 'destroy');
     });
 });

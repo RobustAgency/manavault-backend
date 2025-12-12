@@ -7,6 +7,7 @@ use App\Models\Brand;
 use App\Models\Product;
 use App\Enums\Product\Lifecycle;
 use App\Repositories\ProductRepository;
+use App\Enums\PriceRuleCondition\Operator;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -146,5 +147,132 @@ class ProductRepositoryTest extends TestCase
         $this->assertDatabaseMissing('products', [
             'id' => $product->id,
         ]);
+    }
+
+    public function test_get_products_by_conditions_with_single_equal_condition(): void
+    {
+        Product::factory()->create(['name' => 'Gaming Gift Card']);
+        Product::factory()->create(['name' => 'Sports Gift Card']);
+        Product::factory()->create(['name' => 'Gaming Gift Card']);
+
+        $conditions = [
+            ['field' => 'name', 'operator' => Operator::EQUAL->value, 'value' => 'Gaming Gift Card'],
+        ];
+
+        $results = $this->repository->getProductsByConditions($conditions);
+
+        $this->assertCount(2, $results);
+        $this->assertTrue($results->every(fn ($product) => $product->name === 'Gaming Gift Card'));
+    }
+
+    public function test_get_products_by_conditions_with_price_greater_than(): void
+    {
+        Product::factory()->create(['selling_price' => 50.00]);
+        Product::factory()->create(['selling_price' => 100.00]);
+        Product::factory()->create(['selling_price' => 150.00]);
+
+        $conditions = [
+            ['field' => 'selling_price', 'operator' => Operator::GREATER_THAN->value, 'value' => 75.00],
+        ];
+
+        $results = $this->repository->getProductsByConditions($conditions);
+
+        $this->assertCount(2, $results);
+        $this->assertTrue($results->every(fn ($product) => $product->selling_price > 75.00));
+    }
+
+    public function test_get_products_by_conditions_with_multiple_conditions_all_match(): void
+    {
+        $brand1 = Brand::factory()->create();
+        $brand2 = Brand::factory()->create();
+
+        Product::factory()->create([
+            'name' => 'Premium Gaming Card',
+            'brand_id' => $brand1->id,
+            'selling_price' => 100.00,
+        ]);
+        Product::factory()->create([
+            'name' => 'Budget Gaming Card',
+            'brand_id' => $brand1->id,
+            'selling_price' => 25.00,
+        ]);
+        Product::factory()->create([
+            'name' => 'Premium Sports Card',
+            'brand_id' => $brand2->id,
+            'selling_price' => 100.00,
+        ]);
+
+        $conditions = [
+            ['field' => 'brand_id', 'operator' => Operator::EQUAL->value, 'value' => $brand1->id],
+            ['field' => 'selling_price', 'operator' => Operator::GREATER_THAN_OR_EQUAL->value, 'value' => 100.00],
+        ];
+
+        $results = $this->repository->getProductsByConditions($conditions, 'all');
+
+        $this->assertCount(1, $results);
+        $this->assertEquals('Premium Gaming Card', $results->first()->name);
+    }
+
+    public function test_get_products_by_conditions_with_multiple_conditions_any_match(): void
+    {
+        $brand1 = Brand::factory()->create();
+        $brand2 = Brand::factory()->create();
+
+        Product::factory()->create([
+            'name' => 'Premium Gaming Card',
+            'brand_id' => $brand1->id,
+            'selling_price' => 100.00,
+        ]);
+        Product::factory()->create([
+            'name' => 'Budget Card',
+            'brand_id' => $brand2->id,
+            'selling_price' => 25.00,
+        ]);
+        Product::factory()->create([
+            'name' => 'Expensive Card',
+            'brand_id' => $brand2->id,
+            'selling_price' => 200.00,
+        ]);
+
+        $conditions = [
+            ['field' => 'brand_id', 'operator' => Operator::EQUAL->value, 'value' => $brand1->id],
+            ['field' => 'selling_price', 'operator' => Operator::GREATER_THAN_OR_EQUAL->value, 'value' => 200.00],
+        ];
+
+        $results = $this->repository->getProductsByConditions($conditions, 'any');
+
+        $this->assertCount(2, $results);
+        $this->assertTrue($results->contains('name', 'Premium Gaming Card'));
+        $this->assertTrue($results->contains('name', 'Expensive Card'));
+    }
+
+    public function test_get_products_by_conditions_with_contains_operator(): void
+    {
+        Product::factory()->create(['name' => 'Apple iPhone Gift Card']);
+        Product::factory()->create(['name' => 'Samsung Galaxy Card']);
+        Product::factory()->create(['name' => 'Apple Watch Card']);
+
+        $conditions = [
+            ['field' => 'name', 'operator' => Operator::CONTAINS->value, 'value' => 'Apple'],
+        ];
+
+        $results = $this->repository->getProductsByConditions($conditions);
+
+        $this->assertCount(2, $results);
+        $this->assertTrue($results->every(fn ($product) => str_contains($product->name, 'Apple')));
+    }
+
+    public function test_get_products_by_conditions_with_no_matches(): void
+    {
+        Product::factory()->create(['selling_price' => 50.00]);
+        Product::factory()->create(['selling_price' => 75.00]);
+
+        $conditions = [
+            ['field' => 'selling_price', 'operator' => Operator::GREATER_THAN->value, 'value' => 200.00],
+        ];
+
+        $results = $this->repository->getProductsByConditions($conditions);
+
+        $this->assertEmpty($results);
     }
 }

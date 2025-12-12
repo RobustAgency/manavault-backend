@@ -14,7 +14,7 @@ class PriceRuleRepository
      */
     public function getFilteredPriceRules(array $filters = []): LengthAwarePaginator
     {
-        $query = PriceRule::query();
+        $query = PriceRule::with('conditions');
 
         if (! empty($filters['name'])) {
             $query->where('name', 'like', '%'.$filters['name'].'%');
@@ -24,8 +24,8 @@ class PriceRuleRepository
             $query->where('match_type', $filters['match_type']);
         }
 
-        if (! empty($filters['action_operator'])) {
-            $query->where('action_operator', $filters['action_operator']);
+        if (! empty($filters['action_mode'])) {
+            $query->where('action_mode', $filters['action_mode']);
         }
 
         $perPage = $filters['per_page'] ?? 15;
@@ -39,5 +39,23 @@ class PriceRuleRepository
     public function createPriceRule(array $data): PriceRule
     {
         return PriceRule::create($data);
+    }
+
+    /**
+     * Update an existing price rule.
+     */
+    public function updatePriceRule(PriceRule $priceRule, array $data): PriceRule
+    {
+        $priceRule->update($data);
+
+        return $priceRule;
+    }
+
+    /**
+     * Delete a price rule.
+     */
+    public function deletePriceRule(PriceRule $priceRule): void
+    {
+        $priceRule->delete();
     }
 }

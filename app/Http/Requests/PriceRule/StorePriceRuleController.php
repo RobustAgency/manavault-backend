@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\PriceRule;
 
+use App\Enums\PriceRule\Status;
 use Illuminate\Validation\Rule;
 use App\Enums\PriceRule\MatchType;
 use App\Enums\PriceRule\ActionMode;
@@ -33,6 +34,7 @@ class StorePriceRuleController extends FormRequest
             'action_operator' => ['required', Rule::enum(ActionOperator::class)],
             'action_mode' => ['required', Rule::enum(ActionMode::class)],
             'action_value' => ['required', 'numeric', 'min:0'],
+            'status' => ['required', Rule::enum(Status::class)],
             'conditions' => ['required', 'array', 'min:1'],
             'conditions.*.field' => ['required', 'string'],
             'conditions.*.operator' => ['required', Rule::enum(Operator::class)],

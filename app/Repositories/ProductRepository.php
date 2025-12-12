@@ -85,13 +85,13 @@ class ProductRepository
             $value = $condition['value'];
 
             match ($operator) {
-                Operator::EQUAL => $q->where($field, $value),
-                Operator::NOT_EQUAL => $q->where($field, '!=', $value),
-                Operator::GREATER_THAN => $q->where($field, '>', $value),
-                Operator::LESS_THAN => $q->where($field, '<', $value),
-                Operator::GREATER_THAN_OR_EQUAL => $q->where($field, '>=', $value),
-                Operator::LESS_THAN_OR_EQUAL => $q->where($field, '<=', $value),
-                Operator::CONTAINS => $q->where($field, 'LIKE', "%{$value}%"),
+                Operator::EQUAL->value => $q->where($field, $value),
+                Operator::NOT_EQUAL->value => $q->where($field, '!=', $value),
+                Operator::GREATER_THAN->value => $q->where($field, '>', $value),
+                Operator::LESS_THAN->value => $q->where($field, '<', $value),
+                Operator::GREATER_THAN_OR_EQUAL->value => $q->where($field, '>=', $value),
+                Operator::LESS_THAN_OR_EQUAL->value => $q->where($field, '<=', $value),
+                Operator::CONTAINS->value => $q->where($field, 'LIKE', "%{$value}%"),
                 default => null,
             };
         };
