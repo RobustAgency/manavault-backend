@@ -21,6 +21,7 @@ class Product extends Model
         'long_description',
         'tags',
         'image',
+        'face_value',
         'selling_price',
         'status',
         'regions',
@@ -29,6 +30,7 @@ class Product extends Model
     protected $casts = [
         'tags' => 'array',
         'regions' => 'array',
+        'face_value' => 'decimal:2',
     ];
 
     /**

@@ -1248,6 +1248,204 @@
 				}
 			],
 			"description": "User endpoints for profile management"
+		},
+		{
+			"name": "Admin - Price Rules",
+			"item": [
+				{
+					"name": "List Price Rules",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/price-rules?per_page=15&name=&match_type=&action_mode=",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"price-rules"
+							],
+							"query": [
+								{
+									"key": "per_page",
+									"value": "15",
+									"description": "Optional: Items per page (default: 15)"
+								},
+								{
+									"key": "name",
+									"value": "",
+									"description": "Optional: Filter by rule name (max: 255 characters)"
+								},
+								{
+									"key": "match_type",
+									"value": "",
+									"description": "Optional: Filter by match type - Enum values: all, any"
+								},
+								{
+									"key": "action_mode",
+									"value": "",
+									"description": "Optional: Filter by action mode - Enum values: percentage, fixed"
+								}
+							]
+						},
+						"description": "Retrieve paginated list of price rules with optional filters. Requires admin role.\n\nQuery Parameters:\n- per_page: Number of items per page (default: 15)\n- name: Filter by rule name (partial match)\n- match_type: Filter by match type (all or any)\n- action_mode: Filter by action mode (percentage or fixed)"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Price Rule",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Premium Brand Discount\",\n    \"description\": \"Apply 10% discount to premium brands\",\n    \"match_type\": \"all\",\n    \"action_operator\": \"-\",\n    \"action_mode\": \"percentage\",\n    \"action_value\": 10,\n    \"status\": \"active\",\n    \"conditions\": [\n        {\n            \"field\": \"brand_id\",\n            \"operator\": \"=\",\n            \"value\": \"1\"\n        },\n        {\n            \"field\": \"selling_price\",\n            \"operator\": \">=\",\n            \"value\": \"100\"\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/price-rules",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"price-rules"
+							]
+						},
+						"description": "Create a new price rule with conditions. Requires admin role.\n\nRequest Body:\n- name: Rule name (required, max: 255)\n- description: Rule description (optional)\n- match_type: Match type for conditions (required, enum: all, any)\n- action_operator: Operator to apply (+, -, =) (required)\n- action_mode: Mode of action (required, enum: percentage, absolute)\n- action_value: Value to apply (required, numeric, min: 0)\n- status: Rule status (required, enum: active, inactive)\n- conditions: Array of conditions (required, min 1 item)\n  - field: Field name (required)\n  - operator: Operator (required, enum: =, !=, >, <, >=, <=, contains)\n  - value: Condition value (required)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Price Rule",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/price-rules/:price_rule_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"price-rules",
+								":price_rule_id"
+							],
+							"variable": [
+								{
+									"key": "price_rule_id",
+									"value": "1",
+									"description": "Required: Price Rule ID"
+								}
+							]
+						},
+						"description": "Get details of a specific price rule including its conditions. Requires admin role."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Price Rule",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Updated Premium Discount\",\n    \"description\": \"Apply 15% discount to premium brands\",\n    \"match_type\": \"all\",\n    \"action_operator\": \"-\",\n    \"action_mode\": \"percentage\",\n    \"action_value\": 15,\n    \"status\": \"active\",\n    \"conditions\": [\n        {\n            \"field\": \"brand_id\",\n            \"operator\": \"=\",\n            \"value\": \"1\"\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/price-rules/:price_rule_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"price-rules",
+								":price_rule_id"
+							],
+							"variable": [
+								{
+									"key": "price_rule_id",
+									"value": "1",
+									"description": "Required: Price Rule ID"
+								}
+							]
+						},
+						"description": "Update an existing price rule and its conditions. Requires admin role.\n\nRequest Body: Same as Create Price Rule"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Price Rule",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/price-rules/:price_rule_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"price-rules",
+								":price_rule_id"
+							],
+							"variable": [
+								{
+									"key": "price_rule_id",
+									"value": "1",
+									"description": "Required: Price Rule ID"
+								}
+							]
+						},
+						"description": "Delete a price rule and all its associated conditions. Requires admin role."
+					},
+					"response": []
+				}
+			],
+			"description": "Admin endpoints for price rule management"
 		}
 	],
 	"auth": {
