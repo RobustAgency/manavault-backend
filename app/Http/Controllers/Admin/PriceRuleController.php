@@ -24,7 +24,7 @@ class PriceRuleController extends Controller
 
         return response()->json([
             'error' => false,
-            'data' => PriceRuleResource::collection($priceRules),
+            'data' => $priceRules,
             'message' => 'Price rules retrieved successfully.',
         ]);
     }
