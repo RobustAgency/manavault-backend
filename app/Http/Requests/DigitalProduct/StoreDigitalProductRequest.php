@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\DigitalProduct;
 
+use App\Enums\Currency;
+use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreDigitalProductRequest extends FormRequest
@@ -29,6 +31,7 @@ class StoreDigitalProductRequest extends FormRequest
             'products.*.brand' => ['nullable', 'string', 'max:255'],
             'products.*.description' => ['nullable', 'string'],
             'products.*.cost_price' => ['required', 'numeric', 'min:0'],
+            'products.*.currency' => ['required', 'string', Rule::in(array_map(fn ($c) => $c->value, Currency::cases()))],
             'products.*.metadata' => ['nullable', 'array'],
             'products.*.tags' => ['nullable', 'array'],
             'products.*.tags.*' => ['string', 'max:255'],
@@ -52,6 +55,8 @@ class StoreDigitalProductRequest extends FormRequest
             'products.*.name.required' => 'Product name is required for all products.',
             'products.*.cost_price.required' => 'Cost price is required for all products.',
             'products.*.cost_price.min' => 'Cost price must be at least 0.',
+            'products.*.currency.required' => 'Currency is required for all products.',
+            'products.*.currency.in' => 'The selected currency is invalid.',
             'products.*.tags.required' => 'Tags are required for all products.',
             'products.*.tags.array' => 'Tags must be an array.',
             'products.*.tags.*.string' => 'Each tag must be a string.',

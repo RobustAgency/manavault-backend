@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Product;
 
+use App\Enums\Currency;
 use Illuminate\Validation\Rule;
 use App\Enums\Product\Lifecycle;
 use Illuminate\Foundation\Http\FormRequest;
@@ -35,6 +36,7 @@ class StoreProductRequest extends FormRequest
             'image' => ['nullable', 'file', 'mimes:jpeg,png,jpg', 'max:2048'],
             'face_value' => ['required', 'numeric', 'min:1'],
             'selling_price' => ['required', 'numeric', 'min:1'],
+            'currency' => ['required', 'string', Rule::in(array_map(fn ($c) => $c->value, Currency::cases()))],
             'status' => ['required', 'string', Rule::in(array_map(fn ($c) => $c->value, Lifecycle::cases()))],
             'regions' => ['nullable', 'array'],
             'regions.*' => ['string'],
