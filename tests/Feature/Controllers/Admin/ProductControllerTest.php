@@ -49,6 +49,7 @@ class ProductControllerTest extends TestCase
                             'tags',
                             'image',
                             'selling_price',
+                            'currency',
                             'status',
                             'regions',
                             'created_at',
@@ -119,6 +120,7 @@ class ProductControllerTest extends TestCase
                     'tags',
                     'image',
                     'selling_price',
+                    'currency',
                     'status',
                     'regions',
                     'created_at',
@@ -165,6 +167,7 @@ class ProductControllerTest extends TestCase
             'image' => UploadedFile::fake()->image('product.jpg'),
             'face_value' => 120.00,
             'selling_price' => 149.99,
+            'currency' => 'usd',
             'status' => 'active',
             'regions' => ['US', 'CA'],
         ];
@@ -186,6 +189,7 @@ class ProductControllerTest extends TestCase
                     'image',
                     'face_value',
                     'selling_price',
+                    'currency',
                     'status',
                     'regions',
                     'created_at',
@@ -208,6 +212,7 @@ class ProductControllerTest extends TestCase
             'name' => 'New Product',
             'description' => 'Product description',
             'selling_price' => 149.99,
+            'currency' => 'usd',
         ]);
     }
 
@@ -247,6 +252,7 @@ class ProductControllerTest extends TestCase
                     'image',
                     'face_value',
                     'selling_price',
+                    'currency',
                     'status',
                     'regions',
                     'created_at',

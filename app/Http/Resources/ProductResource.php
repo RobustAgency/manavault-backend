@@ -30,6 +30,7 @@ class ProductResource extends JsonResource
             'image' => $this->image,
             'face_value' => $this->face_value,
             'selling_price' => $this->selling_price,
+            'currency' => $this->currency,
             'status' => $this->status,
             'regions' => $this->regions,
             'created_at' => $this->created_at->toDateTimeString(),

@@ -22,6 +22,7 @@ class DigitalProduct extends Model
         'tags',
         'region',
         'cost_price',
+        'currency',
         'metadata',
         'source',
         'last_synced_at',

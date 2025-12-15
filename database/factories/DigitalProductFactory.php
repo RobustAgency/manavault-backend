@@ -28,13 +28,14 @@ class DigitalProductFactory extends Factory
             'tags' => $this->faker->randomElements(['gift card', 'gaming', 'entertainment', 'software', 'subscription'], $this->faker->numberBetween(1, 3)),
             'region' => $this->faker->randomElement(['US', 'EU', 'ASIA']),
             'cost_price' => $costPrice,
+            'currency' => 'usd',
             'metadata' => [
                 'external_id' => $this->faker->uuid(),
                 'category' => $this->faker->randomElement(['Gift Cards', 'Gaming', 'Entertainment']),
                 'min_value' => $this->faker->numberBetween(5, 25),
                 'max_value' => $this->faker->numberBetween(100, 500),
             ],
-            'last_synced_at' => null,
+            'last_synced_at' => $this->faker->dateTimeBetween('-1 month', 'now'),
         ];
     }
 

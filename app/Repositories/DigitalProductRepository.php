@@ -29,6 +29,10 @@ class DigitalProductRepository
             $query->where('supplier_id', $filters['supplier_id']);
         }
 
+        if (isset($filters['currency'])) {
+            $query->where('currency', $filters['currency']);
+        }
+
         $per_page = $filters['per_page'] ?? 10;
 
         return $query->paginate($per_page);
