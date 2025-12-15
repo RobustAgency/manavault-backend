@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\DigitalProduct;
 
+use App\Enums\Currency;
+use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateDigitalProductRequest extends FormRequest
@@ -30,6 +32,7 @@ class UpdateDigitalProductRequest extends FormRequest
             'tags.*' => ['string', 'max:255'],
             'region' => ['sometimes', 'nullable', 'string', 'max:255'],
             'cost_price' => ['sometimes', 'numeric', 'min:0'],
+            'currency' => ['sometimes', 'string', Rule::in(array_map(fn ($c) => $c->value, Currency::cases()))],
             'status' => ['sometimes', 'string', 'in:active,inactive'],
             'metadata' => ['sometimes', 'nullable', 'array'],
         ];

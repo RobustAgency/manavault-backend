@@ -23,6 +23,7 @@ class Product extends Model
         'image',
         'face_value',
         'selling_price',
+        'currency',
         'status',
         'regions',
     ];

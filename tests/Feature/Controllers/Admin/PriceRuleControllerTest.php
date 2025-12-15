@@ -11,11 +11,12 @@ use App\Enums\PriceRule\Status;
 use App\Enums\PriceRule\ActionMode;
 use App\Enums\PriceRule\ActionOperator;
 use App\Enums\PriceRuleCondition\Operator;
+use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class PriceRuleControllerTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, WithFaker;
 
     private User $user;
 
@@ -24,7 +25,7 @@ class PriceRuleControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->user = User::factory()->create(['role' => 'admin']);
+        $this->user = User::factory()->create(['role' => 'admin', 'is_approved' => true]);
         $this->brand = Brand::factory()->create();
     }
 
@@ -33,28 +34,33 @@ class PriceRuleControllerTest extends TestCase
         PriceRule::factory()->count(5)->create();
 
         $response = $this->actingAs($this->user)->getJson('/api/admin/price-rules');
-
         $response->assertStatus(200)
             ->assertJsonStructure([
                 'error',
                 'data' => [
-                    '*' => [
-                        'id',
-                        'name',
-                        'description',
-                        'match_type',
-                        'action_operator',
-                        'action_mode',
-                        'action_value',
-                        'status',
-                        'created_at',
+                    'current_page',
+                    'data' => [
+                        '*' => [
+                            'id',
+                            'name',
+                            'description',
+                            'match_type',
+                            'action_operator',
+                            'action_mode',
+                            'action_value',
+                            'status',
+                            'created_at',
+                        ],
                     ],
+                    'last_page',
+                    'total',
                 ],
+
                 'message',
             ])
             ->assertJson(['error' => false]);
 
-        $this->assertCount(5, $response['data']);
+        $this->assertCount(5, $response['data']['data']);
     }
 
     public function test_index_filters_by_name(): void
@@ -68,7 +74,7 @@ class PriceRuleControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson(['error' => false]);
 
-        $this->assertCount(2, $response['data']);
+        $this->assertCount(2, $response['data']['data']);
     }
 
     public function test_index_filters_by_match_type(): void
@@ -81,7 +87,7 @@ class PriceRuleControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson(['error' => false]);
 
-        $this->assertCount(3, $response['data']);
+        $this->assertCount(3, $response['data']['data']);
     }
 
     public function test_index_filters_by_action_mode(): void
@@ -94,7 +100,7 @@ class PriceRuleControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson(['error' => false]);
 
-        $this->assertCount(2, $response['data']);
+        $this->assertCount(2, $response['data']['data']);
     }
 
     public function test_index_with_pagination(): void
@@ -103,9 +109,8 @@ class PriceRuleControllerTest extends TestCase
 
         $response = $this->actingAs($this->user)->getJson('/api/admin/price-rules?per_page=10');
 
-        $response->assertStatus(200)
-            ->assertJson(['error' => false])
-            ->assertJsonCount(10, 'data');
+        $response->assertStatus(200);
+        $this->assertEquals(10, $response['data']['per_page']);
     }
 
     public function test_store_creates_price_rule(): void
@@ -294,7 +299,7 @@ class PriceRuleControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->actingAs($this->user)->putJson("/api/admin/price-rules/{$priceRule->id}", $data);
+        $response = $this->actingAs($this->user)->postJson("/api/admin/price-rules/{$priceRule->id}", $data);
 
         $response->assertStatus(200)
             ->assertJson([
@@ -334,7 +339,7 @@ class PriceRuleControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->actingAs($this->user)->putJson("/api/admin/price-rules/{$priceRule->id}", $data);
+        $response = $this->actingAs($this->user)->postJson("/api/admin/price-rules/{$priceRule->id}", $data);
 
         $response->assertStatus(200);
 

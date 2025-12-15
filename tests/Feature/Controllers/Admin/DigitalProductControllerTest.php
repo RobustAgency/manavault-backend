@@ -45,6 +45,7 @@ class DigitalProductControllerTest extends TestCase
                     'brand' => 'Test Brand',
                     'description' => 'Product description',
                     'tags' => ['software', 'productivity'],
+                    'currency' => 'usd',
                     'region' => 'US',
                     'cost_price' => 149.99,
                     'metadata' => ['external_id' => 'ext-123'],
@@ -68,6 +69,7 @@ class DigitalProductControllerTest extends TestCase
                         'tags',
                         'region',
                         'cost_price',
+                        'currency',
                     ],
                 ],
                 'message',
@@ -101,6 +103,7 @@ class DigitalProductControllerTest extends TestCase
                     'sku' => 'SKU-001',
                     'brand' => 'Brand A',
                     'cost_price' => 10.00,
+                    'currency' => 'usd',
                 ],
                 [
                     'supplier_id' => $supplier->id,
@@ -108,6 +111,7 @@ class DigitalProductControllerTest extends TestCase
                     'sku' => 'SKU-002',
                     'brand' => 'Brand B',
                     'cost_price' => 20.00,
+                    'currency' => 'usd',
                 ],
                 [
                     'supplier_id' => $supplier->id,
@@ -115,6 +119,7 @@ class DigitalProductControllerTest extends TestCase
                     'sku' => 'SKU-003',
                     'brand' => 'Brand C',
                     'cost_price' => 30.00,
+                    'currency' => 'eur',
                 ],
             ],
         ];
@@ -124,9 +129,9 @@ class DigitalProductControllerTest extends TestCase
         $response->assertStatus(201);
         $this->assertCount(3, $response->json('data'));
         $this->assertDatabaseCount('digital_products', 3);
-        $this->assertDatabaseHas('digital_products', ['name' => 'Product 1']);
-        $this->assertDatabaseHas('digital_products', ['name' => 'Product 2']);
-        $this->assertDatabaseHas('digital_products', ['name' => 'Product 3']);
+        $this->assertDatabaseHas('digital_products', ['name' => 'Product 1', 'currency' => 'usd']);
+        $this->assertDatabaseHas('digital_products', ['name' => 'Product 2', 'currency' => 'usd']);
+        $this->assertDatabaseHas('digital_products', ['name' => 'Product 3', 'currency' => 'eur']);
     }
 
     public function test_admin_create_digital_product_validation_fails(): void

@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\DigitalProduct;
 
+use App\Enums\Currency;
+use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ListDigitalProductRequest extends FormRequest
@@ -25,6 +27,7 @@ class ListDigitalProductRequest extends FormRequest
             'name' => ['sometimes', 'string', 'max:255'],
             'brand' => ['sometimes', 'string', 'max:255'],
             'supplier_id' => ['sometimes', 'integer', 'exists:suppliers,id'],
+            'currency' => ['sometimes', Rule::enum(Currency::class)],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ];
     }

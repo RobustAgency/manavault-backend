@@ -34,6 +34,10 @@ class ProductRepository
             $query->where('brand_id', $filters['brand_id']);
         }
 
+        if (isset($filters['currency'])) {
+            $query->where('currency', $filters['currency']);
+        }
+
         $per_page = $filters['per_page'] ?? 10;
 
         return $query->orderBy('created_at', 'desc')->paginate($per_page);
