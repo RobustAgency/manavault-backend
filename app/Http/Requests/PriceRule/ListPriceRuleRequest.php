@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\PriceRule;
 
+use App\Enums\PriceRule\Status;
 use Illuminate\Validation\Rule;
 use App\Enums\PriceRule\MatchType;
 use App\Enums\PriceRule\ActionMode;
@@ -28,6 +29,7 @@ class ListPriceRuleRequest extends FormRequest
             'name' => ['nullable', 'string', 'max:255'],
             'match_type' => ['nullable', Rule::enum(MatchType::class)],
             'action_mode' => ['nullable', Rule::enum(ActionMode::class)],
+            'status' => ['nullable', Rule::enum(Status::class)],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }
