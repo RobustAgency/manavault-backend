@@ -11,7 +11,10 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class ProductRepository
 {
-    public function __construct(private ImageUploadService $imageUploadService) {}
+    public function __construct(
+        private ImageUploadService $imageUploadService,
+        private BrandRepository $brandRepository
+    ) {}
 
     /**
      * Get paginated products filtered by the provided criteria.
@@ -87,6 +90,16 @@ class ProductRepository
             $field = $condition['field'];
             $operator = $condition['operator'];
             $value = $condition['value'];
+
+            if ($field === 'brand_name') {
+                $brand = $this->brandRepository->getBrandByName($value);
+                if ($brand) {
+                    $field = 'brand_id';
+                    $value = (string) $brand->id;
+                } else {
+                    return;
+                }
+            }
 
             match ($operator) {
                 Operator::EQUAL->value => $q->where($field, $value),

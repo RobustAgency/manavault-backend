@@ -37,7 +37,7 @@ class UpdatePriceRuleRequest extends FormRequest
             'status' => ['sometimes', Rule::enum(Status::class)],
             'conditions' => ['sometimes', 'array', 'min:1'],
             'conditions.*.field' => ['required_with:conditions', 'string'],
-            'conditions.*.operator' => ['required_with:conditions', Rule::enum(Operator::class)],
+            'conditions.*.operator' => ['required_with:conditions', Rule::enum(Operator::class), new ValidateOperatorForField],
             'conditions.*.value' => ['required_with:conditions', 'string'],
         ];
     }

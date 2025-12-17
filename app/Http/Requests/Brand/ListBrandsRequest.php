@@ -22,7 +22,7 @@ class ListBrandsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['sometimes', 'string', 'max:255'],
+            'name' => ['sometimes', 'string', 'max:255', 'unique:brands,name'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ];
     }
@@ -37,6 +37,7 @@ class ListBrandsRequest extends FormRequest
         return [
             'name.string' => 'The name must be a string.',
             'name.max' => 'The name may not be greater than 255 characters.',
+            'name.unique' => 'The brand name has already been taken.',
             'per_page.integer' => 'The per page value must be an integer.',
             'per_page.min' => 'The per page value must be at least 1.',
             'per_page.max' => 'The per page value may not be greater than 100.',

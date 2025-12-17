@@ -172,7 +172,7 @@ class ProductRepositoryTest extends TestCase
         Product::factory()->create(['selling_price' => 150.00]);
 
         $conditions = [
-            ['field' => 'selling_price', 'operator' => Operator::GREATER_THAN->value, 'value' => 75.00],
+            ['field' => 'selling_price', 'operator' => Operator::GREATER_THAN->value, 'value' => '75.00'],
         ];
 
         $results = $this->repository->getProductsByConditions($conditions);
@@ -203,8 +203,8 @@ class ProductRepositoryTest extends TestCase
         ]);
 
         $conditions = [
-            ['field' => 'brand_id', 'operator' => Operator::EQUAL->value, 'value' => $brand1->id],
-            ['field' => 'selling_price', 'operator' => Operator::GREATER_THAN_OR_EQUAL->value, 'value' => 100.00],
+            ['field' => 'brand_id', 'operator' => Operator::EQUAL->value, 'value' => (string) $brand1->id],
+            ['field' => 'selling_price', 'operator' => Operator::GREATER_THAN_OR_EQUAL->value, 'value' => '100.00'],
         ];
 
         $results = $this->repository->getProductsByConditions($conditions, 'all');
@@ -235,8 +235,8 @@ class ProductRepositoryTest extends TestCase
         ]);
 
         $conditions = [
-            ['field' => 'brand_id', 'operator' => Operator::EQUAL->value, 'value' => $brand1->id],
-            ['field' => 'selling_price', 'operator' => Operator::GREATER_THAN_OR_EQUAL->value, 'value' => 200.00],
+            ['field' => 'brand_id', 'operator' => Operator::EQUAL->value, 'value' => (string) $brand1->id],
+            ['field' => 'selling_price', 'operator' => Operator::GREATER_THAN_OR_EQUAL->value, 'value' => '200.00'],
         ];
 
         $results = $this->repository->getProductsByConditions($conditions, 'any');
@@ -268,11 +268,39 @@ class ProductRepositoryTest extends TestCase
         Product::factory()->create(['selling_price' => 75.00]);
 
         $conditions = [
-            ['field' => 'selling_price', 'operator' => Operator::GREATER_THAN->value, 'value' => 200.00],
+            ['field' => 'selling_price', 'operator' => Operator::GREATER_THAN->value, 'value' => '200.00'],
         ];
 
         $results = $this->repository->getProductsByConditions($conditions);
 
         $this->assertEmpty($results);
+    }
+
+    public function test_get_products_by_conditions_with_brand_name(): void
+    {
+        $brand1 = Brand::factory()->create(['name' => 'Apple INC LTD']);
+        $brand2 = Brand::factory()->create(['name' => 'Samsung Electronics Co.']);
+
+        Product::factory()->create([
+            'name' => 'iPhone Gift Card',
+            'brand_id' => $brand1->id,
+        ]);
+        Product::factory()->create([
+            'name' => 'MacBook Gift Card',
+            'brand_id' => $brand1->id,
+        ]);
+        Product::factory()->create([
+            'name' => 'Samsung TV Card',
+            'brand_id' => $brand2->id,
+        ]);
+
+        $conditions = [
+            ['field' => 'brand_name', 'operator' => Operator::EQUAL->value, 'value' => 'Samsung Electronics Co.'],
+        ];
+
+        $results = $this->repository->getProductsByConditions($conditions);
+
+        $this->assertCount(1, $results);
+        $this->assertTrue($results->every(fn ($product) => $product->brand_id === $brand2->id));
     }
 }
