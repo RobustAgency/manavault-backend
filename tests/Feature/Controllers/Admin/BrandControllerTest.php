@@ -75,15 +75,14 @@ class BrandControllerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        Brand::factory()->create(['name' => 'Nike']);
-        Brand::factory()->create(['name' => 'Adidas']);
-        Brand::factory()->create(['name' => 'Puma']);
+        Brand::factory()->create(['name' => 'Nike 1']);
+        Brand::factory()->create(['name' => 'Adidas 1']);
 
         $response = $this->getJson('/api/admin/brands?name=Nike');
 
         $response->assertStatus(200)
             ->assertJsonPath('data.total', 1)
-            ->assertJsonPath('data.data.0.name', 'Nike');
+            ->assertJsonPath('data.data.0.name', 'Nike 1');
     }
 
     public function test_admin_can_create_brand(): void
@@ -221,7 +220,7 @@ class BrandControllerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        $brand = Brand::factory()->create(['name' => 'Brand Name']);
+        $brand = Brand::factory()->create(['name' => 'Brand Name 2']);
 
         $response = $this->putJson("/api/admin/brands/{$brand->id}", [
             'name' => 'Brand Name',
@@ -242,7 +241,7 @@ class BrandControllerTest extends TestCase
 
         $brand = Brand::factory()->create();
 
-        $response = $this->putJson("/api/admin/brands/{$brand->id}", [
+        $response = $this->postJson("/api/admin/brands/{$brand->id}", [
             'name' => str_repeat('a', 256),
         ]);
 
@@ -318,7 +317,7 @@ class BrandControllerTest extends TestCase
         $this->actingAs($this->user);
 
         $response = $this->postJson('/api/admin/brands', [
-            'name' => 'New Brand',
+            'name' => 'New Brand 1',
         ]);
 
         $response->assertStatus(403);

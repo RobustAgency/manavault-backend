@@ -37,7 +37,7 @@ class StorePriceRuleController extends FormRequest
             'status' => ['required', Rule::enum(Status::class)],
             'conditions' => ['required', 'array', 'min:1'],
             'conditions.*.field' => ['required', 'string'],
-            'conditions.*.operator' => ['required', Rule::enum(Operator::class)],
+            'conditions.*.operator' => ['required', Rule::enum(Operator::class), new ValidateOperatorForField],
             'conditions.*.value' => ['required', 'string'],
         ];
     }

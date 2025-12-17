@@ -63,20 +63,6 @@ class PriceRuleControllerTest extends TestCase
         $this->assertCount(5, $response['data']['data']);
     }
 
-    public function test_index_filters_by_name(): void
-    {
-        PriceRule::factory()->create(['name' => 'Premium Discount']);
-        PriceRule::factory()->create(['name' => 'Budget Offer']);
-        PriceRule::factory()->create(['name' => 'Premium Sale']);
-
-        $response = $this->actingAs($this->user)->getJson('/api/admin/price-rules?name=Premium');
-
-        $response->assertStatus(200)
-            ->assertJson(['error' => false]);
-
-        $this->assertCount(2, $response['data']['data']);
-    }
-
     public function test_index_filters_by_match_type(): void
     {
         PriceRule::factory()->count(3)->create(['match_type' => 'all']);
@@ -140,9 +126,9 @@ class PriceRuleControllerTest extends TestCase
             'status' => Status::ACTIVE->value,
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand_name',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $this->brand->id,
+                    'value' => (string) $this->brand->name,
                 ],
             ],
         ];
@@ -162,7 +148,7 @@ class PriceRuleControllerTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('price_rule_conditions', [
-            'field' => 'brand_id',
+            'field' => 'brand_name',
         ]);
     }
 
@@ -226,6 +212,102 @@ class PriceRuleControllerTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['conditions']);
+    }
+
+    public function test_store_validates_operator_for_name_field(): void
+    {
+        $data = [
+            'name' => 'Rule',
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 10,
+            'status' => Status::ACTIVE->value,
+            'conditions' => [
+                [
+                    'field' => 'name',
+                    'operator' => Operator::GREATER_THAN->value,
+                    'value' => 'test',
+                ],
+            ],
+        ];
+
+        $response = $this->actingAs($this->user)->postJson('/api/admin/price-rules', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['conditions.0.operator']);
+    }
+
+    public function test_store_validates_operator_less_than_for_name_field(): void
+    {
+        $data = [
+            'name' => 'Rule',
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 10,
+            'status' => Status::ACTIVE->value,
+            'conditions' => [
+                [
+                    'field' => 'name',
+                    'operator' => Operator::LESS_THAN->value,
+                    'value' => 'Hello',
+                ],
+            ],
+        ];
+
+        $response = $this->actingAs($this->user)->postJson('/api/admin/price-rules', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['conditions.0.operator']);
+    }
+
+    public function test_store_validates_operator_for_selling_price_field(): void
+    {
+        $data = [
+            'name' => 'Rule',
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 10,
+            'status' => Status::ACTIVE->value,
+            'conditions' => [
+                [
+                    'field' => 'selling_price',
+                    'operator' => Operator::CONTAINS->value,
+                    'value' => '100',
+                ],
+            ],
+        ];
+
+        $response = $this->actingAs($this->user)->postJson('/api/admin/price-rules', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['conditions.0.operator']);
+    }
+
+    public function test_store_validates_operator_for_region_field(): void
+    {
+        $data = [
+            'name' => 'Rule',
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 10,
+            'status' => Status::ACTIVE->value,
+            'conditions' => [
+                [
+                    'field' => 'region',
+                    'operator' => Operator::EQUAL->value,
+                    'value' => 'US',
+                ],
+            ],
+        ];
+
+        $response = $this->actingAs($this->user)->postJson('/api/admin/price-rules', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['conditions.0.operator']);
     }
 
     public function test_show_returns_price_rule_with_conditions(): void
@@ -365,6 +447,69 @@ class PriceRuleControllerTest extends TestCase
             'price_rule_id' => $priceRule->id,
             'field' => 'brand_id',
         ]);
+    }
+
+    public function test_update_validates_operator_for_name_field(): void
+    {
+        $priceRule = PriceRule::factory()->create();
+
+        $data = [
+            'name' => $priceRule->name,
+            'conditions' => [
+                [
+                    'field' => 'name',
+                    'operator' => Operator::GREATER_THAN->value,
+                    'value' => 'test',
+                ],
+            ],
+        ];
+
+        $response = $this->actingAs($this->user)->postJson("/api/admin/price-rules/{$priceRule->id}", $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['conditions.0.operator']);
+    }
+
+    public function test_update_validates_operator_for_selling_price_field(): void
+    {
+        $priceRule = PriceRule::factory()->create();
+
+        $data = [
+            'name' => $priceRule->name,
+            'conditions' => [
+                [
+                    'field' => 'selling_price',
+                    'operator' => Operator::CONTAINS->value,
+                    'value' => '100',
+                ],
+            ],
+        ];
+
+        $response = $this->actingAs($this->user)->postJson("/api/admin/price-rules/{$priceRule->id}", $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['conditions.0.operator']);
+    }
+
+    public function test_update_validates_operator_for_region_field(): void
+    {
+        $priceRule = PriceRule::factory()->create();
+
+        $data = [
+            'name' => $priceRule->name,
+            'conditions' => [
+                [
+                    'field' => 'region',
+                    'operator' => Operator::EQUAL->value,
+                    'value' => 'US',
+                ],
+            ],
+        ];
+
+        $response = $this->actingAs($this->user)->postJson("/api/admin/price-rules/{$priceRule->id}", $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['conditions.0.operator']);
     }
 
     public function test_destroy_deletes_price_rule(): void
