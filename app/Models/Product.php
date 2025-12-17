@@ -26,6 +26,7 @@ class Product extends Model
         'currency',
         'status',
         'regions',
+        'fulfillment_mode',
     ];
 
     protected $casts = [
@@ -35,11 +36,13 @@ class Product extends Model
     ];
 
     /**
-     * @return BelongsToMany<DigitalProduct, $this>
+     * @return BelongsToMany<DigitalProduct, $this, ProductSupplier>
      */
     public function digitalProducts(): BelongsToMany
     {
-        return $this->belongsToMany(DigitalProduct::class, 'product_supplier');
+        return $this->belongsToMany(DigitalProduct::class, 'product_supplier')
+            ->using(ProductSupplier::class)
+            ->withPivot('priority');
     }
 
     /**

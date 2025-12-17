@@ -8,6 +8,7 @@ use App\Models\Brand;
 use App\Models\Product;
 use App\Models\DigitalProduct;
 use Illuminate\Http\UploadedFile;
+use App\Enums\Product\FulfillmentMode;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -373,5 +374,65 @@ class ProductControllerTest extends TestCase
         );
 
         $response->assertStatus(404);
+    }
+
+    public function test_update_product_with_custom_priority_sets_manual_fulfillment_mode(): void
+    {
+        $this->actingAs($this->admin);
+
+        $brand = Brand::factory()->create();
+        $product = Product::factory()->create();
+
+        $data = [
+            'name' => 'Updated Product',
+            'sku' => 'SKU-UPDATED-001',
+            'brand_id' => $brand->id,
+            'selling_price' => 99.99,
+            'status' => 'active',
+            'is_custom_priority' => true,
+        ];
+
+        $response = $this->postJson("/api/admin/products/{$product->id}", $data);
+
+        $response->assertStatus(200)
+            ->assertJson(['error' => false])
+            ->assertJsonPath('data.fulfillment_mode', FulfillmentMode::MANUAL->value);
+
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'name' => $data['name'],
+            'fulfillment_mode' => FulfillmentMode::MANUAL->value,
+        ]);
+    }
+
+    public function test_update_product_without_custom_priority_sets_price_fulfillment_mode(): void
+    {
+        $this->actingAs($this->admin);
+
+        $brand = Brand::factory()->create();
+        $product = Product::factory()->create([
+            'fulfillment_mode' => FulfillmentMode::MANUAL->value,
+        ]);
+
+        $data = [
+            'name' => 'Updated Product',
+            'sku' => 'SKU-UPDATED-002',
+            'brand_id' => $brand->id,
+            'selling_price' => 79.99,
+            'status' => 'active',
+            'is_custom_priority' => false,
+        ];
+
+        $response = $this->postJson("/api/admin/products/{$product->id}", $data);
+
+        $response->assertStatus(200)
+            ->assertJson(['error' => false])
+            ->assertJsonPath('data.fulfillment_mode', FulfillmentMode::PRICE->value);
+
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'name' => $data['name'],
+            'fulfillment_mode' => FulfillmentMode::PRICE->value,
+        ]);
     }
 }

@@ -4,10 +4,13 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use App\Models\DigitalProduct;
+use App\Models\ProductSupplier;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * @mixin DigitalProduct
+ *
+ * @property ProductSupplier|null $pivot
  */
 class DigitalProductResource extends JsonResource
 {
@@ -30,9 +33,12 @@ class DigitalProductResource extends JsonResource
             'cost_price' => $this->cost_price,
             'metadata' => $this->metadata,
             'last_synced_at' => $this->last_synced_at?->toDateTimeString(),
-            'created_at' => $this->created_at->toDateTimeString(),
-            'updated_at' => $this->updated_at->toDateTimeString(),
+            'created_at' => $this->created_at?->toDateTimeString(),
+            'updated_at' => $this->updated_at?->toDateTimeString(),
             'supplier' => new SupplierResource($this->whenLoaded('supplier')),
+            'pivot' => $this->when($this->pivot !== null, [
+                'priority' => $this->pivot?->priority,
+            ]),
         ];
     }
 }
