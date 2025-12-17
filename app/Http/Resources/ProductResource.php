@@ -33,6 +33,7 @@ class ProductResource extends JsonResource
             'currency' => $this->currency,
             'status' => $this->status,
             'regions' => $this->regions,
+            'fulfillment_mode' => $this->fulfillment_mode,
             'created_at' => $this->created_at->toDateTimeString(),
             'updated_at' => $this->updated_at->toDateTimeString(),
             'digital_products' => DigitalProductResource::collection($this->whenLoaded('digitalProducts')),

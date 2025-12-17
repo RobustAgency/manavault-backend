@@ -114,4 +114,17 @@ class ProductRepository
 
         return $query->get();
     }
+
+    /**
+     * Update the priority order of digital products for a given product.
+     */
+    public function updateDigitalProductsPriority(Product $product, array $digitalProducts): void
+    {
+        $updates = [];
+        foreach ($digitalProducts as $item) {
+            $updates[$item['digital_product_id']] = ['priority' => $item['priority_order']];
+        }
+
+        $product->digitalProducts()->syncWithoutDetaching($updates);
+    }
 }

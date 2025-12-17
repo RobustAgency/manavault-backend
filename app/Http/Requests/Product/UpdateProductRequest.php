@@ -39,6 +39,7 @@ class UpdateProductRequest extends FormRequest
             'status' => ['sometimes', 'string', Rule::in(array_map(fn ($c) => $c->value, Lifecycle::cases()))],
             'regions' => ['sometimes', 'nullable', 'array'],
             'regions.*' => ['string'],
+            'is_custom_priority' => ['sometimes', 'boolean'],
         ];
     }
 }

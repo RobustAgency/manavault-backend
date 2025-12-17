@@ -34,6 +34,7 @@ class ProductFactory extends Factory
             'currency' => 'usd',
             'status' => $this->faker->randomElement(array_map(fn ($c) => $c->value, Lifecycle::cases())),
             'regions' => $this->faker->randomElements(['US', 'CA', 'UK', 'EU', 'AU'], $this->faker->numberBetween(1, 3)),
+            'fulfillment_mode' => $this->faker->randomElement(['price', 'manual']),
         ];
     }
 
