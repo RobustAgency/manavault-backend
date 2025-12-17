@@ -17,7 +17,7 @@ class DigitalProductImport implements ToCollection, WithHeadingRow
     private array $importedSkus = [];
 
     public function __construct(
-        private int $supplierID,
+        private int $supplierId,
     ) {}
 
     /**
@@ -33,19 +33,21 @@ class DigitalProductImport implements ToCollection, WithHeadingRow
 
                 $rowData = $row->toArray();
 
-                $this->validateRow($rowData, $index + 1);
+                $this->validateRow($rowData, $index + 2);
 
                 DigitalProduct::create([
-                    'supplier_id' => $this->supplierID,
+                    'supplier_id' => $this->supplierId,
                     'name' => $rowData['name'],
                     'sku' => $rowData['sku'],
                     'brand' => $rowData['brand'] ?? null,
                     'description' => $rowData['description'] ?? null,
                     'cost_price' => $rowData['cost_price'],
                     'currency' => $rowData['currency'],
-                    'metadata' => $rowData['metadata'] ? json_encode($rowData['metadata']) : null,
-                    'tags' => $rowData['tags'] ? json_encode($rowData['tags']) : null,
+                    'metadata' => $rowData['metadata'] ?? null,
+                    'tags' => $rowData['tags'] ?? null,
                     'region' => $rowData['region'] ?? null,
+                    'last_synced_at' => now(),
+                    'source' => 'csv_import',
                 ]);
 
                 $this->importedSkus[] = $rowData['sku'];
@@ -72,8 +74,6 @@ class DigitalProductImport implements ToCollection, WithHeadingRow
                 Rule::in(array_map(fn ($c) => $c->value, Currency::cases())),
             ],
             'region' => ['nullable', 'string', 'max:255'],
-            'tags' => ['nullable', 'string'],
-            'metadata' => ['nullable', 'string'],
         ], [], [
             'sku' => "SKU (row {$rowNumber})",
             'name' => "Name (row {$rowNumber})",

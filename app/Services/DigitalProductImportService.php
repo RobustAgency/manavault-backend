@@ -12,19 +12,12 @@ class DigitalProductImportService
     public function __construct(private Excel $excel) {}
 
     /**
-     * Import digital products from an CSV file.
+     * Import digital products from a CSV file.
      *
      * @throws Exception
      */
-    public function importDigitalProducts(UploadedFile $file, int $supplierID): bool
+    public function importDigitalProducts(UploadedFile $file, int $supplierId): void
     {
-        try {
-            // Import the file
-            $this->excel->import(new DigitalProductImport($supplierID), $file);
-
-            return true;
-        } catch (Exception $e) {
-            throw new Exception('Import failed: '.$e->getMessage());
-        }
+        $this->excel->import(new DigitalProductImport($supplierId), $file);
     }
 }

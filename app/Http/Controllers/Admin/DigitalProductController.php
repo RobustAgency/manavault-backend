@@ -96,10 +96,10 @@ class DigitalProductController extends Controller
     {
         $validated = $request->validated();
         $file = $validated['file'];
-        $supplierID = $validated['supplier_id'];
+        $supplierId = $validated['supplier_id'];
 
         try {
-            $this->importService->importDigitalProducts($file, $supplierID);
+            $this->importService->importDigitalProducts($file, $supplierId);
 
             return response()->json([
                 'error' => false,
