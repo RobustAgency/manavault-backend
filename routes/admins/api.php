@@ -40,6 +40,7 @@ Route::middleware(['auth:supabase', 'role:super_admin,admin'])->prefix('/admin')
         Route::get('', [ProductController::class, 'index']);
         Route::post('', [ProductController::class, 'store']);
         Route::get('/{product}', [ProductController::class, 'show']);
+        Route::post('/{product}/digital-products/priority', [ProductController::class, 'updateDigitalProductsPriority']);
         Route::post('/{product}/digital_products', [ProductController::class, 'assignDigitalProducts']);
         Route::post('/{product}', [ProductController::class, 'update']);
         Route::delete('/{product}', [ProductController::class, 'destroy']);
