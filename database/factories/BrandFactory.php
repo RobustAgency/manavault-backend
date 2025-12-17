@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class BrandFactory extends Factory
 {
+    private static int $counter = 0;
+
     /**
      * Define the model's default state.
      *
@@ -16,8 +18,10 @@ class BrandFactory extends Factory
      */
     public function definition(): array
     {
+        self::$counter++;
+
         return [
-            'name' => $this->faker->company(),
+            'name' => $this->faker->company().' '.self::$counter,
         ];
     }
 }

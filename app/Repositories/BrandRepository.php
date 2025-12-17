@@ -67,4 +67,9 @@ class BrandRepository
 
         return $brand->delete();
     }
+
+    public function getBrandByName(string $name): ?Brand
+    {
+        return Brand::where('name', $name)->first();
+    }
 }
