@@ -5,5 +5,5 @@ namespace App\Enums\PriceRule;
 enum Status: string
 {
     case ACTIVE = 'active';
-    case INACTIVE = 'inactive';
+    case INACTIVE = 'in_active';
 }

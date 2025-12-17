@@ -28,6 +28,10 @@ class PriceRuleRepository
             $query->where('action_mode', $filters['action_mode']);
         }
 
+        if (! empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
         $perPage = $filters['per_page'] ?? 15;
 
         return $query->latest()->paginate($perPage);

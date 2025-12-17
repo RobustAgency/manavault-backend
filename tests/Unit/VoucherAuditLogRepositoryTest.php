@@ -212,23 +212,6 @@ class VoucherAuditLogRepositoryTest extends TestCase
         $this->assertEquals($log1->id, $items[2]->id);
     }
 
-    public function test_it_eager_loads_voucher_relationship()
-    {
-        $voucher = Voucher::factory()->create();
-        $user = User::factory()->create();
-
-        VoucherAuditLog::factory()->create([
-            'voucher_id' => $voucher->id,
-            'user_id' => $user->id,
-        ]);
-
-        $result = $this->repository->getFilteredLogs([]);
-        $log = $result->items()[0];
-
-        $this->assertTrue($log->relationLoaded('voucher'));
-        $this->assertEquals($voucher->id, $log->voucher->id);
-    }
-
     public function test_it_eager_loads_user_relationship()
     {
         $voucher = Voucher::factory()->create();

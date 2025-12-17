@@ -6,6 +6,7 @@ use Tests\TestCase;
 use App\Models\User;
 use App\Models\Supplier;
 use App\Models\DigitalProduct;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -248,5 +249,173 @@ class DigitalProductControllerTest extends TestCase
         $response = $this->postJson('/api/admin/digital-products', $data);
 
         $response->assertStatus(401);
+    }
+
+    public function test_admin_batch_import_digital_products_from_csv(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create();
+
+        $csvContent = "name,sku,brand,description,cost_price,currency,region,tags,metadata\n";
+        $csvContent .= "Gaming Card,SKU-GAMING-001,Nintendo,Nintendo Switch gift card,50.00,usd,US,gaming|cards,\n";
+        $csvContent .= "Movie Voucher,SKU-MOVIE-001,Disney,Disney movie theater voucher,25.00,eur,EU,movies|entertainment,\n";
+        $csvContent .= "Amazon Gift Card,SKU-AMAZON-001,Amazon,Amazon $100 gift card,100.00,eur,UK,shopping|cards,\n";
+
+        $tempFile = $this->createTempFile($csvContent, 'csv');
+
+        $uploadedFile = new UploadedFile($tempFile, 'vouchers.csv', 'text/csv', null, true);
+
+        $response = $this->postJson('/api/admin/digital-products/batch-import', [
+            'file' => $uploadedFile,
+            'supplier_id' => $supplier->id,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'error' => false,
+                'message' => 'Digital products imported successfully.',
+            ]);
+
+        $this->assertDatabaseCount('digital_products', 3);
+        $this->assertDatabaseHas('digital_products', [
+            'supplier_id' => $supplier->id,
+            'name' => 'Gaming Card',
+            'sku' => 'SKU-GAMING-001',
+            'brand' => 'Nintendo',
+        ]);
+        $this->assertDatabaseHas('digital_products', [
+            'supplier_id' => $supplier->id,
+            'name' => 'Movie Voucher',
+            'sku' => 'SKU-MOVIE-001',
+            'currency' => 'eur',
+        ]);
+        $this->assertDatabaseHas('digital_products', [
+            'supplier_id' => $supplier->id,
+            'name' => 'Amazon Gift Card',
+            'sku' => 'SKU-AMAZON-001',
+            'currency' => 'eur',
+        ]);
+
+        $this->cleanupTempFile($tempFile);
+    }
+
+    public function test_admin_batch_import_with_nonexistent_supplier(): void
+    {
+        $this->actingAs($this->admin);
+
+        $nonexistentSupplierId = 99999;
+
+        $csvContent = "name,sku,brand,description,cost_price,currency,region,tags,metadata\n";
+        $csvContent .= "Gaming Card,SKU-GAMING-001,Nintendo,Nintendo Switch gift card,50.00,usd,US,gaming|cards,\n";
+
+        $file = \Illuminate\Http\UploadedFile::fake()->createWithContent('products.csv', $csvContent);
+
+        $response = $this->postJson('/api/admin/digital-products/batch-import', [
+            'file' => $file,
+            'supplier_id' => $nonexistentSupplierId,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['supplier_id']);
+    }
+
+    public function test_admin_batch_import_with_invalid_currency(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create();
+
+        $csvContent = "name,sku,brand,description,cost_price,currency,region,tags,metadata\n";
+        $csvContent .= "Test Card,SKU-TEST,Test Brand,Test description,50.00,invalid_currency,US,test,\n";
+
+        $file = \Illuminate\Http\UploadedFile::fake()->createWithContent('products.csv', $csvContent);
+
+        $response = $this->postJson('/api/admin/digital-products/batch-import', [
+            'file' => $file,
+            'supplier_id' => $supplier->id,
+        ]);
+
+        $response->assertStatus(500)
+            ->assertJson([
+                'error' => true,
+            ])
+            ->assertJsonStructure([
+                'error',
+                'message',
+            ]);
+
+        $this->assertStringContainsString('currency', strtolower($response->json('message')));
+    }
+
+    public function test_admin_batch_import_requires_file(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create();
+
+        $response = $this->postJson('/api/admin/digital-products/batch-import', [
+            'supplier_id' => $supplier->id,
+            // Missing 'file'
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['file']);
+    }
+
+    public function test_admin_batch_import_requires_supplier_id(): void
+    {
+        $this->actingAs($this->admin);
+
+        $csvContent = "name,sku,brand,description,cost_price,currency,region,tags,metadata\n";
+        $csvContent .= "Test Card,SKU-TEST,Test Brand,Test description,50.00,usd,US,test,\n";
+
+        $file = \Illuminate\Http\UploadedFile::fake()->createWithContent('products.csv', $csvContent);
+
+        $response = $this->postJson('/api/admin/digital-products/batch-import', [
+            'file' => $file,
+            // Missing 'supplier_id'
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['supplier_id']);
+    }
+
+    public function test_unauthenticated_user_cannot_batch_import(): void
+    {
+        $supplier = Supplier::factory()->create();
+
+        $csvContent = "name,sku,brand,description,cost_price,currency,region,tags,metadata\n";
+        $csvContent .= "Test Card,SKU-TEST,Test Brand,Test description,50.00,usd,US,test,\n";
+
+        $file = \Illuminate\Http\UploadedFile::fake()->createWithContent('products.csv', $csvContent);
+
+        $response = $this->postJson('/api/admin/digital-products/batch-import', [
+            'file' => $file,
+            'supplier_id' => $supplier->id,
+        ]);
+
+        $response->assertStatus(401);
+    }
+
+    /**
+     * Helper method to create a temporary file with specific content and extension
+     */
+    private function createTempFile(string $content, string $extension): string
+    {
+        $tempFile = tempnam(sys_get_temp_dir(), 'voucher_test_').'.'.$extension;
+        file_put_contents($tempFile, $content);
+
+        return $tempFile;
+    }
+
+    /**
+     * Helper method to clean up temporary files
+     */
+    private function cleanupTempFile(string $filePath): void
+    {
+        if (file_exists($filePath)) {
+            unlink($filePath);
+        }
     }
 }

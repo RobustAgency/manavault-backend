@@ -15,9 +15,10 @@ class VoucherAuditLogRepository
      */
     public function getFilteredLogs(array $filters): LengthAwarePaginator
     {
-        $query = VoucherAuditLog::query()
-            ->with(['voucher', 'user'])
-            ->orderBy('created_at', 'desc');
+        $query = VoucherAuditLog::with([
+            'digitalProduct',
+            'user',
+        ]);
 
         if (isset($filters['name'])) {
             $query->whereHas('user', fn ($q) => $q->where('name', 'like', '%'.$filters['name'].'%'));
@@ -35,6 +36,7 @@ class VoucherAuditLogRepository
             $query->whereDate('created_at', '<=', $filters['end_date']);
         }
 
+        $query->orderBy('created_at', 'desc');
         $perPage = $filters['per_page'] ?? 15;
 
         return $query->paginate($perPage);
