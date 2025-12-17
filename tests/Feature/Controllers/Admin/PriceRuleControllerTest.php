@@ -152,6 +152,48 @@ class PriceRuleControllerTest extends TestCase
         ]);
     }
 
+    public function test_store_creates_price_rule_with_brand_name_contains(): void
+    {
+        $product = Product::factory()->create(['brand_id' => $this->brand->id]);
+
+        $data = [
+            'name' => 'Brand Contains Rule',
+            'description' => 'Apply discount to brands containing name',
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 15,
+            'status' => Status::ACTIVE->value,
+            'conditions' => [
+                [
+                    'field' => 'brand_name',
+                    'operator' => Operator::CONTAINS->value,
+                    'value' => 'Corp',
+                ],
+            ],
+        ];
+
+        $response = $this->actingAs($this->user)->postJson('/api/admin/price-rules', $data);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'error' => false,
+                'data' => null,
+                'message' => 'Price rule applied successfully.',
+            ]);
+
+        $this->assertDatabaseHas('price_rules', [
+            'name' => 'Brand Contains Rule',
+            'action_value' => 15,
+        ]);
+
+        $this->assertDatabaseHas('price_rule_conditions', [
+            'field' => 'brand_name',
+            'operator' => Operator::CONTAINS->value,
+            'value' => 'Corp',
+        ]);
+    }
+
     public function test_store_validates_required_fields(): void
     {
         $data = [
@@ -308,6 +350,113 @@ class PriceRuleControllerTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['conditions.0.operator']);
+    }
+
+    public function test_store_creates_price_rule_with_region_contains(): void
+    {
+        $product = Product::factory()->create(['brand_id' => $this->brand->id, 'regions' => ['US', 'CA', 'UK']]);
+
+        $data = [
+            'name' => 'Region Contains Rule',
+            'description' => 'Apply discount to products in US region',
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 20,
+            'status' => Status::ACTIVE->value,
+            'conditions' => [
+                [
+                    'field' => 'region',
+                    'operator' => Operator::CONTAINS->value,
+                    'value' => 'US',
+                ],
+            ],
+        ];
+
+        $response = $this->actingAs($this->user)->postJson('/api/admin/price-rules', $data);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'error' => false,
+                'data' => null,
+                'message' => 'Price rule applied successfully.',
+            ]);
+
+        $this->assertDatabaseHas('price_rules', [
+            'name' => 'Region Contains Rule',
+            'action_value' => 20,
+        ]);
+
+        $this->assertDatabaseHas('price_rule_conditions', [
+            'field' => 'region',
+            'operator' => Operator::CONTAINS->value,
+            'value' => 'US',
+        ]);
+    }
+
+    public function test_store_creates_price_rule_with_multiple_conditions_including_contains(): void
+    {
+        $product = Product::factory()->create(['brand_id' => $this->brand->id, 'regions' => ['US', 'CA', 'UK']]);
+
+        $data = [
+            'name' => 'Multiple Conditions Rule',
+            'description' => 'Apply discount with multiple conditions',
+            'match_type' => 'any',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 25,
+            'status' => Status::ACTIVE->value,
+            'conditions' => [
+                [
+                    'field' => 'brand_name',
+                    'operator' => Operator::CONTAINS->value,
+                    'value' => 'Tech',
+                ],
+                [
+                    'field' => 'selling_price',
+                    'operator' => Operator::GREATER_THAN->value,
+                    'value' => '500',
+                ],
+                [
+                    'field' => 'region',
+                    'operator' => Operator::CONTAINS->value,
+                    'value' => 'US',
+                ],
+            ],
+        ];
+
+        $response = $this->actingAs($this->user)->postJson('/api/admin/price-rules', $data);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'error' => false,
+                'data' => null,
+                'message' => 'Price rule applied successfully.',
+            ]);
+
+        $this->assertDatabaseHas('price_rules', [
+            'name' => 'Multiple Conditions Rule',
+            'action_value' => 25,
+            'match_type' => 'any',
+        ]);
+
+        $this->assertDatabaseHas('price_rule_conditions', [
+            'field' => 'brand_name',
+            'operator' => Operator::CONTAINS->value,
+            'value' => 'Tech',
+        ]);
+
+        $this->assertDatabaseHas('price_rule_conditions', [
+            'field' => 'selling_price',
+            'operator' => Operator::GREATER_THAN->value,
+            'value' => '500',
+        ]);
+
+        $this->assertDatabaseHas('price_rule_conditions', [
+            'field' => 'region',
+            'operator' => Operator::CONTAINS->value,
+            'value' => 'US',
+        ]);
     }
 
     public function test_show_returns_price_rule_with_conditions(): void

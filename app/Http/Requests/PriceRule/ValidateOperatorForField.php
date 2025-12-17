@@ -32,7 +32,7 @@ class ValidateOperatorForField implements ValidationRule
             ],
             'brand_id' => [Operator::EQUAL->value],
             'brand_name' => [Operator::EQUAL->value, Operator::CONTAINS->value, Operator::NOT_EQUAL->value],
-            'region' => [Operator::CONTAINS->value],
+            'regions' => [Operator::CONTAINS->value],
         ];
 
         // Get allowed operators for this field
