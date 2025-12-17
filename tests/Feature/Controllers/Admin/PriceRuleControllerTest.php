@@ -103,6 +103,19 @@ class PriceRuleControllerTest extends TestCase
         $this->assertCount(2, $response['data']['data']);
     }
 
+    public function test_index_filters_by_status(): void
+    {
+        PriceRule::factory()->count(3)->create(['status' => Status::ACTIVE->value]);
+        PriceRule::factory()->count(2)->create(['status' => Status::INACTIVE->value]);
+
+        $response = $this->actingAs($this->user)->getJson('/api/admin/price-rules?status=active');
+
+        $response->assertStatus(200)
+            ->assertJson(['error' => false]);
+
+        $this->assertCount(3, $response['data']['data']);
+    }
+
     public function test_index_with_pagination(): void
     {
         PriceRule::factory()->count(25)->create();

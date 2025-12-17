@@ -91,6 +91,18 @@ class PriceRuleRepositoryTest extends TestCase
         $this->assertTrue($results->items()[0]->action_mode === 'percentage');
     }
 
+    public function test_get_filtered_price_rules_by_status(): void
+    {
+        PriceRule::factory()->count(3)->create(['status' => 'active']);
+        PriceRule::factory()->count(2)->create(['status' => 'draft']);
+        PriceRule::factory()->count(1)->create(['status' => 'inactive']);
+
+        $results = $this->repository->getFilteredPriceRules(['status' => 'active']);
+
+        $this->assertCount(3, $results->items());
+        $this->assertTrue($results->items()[0]->status === 'active');
+    }
+
     public function test_get_filtered_price_rules_with_multiple_filters(): void
     {
         PriceRule::factory()->create([
