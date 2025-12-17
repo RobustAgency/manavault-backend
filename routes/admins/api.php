@@ -48,6 +48,7 @@ Route::middleware(['auth:supabase', 'role:super_admin,admin'])->prefix('/admin')
     Route::prefix('/digital-products')->controller(DigitalProductController::class)->group(function () {
         Route::get('', 'index');
         Route::post('', 'store');
+        Route::post('/batch-import', 'batchImport');
         Route::get('/{digitalProduct}', 'show');
         Route::post('/{digitalProduct}', 'update');
         Route::delete('/{digitalProduct}', 'destroy');

@@ -1,0 +1,13 @@
+name,sku,brand,description,cost_price,currency,region,tags,metadata
+Gaming Card,SKU-GAMING-001,Nintendo,Nintendo Switch gift card $50 value,50.00,usd,US,gaming|cards,
+Movie Voucher,SKU-MOVIE-001,Disney,Disney movie theater voucher,25.00,eur,EU,movies|entertainment,
+Amazon Gift Card,SKU-AMAZON-001,Amazon,Amazon $100 gift card,100.00,eur,UK,shopping|cards,
+PlayStation Store,SKU-PSN-001,Sony,PlayStation Store $20 credit,20.00,usd,US,gaming|digital,
+Spotify Premium,SKU-SPOTIFY-001,Spotify,Spotify Premium 3 months,45.00,eur,EU,music|subscription,
+Netflix Subscription,SKU-NETFLIX-001,Netflix,Netflix 1 month membership,15.99,usd,US,streaming|entertainment,
+Apple iTunes,SKU-ITUNES-001,Apple,Apple iTunes $25 gift card,25.00,usd,US,music|digital,
+Steam Wallet,SKU-STEAM-001,Valve,Steam Wallet $50 credit,50.00,eur,UK,gaming|digital,
+Xbox Game Pass,SKU-XBOX-001,Microsoft,Xbox Game Pass 1 month,14.99,usd,AU,gaming|subscription,
+Uber Rides,SKU-UBER-001,Uber,Uber $30 ride credit,30.00,usd,US,travel|rides,
+Starbucks Card,SKU-STARBUCKS-001,Starbucks,Starbucks $25 gift card,25.00,eur,CA,food|coffee,
+Best Buy Card,SKU-BESTBUY-001,Best Buy,Best Buy $50 gift card,50.00,usd,US,electronics|shopping,

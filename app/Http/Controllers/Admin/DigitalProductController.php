@@ -5,15 +5,20 @@ namespace App\Http\Controllers\Admin;
 use App\Models\DigitalProduct;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
+use App\Services\DigitalProductImportService;
 use App\Http\Resources\DigitalProductResource;
 use App\Repositories\DigitalProductRepository;
 use App\Http\Requests\DigitalProduct\ListDigitalProductRequest;
 use App\Http\Requests\DigitalProduct\StoreDigitalProductRequest;
 use App\Http\Requests\DigitalProduct\UpdateDigitalProductRequest;
+use App\Http\Requests\DigitalProduct\BatchImportDigitalProductRequest;
 
 class DigitalProductController extends Controller
 {
-    public function __construct(private DigitalProductRepository $repository) {}
+    public function __construct(
+        private DigitalProductRepository $repository,
+        private DigitalProductImportService $importService,
+    ) {}
 
     /**
      * Display a listing of digital products.
@@ -85,5 +90,26 @@ class DigitalProductController extends Controller
             'error' => false,
             'message' => 'Digital product deleted successfully.',
         ]);
+    }
+
+    public function batchImport(BatchImportDigitalProductRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+        $file = $validated['file'];
+        $supplierId = $validated['supplier_id'];
+
+        try {
+            $this->importService->importDigitalProducts($file, $supplierId);
+
+            return response()->json([
+                'error' => false,
+                'message' => 'Digital products imported successfully.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => true,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
 }
