@@ -8,32 +8,55 @@ use Illuminate\Database\Eloquent\Builder;
 
 class DigitalStockRepository
 {
+    // / Define a constant for low stock threshold
+    const LOW_STOCK_THRESHOLD = DigitalProduct::LOW_QUANTITY_THRESHOLD;
+
     /**
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator<int, DigitalProduct>
      */
-    public function getPaginatedDigitalStocks(array $filters = [])
+    public function getFilteredDigitalStocks(array $filters = [])
     {
         $query = $this->buildBaseQuery($filters);
+
+        if (! empty($filters['stock']) && $filters['stock'] === 'low') {
+            $query = $this->getLowDigitalStocks($query);
+        }
+
+        if (! empty($filters['stock']) && $filters['stock'] === 'high') {
+            $query = $this->getHighDigitalStocks($query);
+        }
+
         $perPage = $filters['per_page'] ?? 15;
 
         return $query->paginate($perPage);
     }
 
     /**
-     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator<int, DigitalProduct>
+     * @param  \Illuminate\Database\Eloquent\Builder<DigitalProduct>  $query
+     * @return \Illuminate\Database\Eloquent\Builder<DigitalProduct>
      */
-    public function getLowDigitalStocks(array $filters = [])
+    private function getLowDigitalStocks(Builder $query): Builder
     {
-        $query = $this->buildBaseQuery($filters);
-
-        $threshold = DigitalProduct::LOW_QUANTITY_THRESHOLD;
+        $threshold = self::LOW_STOCK_THRESHOLD;
         $query->where(function (Builder $query) use ($threshold) {
             $query->whereRaw('COALESCE(poi_totals.total_quantity, 0) < ?', [$threshold]);
         });
 
-        $perPage = $filters['per_page'] ?? 15;
+        return $query;
+    }
 
-        return $query->paginate($perPage);
+    /**
+     * @param  \Illuminate\Database\Eloquent\Builder<DigitalProduct>  $query
+     * @return \Illuminate\Database\Eloquent\Builder<DigitalProduct>
+     */
+    private function getHighDigitalStocks(Builder $query): Builder
+    {
+        $threshold = self::LOW_STOCK_THRESHOLD;
+        $query->where(function (Builder $query) use ($threshold) {
+            $query->whereRaw('COALESCE(poi_totals.total_quantity, 0) >= ?', [$threshold]);
+        });
+
+        return $query;
     }
 
     /**

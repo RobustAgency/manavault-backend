@@ -366,7 +366,7 @@ class PriceRuleControllerTest extends TestCase
             'status' => Status::ACTIVE->value,
             'conditions' => [
                 [
-                    'field' => 'region',
+                    'field' => 'regions',
                     'operator' => Operator::CONTAINS->value,
                     'value' => 'US',
                 ],
@@ -388,7 +388,7 @@ class PriceRuleControllerTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('price_rule_conditions', [
-            'field' => 'region',
+            'field' => 'regions',
             'operator' => Operator::CONTAINS->value,
             'value' => 'US',
         ]);
@@ -418,7 +418,7 @@ class PriceRuleControllerTest extends TestCase
                     'value' => '500',
                 ],
                 [
-                    'field' => 'region',
+                    'field' => 'regions',
                     'operator' => Operator::CONTAINS->value,
                     'value' => 'US',
                 ],
@@ -453,7 +453,7 @@ class PriceRuleControllerTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('price_rule_conditions', [
-            'field' => 'region',
+            'field' => 'regions',
             'operator' => Operator::CONTAINS->value,
             'value' => 'US',
         ]);

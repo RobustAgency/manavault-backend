@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Admin;
 
+use Illuminate\Validation\Rule;
+use App\Enums\DigitalStock\Stock;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ListDigitalStockRequest extends FormRequest
@@ -25,6 +27,7 @@ class ListDigitalStockRequest extends FormRequest
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
             'supplier_id' => ['sometimes', 'integer', 'exists:suppliers,id'],
             'name' => ['sometimes', 'string', 'max:255'],
+            'stock' => ['sometimes', Rule::enum(Stock::class)],
         ];
     }
 }
