@@ -78,17 +78,47 @@ class PricingRuleService
 
     private function applyAction(Product $product, PriceRule $rule): void
     {
-        $value = $rule->action_value;
-        $base = $product->face_value;
-
-        $updatedPrice = match ($rule['action_mode']) {
-            ActionMode::PERCENTAGE->value => $base + ($base * ($value / 100)) * ($rule['action_operator'] === ActionOperator::ADDITION->value ? 1 : -1),
-            ActionMode::ABSOLUTE->value => $base + ($value * ($rule['action_operator'] === ActionOperator::ADDITION->value ? 1 : -1)),
-            default => $base,
-        };
+        $updatedPrice = $this->calculateNewPrice($product, $rule->action_mode, $rule->action_value, $rule->action_operator);
 
         $product->update([
             'selling_price' => max($updatedPrice, 0),
         ]);
+    }
+
+    /**
+     * Preview products and their new prices without applying the rule to the database.
+     */
+    public function previewPriceRuleEffect(array $data): array
+    {
+        $products = $this->productRepository->getProductsByConditions($data['conditions'], $data['match_type']);
+
+        $preview = [];
+        foreach ($products as $product) {
+            $newPrice = $this->calculateNewPrice($product, $data['action_mode'], $data['action_value'], $data['action_operator']);
+
+            $preview[] = [
+                'product_id' => $product->id,
+                'product_name' => $product->name,
+                'face_value' => (float) $product->face_value,
+                'current_selling_price' => (float) $product->selling_price,
+                'new_selling_price' => (float) max($newPrice, 0),
+            ];
+        }
+
+        return $preview;
+    }
+
+    /**
+     * Calculate the new price for a product based on the price rule action.
+     */
+    private function calculateNewPrice(Product $product, string $actionMode, mixed $actionValue, string $actionOperator): float
+    {
+        $base = (float) $product->face_value;
+
+        return match ($actionMode) {
+            ActionMode::PERCENTAGE->value => $base + ($base * ($actionValue / 100)) * ($actionOperator === ActionOperator::ADDITION->value ? 1 : -1),
+            ActionMode::ABSOLUTE->value => $base + ($actionValue * ($actionOperator === ActionOperator::ADDITION->value ? 1 : -1)),
+            default => $base,
+        };
     }
 }
