@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\DigitalStock\Stock;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
 use App\Repositories\DigitalStockRepository;
@@ -14,7 +15,7 @@ class DigitalStockController extends Controller
     public function index(ListDigitalStockRequest $request): JsonResponse
     {
         $filters = $request->validated();
-        $digitalStocks = $this->repository->getPaginatedDigitalStocks($filters);
+        $digitalStocks = $this->repository->getFilteredDigitalStocks($filters);
 
         return response()->json([
             'error' => false,
@@ -26,7 +27,8 @@ class DigitalStockController extends Controller
     public function lowStockProducts(ListDigitalStockRequest $request): JsonResponse
     {
         $filters = $request->validated();
-        $lowStockProducts = $this->repository->getLowDigitalStocks($filters);
+        $filters['stock'] = Stock::LOW->value;
+        $lowStockProducts = $this->repository->getFilteredDigitalStocks($filters);
 
         return response()->json([
             'error' => false,

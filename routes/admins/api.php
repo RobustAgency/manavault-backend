@@ -91,6 +91,7 @@ Route::middleware(['auth:supabase', 'role:super_admin,admin'])->prefix('/admin')
     Route::prefix('/price-rules')->controller(PriceRuleController::class)->group(function () {
         Route::get('', 'index');
         Route::post('', 'store');
+        Route::post('/preview', 'preview');
         Route::get('/{priceRule}', 'show');
         Route::post('/{priceRule}', 'update');
         Route::delete('/{priceRule}', 'destroy');

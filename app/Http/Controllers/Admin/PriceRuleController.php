@@ -74,4 +74,16 @@ class PriceRuleController extends Controller
             'message' => 'Price rule deleted successfully.',
         ]);
     }
+
+    public function preview(StorePriceRuleController $request): JsonResponse
+    {
+        $data = $request->validated();
+        $preview = $this->pricingRuleService->previewPriceRuleEffect($data);
+
+        return response()->json([
+            'error' => false,
+            'data' => $preview,
+            'message' => 'Price rule preview retrieved successfully.',
+        ]);
+    }
 }
