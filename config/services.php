@@ -60,4 +60,8 @@ return [
         'encryption_key' => env('VOUCHER_ENCRYPTION_KEY', 'CKunc0FMA96tKqFiowsKv1H1VCzQM6G8WLgzVKnyVAo='),
     ],
 
+    'manastore' => [
+        'api_key' => env('MANASTORE_API_KEY'),
+    ],
+
 ];
