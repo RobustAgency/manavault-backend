@@ -144,10 +144,10 @@ class ProductRepository
     /**
      * Get all products.
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, Product>
+     * @return \Illuminate\Pagination\LengthAwarePaginator<int, Product>
      */
-    public function getAllProducts(): Collection
+    public function getAllProducts(): LengthAwarePaginator
     {
-        return Product::all();
+        return Product::paginate();
     }
 }
