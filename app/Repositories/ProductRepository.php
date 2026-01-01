@@ -140,4 +140,14 @@ class ProductRepository
 
         $product->digitalProducts()->syncWithoutDetaching($updates);
     }
+
+    /**
+     * Get all products.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, Product>
+     */
+    public function getAllProducts(): Collection
+    {
+        return Product::all();
+    }
 }

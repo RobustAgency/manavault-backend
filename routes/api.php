@@ -11,3 +11,4 @@ Route::post('/login-logs', [LoginLogsController::class, 'store']);
 
 require __DIR__.'/admins/api.php';
 require __DIR__.'/users/api.php';
+require __DIR__.'/manastore/v1/api.php';
