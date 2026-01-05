@@ -31,7 +31,17 @@ class ProductController extends Controller
 
     public function show(Product $product): JsonResponse
     {
-        $product->load(['digitalProducts.supplier', 'brand']);
+        $product->load([
+            'digitalProducts' => function ($query) use ($product) {
+                if ($product->fulfillment_mode === FulfillmentMode::PRICE->value) {
+                    $query->orderBy('cost_price', 'asc');
+                } else {
+                    $query->orderByPivot('priority', 'asc');
+                }
+            },
+            'digitalProducts.supplier',
+            'brand',
+        ]);
 
         return response()->json([
             'error' => false,
