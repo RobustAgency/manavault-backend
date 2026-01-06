@@ -148,6 +148,6 @@ class ProductRepository
      */
     public function getAllProducts(): LengthAwarePaginator
     {
-        return Product::paginate();
+        return Product::paginate(100);
     }
 }

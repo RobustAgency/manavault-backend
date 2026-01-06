@@ -10,6 +10,7 @@ Route::prefix('/v1')->group(function () {
     Route::middleware(['manastore.auth'])->group(function () {
         Route::prefix('/products')->group(function () {
             Route::get('', [ProductController::class, 'index']);
+            Route::get('/{product}', [ProductController::class, 'show']);
         });
     });
 });
