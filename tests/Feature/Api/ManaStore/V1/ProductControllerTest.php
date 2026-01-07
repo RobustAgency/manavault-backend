@@ -51,19 +51,24 @@ class ProductControllerTest extends TestCase
             ->assertJsonStructure([
                 'error',
                 'data' => [
-                    '*' => [
-                        'id',
-                        'name',
-                        'brand_id',
-                        'face_value',
-                        'selling_price',
-                        'status',
+                    'data' => [
+                        '*' => [
+                            'id',
+                            'name',
+                            'brand_id',
+                            'face_value',
+                            'selling_price',
+                            'status',
+                        ],
                     ],
+                    'total',
+                    'per_page',
+                    'current_page',
                 ],
                 'message',
             ]);
 
-        $this->assertCount(5, $response->json('data'));
+        $this->assertCount(5, $response->json('data.data'));
     }
 
     /**
@@ -84,7 +89,7 @@ class ProductControllerTest extends TestCase
             ->getJson($this->endpoint);
 
         $response->assertStatus(200);
-        $product = $response->json('data.0');
+        $product = $response->json('data.data.0');
 
         $this->assertNotNull($product['id']);
         $this->assertEquals('PlayStation 5', $product['name']);
@@ -104,9 +109,10 @@ class ProductControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'error' => false,
-                'data' => [],
                 'message' => 'Products retrieved successfully.',
             ]);
+
+        $this->assertEmpty($response->json('data.data'));
     }
 
     /**
@@ -126,7 +132,7 @@ class ProductControllerTest extends TestCase
             ->getJson($this->endpoint);
 
         $response->assertStatus(200);
-        $this->assertCount(6, $response->json('data'));
+        $this->assertCount(6, $response->json('data.data'));
     }
 
     /**
@@ -141,7 +147,7 @@ class ProductControllerTest extends TestCase
             ->getJson($this->endpoint);
 
         $response->assertStatus(200);
-        $data = $response->json('data.0');
+        $data = $response->json('data.data.0');
 
         $this->assertArrayHasKey('id', $data);
         $this->assertArrayHasKey('name', $data);
@@ -217,9 +223,9 @@ class ProductControllerTest extends TestCase
             ->getJson($this->endpoint);
 
         $response->assertStatus(200);
-        $this->assertCount(5, $response->json('data'));
+        $this->assertCount(5, $response->json('data.data'));
 
-        $activeProducts = collect($response->json('data'))->where('status', 1)->count();
+        $activeProducts = collect($response->json('data.data'))->where('status', 1)->count();
         $this->assertEquals(3, $activeProducts);
     }
 
@@ -249,9 +255,9 @@ class ProductControllerTest extends TestCase
             ->getJson($this->endpoint);
 
         $response->assertStatus(200);
-        $this->assertCount(3, $response->json('data'));
+        $this->assertCount(3, $response->json('data.data'));
 
-        $prices = collect($response->json('data'))->pluck('face_value')->sort()->toArray();
+        $prices = collect($response->json('data.data'))->pluck('face_value')->sort()->toArray();
         $this->assertEquals([10.00, 100.00, 1000.00], array_map('floatval', $prices));
     }
 
@@ -329,6 +335,11 @@ class ProductControllerTest extends TestCase
             ->getJson($this->endpoint);
 
         $response->assertStatus(200);
-        $this->assertCount(100, $response->json('data'));
+        // Default pagination is 15 items per page, so we expect 15 items in the first request
+        $data = collect($response->json('data.data'));
+        $this->assertLessThanOrEqual(15, $data->count());
+        $this->assertGreaterThan(0, $data->count());
+        // Check total count in pagination metadata
+        $this->assertEquals(100, $response->json('data.total'));
     }
 }
