@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api\ManaStore\V1;
+namespace App\Http\Controllers\Api\Manastore\V1;
 
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
