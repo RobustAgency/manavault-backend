@@ -4,11 +4,15 @@ namespace App\Observers;
 
 use App\Models\Product;
 use App\Constants\ActivityEvents;
+use App\Actions\DispatchProductSyncWebhook;
 use App\Repositories\ActivityLogRepository;
 
 class ProductObserver
 {
-    public function __construct(private ActivityLogRepository $activityLogRepository) {}
+    public function __construct(
+        private ActivityLogRepository $activityLogRepository,
+        private DispatchProductSyncWebhook $dispatchProductSyncWebhook
+    ) {}
 
     /**
      * Handle the Product "created" event.
@@ -16,6 +20,7 @@ class ProductObserver
     public function created(Product $product): void
     {
         $this->activityLogRepository->createActivityLog($product, $product->id, ActivityEvents::PRODUCT_CREATED);
+        $this->dispatchProductSyncWebhook->execute(ActivityEvents::PRODUCT_CREATED, $product->id);
     }
 
     /**
@@ -24,6 +29,7 @@ class ProductObserver
     public function updated(Product $product): void
     {
         $this->activityLogRepository->createActivityLog($product, $product->id, ActivityEvents::PRODUCT_UPDATED);
+        $this->dispatchProductSyncWebhook->execute(ActivityEvents::PRODUCT_UPDATED, $product->id);
     }
 
     /**
