@@ -150,4 +150,9 @@ class ProductRepository
     {
         return Product::paginate(100);
     }
+
+    public function getProductById(int $id): ?Product
+    {
+        return Product::find($id);
+    }
 }

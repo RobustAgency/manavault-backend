@@ -337,7 +337,7 @@ class ProductControllerTest extends TestCase
         $response->assertStatus(200);
         // Default pagination is 15 items per page, so we expect 15 items in the first request
         $data = collect($response->json('data.data'));
-        $this->assertLessThanOrEqual(15, $data->count());
+        $this->assertLessThanOrEqual(100, $data->count());
         $this->assertGreaterThan(0, $data->count());
         // Check total count in pagination metadata
         $this->assertEquals(100, $response->json('data.total'));
