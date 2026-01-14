@@ -20,7 +20,6 @@ class SaleOrderResource extends JsonResource
         return [
             'id' => $this->id,
             'order_number' => $this->order_number,
-            'currency' => $this->currency,
             'source' => $this->source,
             'total_price' => $this->total_price,
             'status' => $this->status,

@@ -20,7 +20,7 @@ class StoreSaleOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'currency' => ['required', 'string', 'max:3'],
+            'order_number' => ['required', 'string', 'max:255', 'unique:sale_orders,order_number'],
             'source' => ['nullable', 'string', 'max:255'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
@@ -34,9 +34,6 @@ class StoreSaleOrderRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'currency.required' => 'Currency is required.',
-            'currency.string' => 'Currency must be a valid string.',
-            'currency.max' => 'Currency must not exceed 3 characters.',
             'source.string' => 'Source must be a valid string.',
             'source.max' => 'Source must not exceed 255 characters.',
             'items.required' => 'At least one item is required.',

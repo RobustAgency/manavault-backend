@@ -93,17 +93,6 @@ class SaleOrderRepositoryTest extends TestCase
         $this->assertEquals(Status::PENDING->value, $result->items()[0]->status);
     }
 
-    public function test_get_filtered_sale_orders_by_currency(): void
-    {
-        SaleOrder::factory()->create(['currency' => 'usd']);
-        SaleOrder::factory()->create(['currency' => 'eur']);
-
-        $result = $this->repository->getFilteredSaleOrders(['currency' => 'usd']);
-
-        $this->assertCount(1, $result->items());
-        $this->assertEquals('usd', $result->items()[0]->currency);
-    }
-
     public function test_get_filtered_sale_orders_by_source(): void
     {
         SaleOrder::factory()->create(['source' => SaleOrder::MANASTORE]);

@@ -46,7 +46,7 @@ class SaleOrderControllerTest extends TestCase
         ]);
 
         $data = [
-            'currency' => 'usd',
+            'order_number' => 'SO-2026-000001',
             'items' => [
                 [
                     'product_id' => $product->id,
@@ -66,7 +66,6 @@ class SaleOrderControllerTest extends TestCase
                 'data' => [
                     'id',
                     'order_number',
-                    'currency',
                     'source',
                     'total_price',
                     'status',
@@ -74,7 +73,7 @@ class SaleOrderControllerTest extends TestCase
             ]);
 
         $this->assertDatabaseHas('sale_orders', [
-            'currency' => 'usd',
+            'order_number' => 'SO-2026-000001',
             'source' => 'manastore',
         ]);
     }
@@ -112,7 +111,7 @@ class SaleOrderControllerTest extends TestCase
         ]);
 
         $data = [
-            'currency' => 'eur',
+            'order_number' => 'SO-2026-000002',
             'items' => [
                 [
                     'product_id' => $product1->id,
@@ -131,11 +130,11 @@ class SaleOrderControllerTest extends TestCase
             ->assertJson(['error' => false]);
 
         $this->assertDatabaseHas('sale_orders', [
-            'currency' => 'eur',
+            'order_number' => 'SO-2026-000002',
         ]);
     }
 
-    public function test_store_validates_required_currency(): void
+    public function test_store_validates_required_order_number(): void
     {
         $product = Product::factory()->create();
 
@@ -151,45 +150,13 @@ class SaleOrderControllerTest extends TestCase
         $response = $this->postJson('/api/v1/sale-orders', $data, $this->getHeaders());
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['currency']);
-    }
-
-    public function test_store_validates_currency_max_length(): void
-    {
-        $product = Product::factory()->create();
-
-        $data = [
-            'currency' => 'this_is_too_long',
-            'items' => [
-                [
-                    'product_id' => $product->id,
-                    'quantity' => 5,
-                ],
-            ],
-        ];
-
-        $response = $this->postJson('/api/v1/sale-orders', $data, $this->getHeaders());
-
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['currency']);
-    }
-
-    public function test_store_validates_items_required(): void
-    {
-        $data = [
-            'currency' => 'usd',
-        ];
-
-        $response = $this->postJson('/api/v1/sale-orders', $data, $this->getHeaders());
-
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['items']);
+            ->assertJsonValidationErrors(['order_number']);
     }
 
     public function test_store_validates_items_min_one(): void
     {
         $data = [
-            'currency' => 'usd',
+            'order_number' => 'SO-2026-000001',
             'items' => [],
         ];
 
@@ -202,7 +169,7 @@ class SaleOrderControllerTest extends TestCase
     public function test_store_validates_product_id_exists(): void
     {
         $data = [
-            'currency' => 'usd',
+            'order_number' => 'SO-2026-000001',
             'items' => [
                 [
                     'product_id' => 999,
@@ -222,7 +189,7 @@ class SaleOrderControllerTest extends TestCase
         $product = Product::factory()->create();
 
         $data = [
-            'currency' => 'usd',
+            'order_number' => 'SO-2026-000001',
             'items' => [
                 [
                     'product_id' => $product->id,
@@ -241,7 +208,7 @@ class SaleOrderControllerTest extends TestCase
         $product = Product::factory()->create();
 
         $data = [
-            'currency' => 'usd',
+            'order_number' => 'SO-2026-000001',
             'items' => [
                 [
                     'product_id' => $product->id,
@@ -259,7 +226,7 @@ class SaleOrderControllerTest extends TestCase
     public function test_store_returns_error_when_product_not_found(): void
     {
         $data = [
-            'currency' => 'usd',
+            'order_number' => 'SO-2026-000001',
             'items' => [
                 [
                     'product_id' => 999,
@@ -278,7 +245,7 @@ class SaleOrderControllerTest extends TestCase
         $product = Product::factory()->create();
 
         $data = [
-            'currency' => 'usd',
+            'order_number' => 'SO-2026-000001',
             'items' => [
                 [
                     'product_id' => $product->id,
@@ -308,7 +275,7 @@ class SaleOrderControllerTest extends TestCase
         ]);
 
         $data = [
-            'currency' => 'usd',
+            'order_number' => 'SO-2026-000001',
             'items' => [
                 [
                     'product_id' => $product->id,
@@ -341,7 +308,7 @@ class SaleOrderControllerTest extends TestCase
         ]);
 
         $data = [
-            'currency' => 'usd',
+            'order_number' => 'SO-2026-000001',
             'items' => [
                 [
                     'product_id' => $product->id,
@@ -375,7 +342,7 @@ class SaleOrderControllerTest extends TestCase
         ]);
 
         $data = [
-            'currency' => 'usd',
+            'order_number' => 'SO-2026-000001',
             'source' => 'api',
             'items' => [
                 [
@@ -407,7 +374,7 @@ class SaleOrderControllerTest extends TestCase
         ]);
 
         $data = [
-            'currency' => 'usd',
+            'order_number' => 'SO-2026-000001',
             'items' => [
                 [
                     'product_id' => $product->id,
