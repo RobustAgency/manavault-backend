@@ -44,7 +44,7 @@ class SaleOrderServiceTest extends TestCase
         ]);
 
         $data = [
-            'currency' => 'usd',
+            'order_number' => 'SO-2026-000001',
             'items' => [
                 [
                     'product_id' => $product->id,
@@ -58,7 +58,7 @@ class SaleOrderServiceTest extends TestCase
         $this->assertInstanceOf(SaleOrder::class, $saleOrder);
         $this->assertEquals(Status::COMPLETED->value, $saleOrder->status);
         $this->assertEquals(SaleOrder::MANASTORE, $saleOrder->source);
-        $this->assertEquals('usd', $saleOrder->currency);
+        $this->assertEquals('SO-2026-000001', $saleOrder->order_number);
         $this->assertCount(1, $saleOrder->items);
         $this->assertEquals(5, $saleOrder->items[0]->quantity);
     }
@@ -91,7 +91,7 @@ class SaleOrderServiceTest extends TestCase
         ]);
 
         $data = [
-            'currency' => 'eur',
+            'order_number' => 'SO-2026-000002',
             'items' => [
                 [
                     'product_id' => $product1->id,
@@ -128,7 +128,7 @@ class SaleOrderServiceTest extends TestCase
         ]);
 
         $data = [
-            'currency' => 'usd',
+            'order_number' => 'SO-2026-000003',
             'items' => [
                 [
                     'product_id' => $product->id,
@@ -158,7 +158,7 @@ class SaleOrderServiceTest extends TestCase
         ]);
 
         $data = [
-            'currency' => 'usd',
+            'order_number' => 'SO-2026-000004',
             'items' => [
                 [
                     'product_id' => $product->id,
@@ -180,7 +180,7 @@ class SaleOrderServiceTest extends TestCase
         $this->expectExceptionMessage('Product with ID 999 not found.');
 
         $data = [
-            'currency' => 'usd',
+            'order_number' => 'SO-2026-000005',
             'items' => [
                 [
                     'product_id' => 999,
@@ -200,7 +200,7 @@ class SaleOrderServiceTest extends TestCase
         $this->expectExceptionMessage('has no digital products assigned');
 
         $data = [
-            'currency' => 'usd',
+            'order_number' => 'SO-2026-000006',
             'items' => [
                 [
                     'product_id' => $product->id,
@@ -230,7 +230,7 @@ class SaleOrderServiceTest extends TestCase
         $this->expectExceptionMessage('Insufficient inventory');
 
         $data = [
-            'currency' => 'usd',
+            'order_number' => 'SO-2026-000007',
             'items' => [
                 [
                     'product_id' => $product->id,
@@ -270,7 +270,7 @@ class SaleOrderServiceTest extends TestCase
         ]);
 
         $data = [
-            'currency' => 'usd',
+            'order_number' => 'SO-2026-000008',
             'items' => [
                 [
                     'product_id' => $product->id,
@@ -326,7 +326,7 @@ class SaleOrderServiceTest extends TestCase
         ]);
 
         $data = [
-            'currency' => 'usd',
+            'order_number' => 'SO-2026-000009',
             'items' => [
                 [
                     'product_id' => $product->id,
@@ -381,7 +381,7 @@ class SaleOrderServiceTest extends TestCase
         ]);
 
         $data = [
-            'currency' => 'usd',
+            'order_number' => 'SO-2026-0000011',
             'items' => [
                 [
                     'product_id' => $product->id,
@@ -438,7 +438,7 @@ class SaleOrderServiceTest extends TestCase
         ]);
 
         $data = [
-            'currency' => 'usd',
+            'order_number' => 'SO-2026-0000012',
             'items' => [
                 [
                     'product_id' => $product->id,
@@ -491,7 +491,7 @@ class SaleOrderServiceTest extends TestCase
         ]);
 
         $data = [
-            'currency' => 'usd',
+            'order_number' => 'SO-2026-0000013',
             'items' => [
                 [
                     'product_id' => $product->id,
@@ -523,7 +523,7 @@ class SaleOrderServiceTest extends TestCase
 
         try {
             $data = [
-                'currency' => 'usd',
+                'order_number' => 'SO-2026-0000014',
                 'items' => [
                     [
                         'product_id' => $product->id,
@@ -541,38 +541,6 @@ class SaleOrderServiceTest extends TestCase
         $this->assertEquals(0, SaleOrder::count());
     }
 
-    public function test_create_order_generates_unique_order_number(): void
-    {
-        $supplier = Supplier::factory()->create(['type' => 'internal']);
-        $product = Product::factory()->create(['fulfillment_mode' => FulfillmentMode::MANUAL->value]);
-        $digitalProduct = DigitalProduct::factory()->create(['supplier_id' => $supplier->id]);
-        $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
-
-        $purchaseOrder = PurchaseOrder::factory()->create();
-        PurchaseOrderItem::factory()->create([
-            'purchase_order_id' => $purchaseOrder->id,
-            'digital_product_id' => $digitalProduct->id,
-            'quantity' => 100,
-        ]);
-
-        $data = [
-            'currency' => 'usd',
-            'items' => [
-                [
-                    'product_id' => $product->id,
-                    'quantity' => 5,
-                ],
-            ],
-        ];
-
-        $saleOrder1 = $this->service->createOrder($data);
-        $saleOrder2 = $this->service->createOrder($data);
-
-        $this->assertNotEquals($saleOrder1->order_number, $saleOrder2->order_number);
-        $this->assertStringStartsWith('SO-', $saleOrder1->order_number);
-        $this->assertStringStartsWith('SO-', $saleOrder2->order_number);
-    }
-
     public function test_create_order_creates_digital_product_allocations(): void
     {
         $supplier = Supplier::factory()->create(['type' => 'internal']);
@@ -588,7 +556,7 @@ class SaleOrderServiceTest extends TestCase
         ]);
 
         $data = [
-            'currency' => 'usd',
+            'order_number' => 'SO-2026-0000016',
             'items' => [
                 [
                     'product_id' => $product->id,

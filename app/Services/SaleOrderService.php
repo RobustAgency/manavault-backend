@@ -28,13 +28,11 @@ class SaleOrderService
             $this->validateProductsAndDigitalStock($data['items']);
 
             $saleOrder = $this->saleOrderRepository->createSaleOrder([
-                'currency' => $data['currency'],
+                'order_number' => $data['order_number'],
                 'source' => SaleOrder::MANASTORE,
                 'total_price' => 0,
                 'status' => Status::PENDING->value,
             ]);
-
-            $this->generateOrderNumber($saleOrder);
 
             $totalPrice = 0;
 
@@ -64,7 +62,6 @@ class SaleOrderService
 
             DB::commit();
 
-            // Eagerly load relationships for the response
             return $saleOrder->load(['items.digitalProducts']);
 
         } catch (\Exception $e) {
@@ -157,20 +154,5 @@ class SaleOrderService
                 ."Remaining: {$remaining}"
             );
         }
-    }
-
-    /**
-     * Generate unique order number using DB ID.
-     */
-    private function generateOrderNumber(SaleOrder $saleOrder): void
-    {
-        $saleOrder->update([
-            'order_number' => 'SO-'.date('Y').'-'.str_pad(
-                (string) $saleOrder->id,
-                6,
-                '0',
-                STR_PAD_LEFT
-            ),
-        ]);
     }
 }

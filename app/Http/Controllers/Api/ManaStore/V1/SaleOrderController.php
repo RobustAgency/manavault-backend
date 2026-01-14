@@ -27,6 +27,8 @@ class SaleOrderController extends Controller
                 'data' => new SaleOrderResource($saleOrder),
             ], 201);
         } catch (\Exception $e) {
+            logger()->error('Failed to create sale order', ['error' => $e->getMessage()]);
+
             return response()->json([
                 'error' => true,
                 'message' => $e->getMessage(),

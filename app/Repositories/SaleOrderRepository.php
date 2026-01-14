@@ -25,10 +25,6 @@ class SaleOrderRepository
             $query->where('status', $filters['status']);
         }
 
-        if (isset($filters['currency'])) {
-            $query->where('currency', $filters['currency']);
-        }
-
         if (isset($filters['source'])) {
             $query->where('source', $filters['source']);
         }

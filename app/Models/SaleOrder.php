@@ -16,7 +16,6 @@ class SaleOrder extends Model
     protected $fillable = [
         'order_number',
         'source',
-        'currency',
         'total_price',
         'status',
     ];
