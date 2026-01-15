@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\PriceRuleController;
+use App\Http\Controllers\Admin\SaleOrderController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\SupplierKpiController;
 use App\Http\Controllers\Admin\DigitalStockController;
@@ -95,5 +96,10 @@ Route::middleware(['auth:supabase', 'role:super_admin,admin'])->prefix('/admin')
         Route::get('/{priceRule}', 'show');
         Route::post('/{priceRule}', 'update');
         Route::delete('/{priceRule}', 'destroy');
+    });
+
+    Route::prefix('/sale-orders')->controller(SaleOrderController::class)->group(function () {
+        Route::get('', 'index');
+        Route::get('/{saleOrder}', 'show');
     });
 });
