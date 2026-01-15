@@ -26,7 +26,7 @@ class SaleOrderController extends Controller
 
     public function show(SaleOrder $saleOrder): JsonResponse
     {
-        $saleOrder->load('items');
+        $saleOrder->load('items.product');
 
         return response()->json([
             'error' => false,

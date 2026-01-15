@@ -359,7 +359,7 @@ class SaleOrderControllerTest extends TestCase
             ->assertJson(['error' => false]);
     }
 
-    public function test_store_returns_order_with_items_and_digital_products(): void
+    public function test_store_returns_order_with_items(): void
     {
         $supplier = Supplier::factory()->create(['type' => 'internal']);
         $product = Product::factory()->create(['fulfillment_mode' => FulfillmentMode::MANUAL->value]);
@@ -396,7 +396,7 @@ class SaleOrderControllerTest extends TestCase
                             'quantity',
                             'unit_price',
                             'subtotal',
-                            'digital_products',
+                            'product_id',
                         ],
                     ],
                 ],
