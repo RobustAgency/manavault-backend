@@ -17,6 +17,8 @@ class DispatchProductSyncWebhook
             ->useSecret(config('webhook-server.webhook_secret'))
             ->dispatch();
 
-        logger()->info("Dispatched product sync webhook for event: {$event}, product ID: {$productID}");
+        logger()->info(
+            "Dispatched product sync webhook for event: {$event}, product ID: {$productID}"
+        );
     }
 }
