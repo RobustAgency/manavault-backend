@@ -23,6 +23,8 @@ class SaleOrderResource extends JsonResource
             'source' => $this->source,
             'total_price' => $this->total_price,
             'status' => $this->status,
+            'created_at' => $this->created_at->toDateTimeString(),
+            'updated_at' => $this->updated_at->toDateTimeString(),
             'items' => SaleOrderItemResource::collection($this->items),
         ];
     }

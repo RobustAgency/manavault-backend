@@ -15,7 +15,7 @@ class SaleOrderRepository
      */
     public function getFilteredSaleOrders(array $filters = []): LengthAwarePaginator
     {
-        $query = SaleOrder::with('items.digitalProducts');
+        $query = SaleOrder::with('items');
 
         if (isset($filters['order_number'])) {
             $query->where('order_number', 'like', '%'.$filters['order_number'].'%');

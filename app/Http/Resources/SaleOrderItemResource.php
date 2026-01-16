@@ -19,10 +19,11 @@ class SaleOrderItemResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'product_id' => $this->product_id,
             'quantity' => $this->quantity,
             'unit_price' => $this->unit_price,
             'subtotal' => $this->subtotal,
-            'digital_products' => SaleOrderItemDigitalProductResource::collection($this->digitalProducts),
+            'product' => new ProductResource($this->whenLoaded('product')),
         ];
     }
 }
