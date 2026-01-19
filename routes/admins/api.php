@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\ProductController;
@@ -8,6 +9,7 @@ use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\PriceRuleController;
 use App\Http\Controllers\Admin\SaleOrderController;
+use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\SupplierKpiController;
 use App\Http\Controllers\Admin\DigitalStockController;
@@ -102,4 +104,15 @@ Route::middleware(['auth:supabase', 'role:super_admin,admin'])->prefix('/admin')
         Route::get('', 'index');
         Route::get('/{saleOrder}', 'show');
     });
+
+    Route::prefix('/roles')->controller(RoleController::class)->group(function () {
+        Route::get('', 'index');
+        Route::post('', 'store');
+        Route::get('/{role}', 'show');
+        Route::post('/{role}', 'update');
+        Route::delete('/{role}', 'destroy');
+    });
+
+    Route::get('/permissions', [PermissionController::class, 'index']);
+
 });
