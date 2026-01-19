@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Repositories\UserRepository;
+use App\Http\Requests\User\AssignRolesRequest;
 use App\Http\Requests\Admin\SearchUsersRequest;
 
 class UserController extends Controller
@@ -87,6 +88,22 @@ class UserController extends Controller
             'error' => false,
             'message' => 'User approval revoked successfully',
             'data' => null,
+        ]);
+    }
+
+    /**
+     * Assign roles to a user.
+     */
+    public function assignRoles(AssignRolesRequest $request, User $user): JsonResponse
+    {
+        $validated = $request->validated();
+
+        $user->syncRoles($validated['role_ids']);
+
+        return response()->json([
+            'error' => false,
+            'message' => 'Roles assigned successfully',
+            'data' => new UserResource($user->load('roles')),
         ]);
     }
 }
