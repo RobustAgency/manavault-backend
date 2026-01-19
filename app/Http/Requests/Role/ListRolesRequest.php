@@ -23,6 +23,7 @@ class ListRolesRequest extends FormRequest
     {
         return [
             'name' => ['nullable', 'string', 'max:255'],
+            'guard_name' => ['nullable', 'string', 'max:255'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }

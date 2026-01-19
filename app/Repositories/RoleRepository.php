@@ -16,12 +16,12 @@ class RoleRepository
     {
         $query = Role::with('permissions');
 
-        if (isset($filters['group_id'])) {
-            $query->where('group_id', $filters['group_id']);
-        }
-
         if (isset($filters['name'])) {
             $query->where('name', 'like', '%'.$filters['name'].'%');
+        }
+
+        if (isset($filters['guard_name'])) {
+            $query->where('guard_name', $filters['guard_name']);
         }
 
         $perPage = $filters['per_page'] ?? 15;
@@ -33,8 +33,6 @@ class RoleRepository
 
     public function createRole(array $data): Role
     {
-        // Set the Spatie Team Context
-        setPermissionsTeamId($data['group_id']);
 
         $guardName = $data['guard_name'] ?? 'api';
 
@@ -42,7 +40,6 @@ class RoleRepository
         $role = Role::create([
             'name' => $data['name'],
             'guard_name' => $guardName,
-            'group_id' => $data['group_id'],
         ]);
 
         if (isset($data['permission_ids'])) {
@@ -69,6 +66,10 @@ class RoleRepository
 
     public function deleteRole(Role $role): bool
     {
-        return $role->delete();
+        $role->loadMissing('permissions');
+
+        $role->permissions()->detach();
+
+        return (bool) $role->delete();
     }
 }

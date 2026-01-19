@@ -27,9 +27,9 @@ class UpdateRoleRequest extends FormRequest
 
         return [
             'name' => ['sometimes', 'string', 'max:255', 'unique:roles,name,'.$roleId],
+            'guard_name' => ['sometimes', 'string', 'max:255'],
             'permission_ids' => ['sometimes', 'nullable', 'array'],
             'permission_ids.*' => ['integer', 'exists:permissions,id'],
-            'group_id' => ['sometimes', 'nullable', 'integer', 'exists:groups,id'],
         ];
     }
 }
