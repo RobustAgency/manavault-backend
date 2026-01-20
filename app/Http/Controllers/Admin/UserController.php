@@ -98,7 +98,7 @@ class UserController extends Controller
     {
         $validated = $request->validated();
 
-        $user->syncRoles($validated['role_ids']);
+        $user->syncRoles($validated['role_id']);
 
         return response()->json([
             'error' => false,
