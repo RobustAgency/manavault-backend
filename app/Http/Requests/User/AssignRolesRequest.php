@@ -22,8 +22,7 @@ class AssignRolesRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'role_ids' => ['required', 'array', 'min:1'],
-            'role_ids.*' => ['integer', 'exists:roles,id'],
+            'role_id' => ['required', 'integer', 'exists:roles,id'],
         ];
     }
 
@@ -33,10 +32,9 @@ class AssignRolesRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'role_ids.required' => 'At least one role must be provided.',
-            'role_ids.array' => 'Roles must be an array.',
-            'role_ids.min' => 'At least one role must be provided.',
-            'role_ids.*.exists' => 'One or more selected roles do not exist.',
+            'role_id.required' => 'A role must be provided.',
+            'role_id.integer' => 'The role must be a valid integer.',
+            'role_id.exists' => 'The selected role does not exist.',
         ];
     }
 }
