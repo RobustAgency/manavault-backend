@@ -25,6 +25,7 @@ Route::middleware(['auth:supabase', 'role:super_admin,admin'])->prefix('/admin')
         Route::get('/{user}', 'show');
         Route::post('/{user}/approve', 'approve');
         Route::post('/{user}/revoke-approval', 'revokeApproval');
+        Route::post('/{user}/assign-roles', 'assignRoles');
     });
 
     Route::prefix('/suppliers')->group(function () {
