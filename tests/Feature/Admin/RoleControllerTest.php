@@ -4,8 +4,8 @@ namespace Tests\Feature\Admin;
 
 use Tests\TestCase;
 use App\Models\User;
+use App\Models\Permission;
 use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -28,7 +28,7 @@ class RoleControllerTest extends TestCase
      */
     public function test_admin_can_get_paginated_roles(): void
     {
-        $permission = Permission::create(['name' => 'manage users', 'guard_name' => 'supabase']);
+        $permission = Permission::factory()->create(['name' => 'manage users', 'guard_name' => 'supabase']);
         for ($i = 1; $i <= 20; $i++) {
             $role = Role::create(['name' => "role_{$i}", 'guard_name' => 'supabase']);
             $role->givePermissionTo([$permission->id]);
@@ -161,10 +161,7 @@ class RoleControllerTest extends TestCase
      */
     public function test_admin_can_create_role_with_permissions(): void
     {
-        $permissions = [];
-        for ($i = 1; $i <= 3; $i++) {
-            $permissions[] = Permission::create(['name' => "permission_{$i}", 'guard_name' => 'supabase']);
-        }
+        $permissions = Permission::factory()->count(3)->create(['guard_name' => 'supabase']);
         $permissionIds = collect($permissions)->pluck('id')->toArray();
 
         $roleData = [
@@ -237,10 +234,7 @@ class RoleControllerTest extends TestCase
     public function test_admin_can_show_a_role(): void
     {
         $role = Role::create(['name' => 'test_role', 'guard_name' => 'supabase']);
-        $permissions = [];
-        for ($i = 1; $i <= 2; $i++) {
-            $permissions[] = Permission::create(['name' => "permission_{$i}", 'guard_name' => 'supabase']);
-        }
+        $permissions = Permission::factory()->count(2)->create(['guard_name' => 'supabase']);
         $role->syncPermissions($permissions);
 
         $response = $this->actingAs($this->admin)
@@ -305,16 +299,10 @@ class RoleControllerTest extends TestCase
     public function test_admin_can_sync_permissions_on_update(): void
     {
         $role = Role::create(['name' => 'test_role', 'guard_name' => 'supabase']);
-        $oldPermissions = [];
-        for ($i = 1; $i <= 2; $i++) {
-            $oldPermissions[] = Permission::create(['name' => "old_permission_{$i}", 'guard_name' => 'supabase']);
-        }
+        $oldPermissions = Permission::factory()->count(2)->create(['guard_name' => 'supabase']);
         $role->syncPermissions($oldPermissions);
 
-        $newPermissions = [];
-        for ($i = 1; $i <= 3; $i++) {
-            $newPermissions[] = Permission::create(['name' => "new_permission_{$i}", 'guard_name' => 'supabase']);
-        }
+        $newPermissions = Permission::factory()->count(3)->create(['guard_name' => 'supabase']);
         $newPermissionIds = collect($newPermissions)->pluck('id')->toArray();
 
         $response = $this->actingAs($this->admin)

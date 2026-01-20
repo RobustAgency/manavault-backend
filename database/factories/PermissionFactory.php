@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Module;
 use App\Models\Permission;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -27,6 +28,8 @@ class PermissionFactory extends Factory
         return [
             'name' => $this->faker->unique()->word(),
             'guard_name' => 'supabase',
+            'module_id' => Module::factory(),
+            'action' => $this->faker->randomElement(['create', 'view', 'update', 'delete']),
             'created_at' => now(),
             'updated_at' => now(),
         ];

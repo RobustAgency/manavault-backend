@@ -2,7 +2,7 @@
 
 namespace App\Repositories;
 
-use Spatie\Permission\Models\Permission;
+use App\Models\Permission;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class PermissionRepository
@@ -14,7 +14,7 @@ class PermissionRepository
      */
     public function getFilteredPermissions(array $filters = []): LengthAwarePaginator
     {
-        $query = Permission::query();
+        $query = Permission::with('module');
 
         if (isset($filters['name'])) {
             $query->where('name', 'like', '%'.$filters['name'].'%');
