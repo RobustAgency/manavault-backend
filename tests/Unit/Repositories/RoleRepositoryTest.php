@@ -3,9 +3,9 @@
 namespace Tests\Unit\Repositories;
 
 use Tests\TestCase;
+use App\Models\Permission;
 use Spatie\Permission\Models\Role;
 use App\Repositories\RoleRepository;
-use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -24,10 +24,11 @@ class RoleRepositoryTest extends TestCase
 
     public function test_it_can_create_a_role_and_assign_to_a_group()
     {
-        $permission = Permission::create(['name' => 'edit_articles', 'guard_name' => 'api']);
+        $permission = Permission::factory()->create(['name' => 'edit_articles', 'guard_name' => 'supabase']);
         $data = [
             'name' => 'Editor',
             'permission_ids' => [$permission->id],
+            'guard_name' => 'supabase',
         ];
         $role = $this->repository->createRole($data);
 
@@ -43,8 +44,8 @@ class RoleRepositoryTest extends TestCase
 
     public function test_it_can_update_role_permissions()
     {
-        $role = $this->repository->createRole(['name' => 'Admin']);
-        $permission = Permission::create(['name' => 'delete_user', 'guard_name' => 'api']);
+        $role = $this->repository->createRole(['name' => 'Admin', 'guard_name' => 'supabase']);
+        $permission = Permission::factory()->create(['name' => 'delete_user', 'guard_name' => 'supabase']);
 
         $this->repository->updateRole($role, [
             'name' => 'SuperAdmin',
