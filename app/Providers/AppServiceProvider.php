@@ -2,11 +2,13 @@
 
 namespace App\Providers;
 
+use App\Enums\UserRole;
 use App\Models\Product;
 use App\Clients\SupabaseClient;
 use App\Observers\ProductObserver;
 use App\Services\Auth\SupabaseGuard;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -38,5 +40,10 @@ class AppServiceProvider extends ServiceProvider
 
         // Register product model observer
         Product::observe(ProductObserver::class);
+
+        // Register gate for role-based access control
+        Gate::before(function ($user, $ability) {
+            return $user->role === UserRole::SUPER_ADMIN ? true : null;
+        });
     }
 }
