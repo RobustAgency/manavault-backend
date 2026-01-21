@@ -20,7 +20,7 @@ class DigitalStockControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->admin = User::factory()->create(['role' => 'admin']);
+        $this->admin = User::factory()->create(['role' => 'super_admin']);
     }
 
     public function test_admin_can_get_paginated_digital_stocks(): void
@@ -29,7 +29,7 @@ class DigitalStockControllerTest extends TestCase
         DigitalProduct::factory()->count(5)->create(['supplier_id' => $supplier->id]);
 
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/digital-stocks');
+        $response = $this->getJson('/api/digital-stocks');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -88,7 +88,7 @@ class DigitalStockControllerTest extends TestCase
         ]);
 
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/digital-stocks');
+        $response = $this->getJson('/api/digital-stocks');
 
         $response->assertStatus(200);
         $data = $response->json('data.data');
@@ -118,7 +118,7 @@ class DigitalStockControllerTest extends TestCase
         ]);
 
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/digital-stocks');
+        $response = $this->getJson('/api/digital-stocks');
 
         $response->assertStatus(200);
         $data = $response->json('data.data');
@@ -143,7 +143,7 @@ class DigitalStockControllerTest extends TestCase
         ]);
 
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/digital-stocks');
+        $response = $this->getJson('/api/digital-stocks');
 
         $response->assertStatus(200);
         $data = $response->json('data.data');
@@ -160,7 +160,7 @@ class DigitalStockControllerTest extends TestCase
         DigitalProduct::factory()->count(10)->create(['supplier_id' => $supplier->id]);
 
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/digital-stocks?per_page=3');
+        $response = $this->getJson('/api/digital-stocks?per_page=3');
 
         $response->assertStatus(200);
         $data = $response->json('data');
@@ -173,7 +173,7 @@ class DigitalStockControllerTest extends TestCase
     public function test_validates_per_page_parameter(): void
     {
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/digital-stocks?per_page=invalid');
+        $response = $this->getJson('/api/digital-stocks?per_page=invalid');
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['per_page']);
@@ -182,7 +182,7 @@ class DigitalStockControllerTest extends TestCase
     public function test_validates_per_page_maximum(): void
     {
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/digital-stocks?per_page=101');
+        $response = $this->getJson('/api/digital-stocks?per_page=101');
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['per_page']);
@@ -191,7 +191,7 @@ class DigitalStockControllerTest extends TestCase
     public function test_validates_per_page_minimum(): void
     {
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/digital-stocks?per_page=0');
+        $response = $this->getJson('/api/digital-stocks?per_page=0');
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['per_page']);
@@ -199,7 +199,7 @@ class DigitalStockControllerTest extends TestCase
 
     public function test_unauthenticated_user_cannot_access(): void
     {
-        $response = $this->getJson('/api/admin/digital-stocks');
+        $response = $this->getJson('/api/digital-stocks');
 
         $response->assertStatus(401);
     }
@@ -213,7 +213,7 @@ class DigitalStockControllerTest extends TestCase
         $product = DigitalProduct::factory()->create(['supplier_id' => $supplier->id]);
 
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/digital-stocks');
+        $response = $this->getJson('/api/digital-stocks');
 
         $response->assertStatus(200);
         $data = $response->json('data.data.0');
@@ -229,7 +229,7 @@ class DigitalStockControllerTest extends TestCase
         $product = DigitalProduct::factory()->create(['supplier_id' => $supplier->id]);
 
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/digital-stocks');
+        $response = $this->getJson('/api/digital-stocks');
 
         $response->assertStatus(200);
         $data = $response->json('data.data.0');
@@ -257,7 +257,7 @@ class DigitalStockControllerTest extends TestCase
         ]);
 
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/digital-stocks');
+        $response = $this->getJson('/api/digital-stocks');
 
         $response->assertStatus(200);
         $data = $response->json('data.data.0');
@@ -287,7 +287,7 @@ class DigitalStockControllerTest extends TestCase
         ]);
 
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/digital-stocks/low-stock');
+        $response = $this->getJson('/api/digital-stocks/low-stock');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -364,7 +364,7 @@ class DigitalStockControllerTest extends TestCase
         ]);
 
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/digital-stocks/low-stock');
+        $response = $this->getJson('/api/digital-stocks/low-stock');
 
         $response->assertStatus(200);
         $data = $response->json('data.data');
@@ -383,7 +383,7 @@ class DigitalStockControllerTest extends TestCase
         $productWithZeroStock = DigitalProduct::factory()->create(['supplier_id' => $internalSupplier->id]);
 
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/digital-stocks/low-stock');
+        $response = $this->getJson('/api/digital-stocks/low-stock');
 
         $response->assertStatus(200);
         $data = $response->json('data.data');
@@ -407,7 +407,7 @@ class DigitalStockControllerTest extends TestCase
         ]);
 
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/digital-stocks/low-stock');
+        $response = $this->getJson('/api/digital-stocks/low-stock');
 
         $response->assertStatus(200);
         $data = $response->json('data.data');
@@ -440,7 +440,7 @@ class DigitalStockControllerTest extends TestCase
         ]);
 
         $this->actingAs($this->admin);
-        $response = $this->getJson("/api/admin/digital-stocks/low-stock?supplier_id={$supplier1->id}");
+        $response = $this->getJson("/api/digital-stocks/low-stock?supplier_id={$supplier1->id}");
 
         $response->assertStatus(200);
         $data = $response->json('data.data');
@@ -462,7 +462,7 @@ class DigitalStockControllerTest extends TestCase
         ]);
 
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/digital-stocks/low-stock?name=PlayStation');
+        $response = $this->getJson('/api/digital-stocks/low-stock?name=PlayStation');
 
         $response->assertStatus(200);
         $data = $response->json('data.data');
@@ -477,7 +477,7 @@ class DigitalStockControllerTest extends TestCase
         DigitalProduct::factory()->count(10)->create(['supplier_id' => $supplier->id]);
 
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/digital-stocks/low-stock?per_page=5');
+        $response = $this->getJson('/api/digital-stocks/low-stock?per_page=5');
 
         $response->assertStatus(200);
         $data = $response->json('data');
@@ -490,7 +490,7 @@ class DigitalStockControllerTest extends TestCase
     public function test_low_stock_validates_per_page_parameter(): void
     {
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/digital-stocks/low-stock?per_page=invalid');
+        $response = $this->getJson('/api/digital-stocks/low-stock?per_page=invalid');
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['per_page']);
@@ -499,7 +499,7 @@ class DigitalStockControllerTest extends TestCase
     public function test_low_stock_validates_per_page_maximum(): void
     {
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/digital-stocks/low-stock?per_page=101');
+        $response = $this->getJson('/api/digital-stocks/low-stock?per_page=101');
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['per_page']);
@@ -508,7 +508,7 @@ class DigitalStockControllerTest extends TestCase
     public function test_low_stock_validates_per_page_minimum(): void
     {
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/digital-stocks/low-stock?per_page=0');
+        $response = $this->getJson('/api/digital-stocks/low-stock?per_page=0');
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['per_page']);
@@ -516,7 +516,7 @@ class DigitalStockControllerTest extends TestCase
 
     public function test_unauthenticated_user_cannot_access_low_stock(): void
     {
-        $response = $this->getJson('/api/admin/digital-stocks/low-stock');
+        $response = $this->getJson('/api/digital-stocks/low-stock');
 
         $response->assertStatus(401);
     }
@@ -537,7 +537,7 @@ class DigitalStockControllerTest extends TestCase
         ]);
 
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/digital-stocks/low-stock');
+        $response = $this->getJson('/api/digital-stocks/low-stock');
 
         $response->assertStatus(200);
         $data = $response->json('data.data.0');
@@ -561,7 +561,7 @@ class DigitalStockControllerTest extends TestCase
         ]);
 
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/digital-stocks/low-stock');
+        $response = $this->getJson('/api/digital-stocks/low-stock');
 
         $response->assertStatus(200);
         $data = $response->json('data.data');
@@ -608,7 +608,7 @@ class DigitalStockControllerTest extends TestCase
         ]);
 
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/digital-stocks/low-stock?per_page=100');
+        $response = $this->getJson('/api/digital-stocks/low-stock?per_page=100');
 
         $response->assertStatus(200);
         $data = $response->json('data.data');

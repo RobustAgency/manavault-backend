@@ -20,7 +20,7 @@ class SaleOrderControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->admin = User::factory()->create(['role' => 'admin']);
+        $this->admin = User::factory()->create(['role' => 'super_admin']);
     }
 
     public function test_admin_can_list_all_sale_orders(): void
@@ -28,7 +28,7 @@ class SaleOrderControllerTest extends TestCase
         SaleOrder::factory()->count(5)->create();
 
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/sale-orders');
+        $response = $this->getJson('/api/sale-orders');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -76,7 +76,7 @@ class SaleOrderControllerTest extends TestCase
         SaleOrder::factory()->count(3)->create();
 
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/sale-orders?order_number=000001');
+        $response = $this->getJson('/api/sale-orders?order_number=000001');
 
         $response->assertStatus(200);
         $data = $response->json('data');
@@ -92,7 +92,7 @@ class SaleOrderControllerTest extends TestCase
         SaleOrder::factory()->count(2)->create(['status' => Status::PENDING->value]);
 
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/sale-orders?status='.Status::PENDING->value);
+        $response = $this->getJson('/api/sale-orders?status='.Status::PENDING->value);
 
         $response->assertStatus(200);
         $data = $response->json('data');
@@ -110,7 +110,7 @@ class SaleOrderControllerTest extends TestCase
         SaleOrder::factory()->count(2)->create(['source' => 'manastore']);
 
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/sale-orders?source=manastore');
+        $response = $this->getJson('/api/sale-orders?source=manastore');
 
         $response->assertStatus(200);
         $data = $response->json('data');
@@ -126,7 +126,7 @@ class SaleOrderControllerTest extends TestCase
         SaleOrder::factory()->count(25)->create();
 
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/sale-orders?per_page=10&page=2');
+        $response = $this->getJson('/api/sale-orders?per_page=10&page=2');
 
         $response->assertStatus(200);
         $data = $response->json('data');
@@ -144,7 +144,7 @@ class SaleOrderControllerTest extends TestCase
         $order3 = SaleOrder::factory()->create();
 
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/sale-orders?per_page=100');
+        $response = $this->getJson('/api/sale-orders?per_page=100');
 
         $response->assertStatus(200);
         $data = $response->json('data.data');
@@ -162,7 +162,7 @@ class SaleOrderControllerTest extends TestCase
         SaleOrderItem::factory()->count(2)->forSaleOrder($saleOrder)->forProduct($product)->create();
 
         $this->actingAs($this->admin);
-        $response = $this->getJson("/api/admin/sale-orders/{$saleOrder->id}");
+        $response = $this->getJson("/api/sale-orders/{$saleOrder->id}");
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -201,7 +201,7 @@ class SaleOrderControllerTest extends TestCase
     public function test_show_returns_404_for_nonexistent_sale_order(): void
     {
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/sale-orders/999');
+        $response = $this->getJson('/api/sale-orders/999');
 
         $response->assertStatus(404);
     }
@@ -225,7 +225,7 @@ class SaleOrderControllerTest extends TestCase
         ]);
 
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/admin/sale-orders?order_number=000001&status='.Status::PENDING->value);
+        $response = $this->getJson('/api/sale-orders?order_number=000001&status='.Status::PENDING->value);
 
         $response->assertStatus(200);
         $data = $response->json('data');

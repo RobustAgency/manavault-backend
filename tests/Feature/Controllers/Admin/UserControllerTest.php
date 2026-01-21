@@ -25,7 +25,7 @@ class UserControllerTest extends TestCase
             $user->updated_at = now();
             $user->save();
         }
-        $response = $this->actingAs($admin)->getJson('/api/admin/users?role=user');
+        $response = $this->actingAs($admin)->getJson('/api/users?role=user');
 
         $response->assertOk();
 
@@ -45,7 +45,7 @@ class UserControllerTest extends TestCase
         $admin = User::factory()->create(['role' => UserRole::SUPER_ADMIN]);
         $user = User::factory()->create(['role' => UserRole::USER]);
 
-        $response = $this->actingAs($admin)->getJson("/api/admin/users/{$user->id}");
+        $response = $this->actingAs($admin)->getJson("/api/users/{$user->id}");
         $response->assertOk();
         $response->assertJsonStructure([
             'error',

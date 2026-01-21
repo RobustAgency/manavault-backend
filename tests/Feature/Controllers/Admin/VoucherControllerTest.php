@@ -27,7 +27,7 @@ class VoucherControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->admin = User::factory()->create(['role' => 'admin']);
+        $this->admin = User::factory()->create(['role' => 'super_admin']);
         $this->user = User::factory()->create(['role' => 'user']);
         $this->voucherCipherService = app(VoucherCipherService::class);
         Storage::fake('local');
@@ -48,7 +48,7 @@ class VoucherControllerTest extends TestCase
         $csvContent = "code,digital_product_id\nVCH-001,{$digitalProduct->id}\nVCH-002,{$digitalProduct->id}\nVCH-003,{$digitalProduct->id}";
         $file = UploadedFile::fake()->createWithContent('vouchers.csv', $csvContent);
 
-        $response = $this->postJson('/api/admin/vouchers/store', [
+        $response = $this->postJson('/api/vouchers/store', [
             'file' => $file,
             'purchase_order_id' => $purchaseOrder->id,
         ]);
@@ -71,7 +71,7 @@ class VoucherControllerTest extends TestCase
             'digital_product_id' => $digitalProduct->id,
         ]);
 
-        $response = $this->postJson('/api/admin/vouchers/store', [
+        $response = $this->postJson('/api/vouchers/store', [
             'voucher_codes' => [
                 ['code' => 'CODE-001', 'digitalProductID' => $digitalProduct->id],
                 ['code' => 'CODE-002', 'digitalProductID' => $digitalProduct->id],
@@ -106,7 +106,7 @@ class VoucherControllerTest extends TestCase
         $purchaseOrder = PurchaseOrder::factory()->create();
         PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(1)->create();
 
-        $response = $this->postJson('/api/admin/vouchers/store', [
+        $response = $this->postJson('/api/vouchers/store', [
             'purchase_order_id' => $purchaseOrder->id,
             // Neither file nor voucher_codes provided
         ]);
@@ -121,7 +121,7 @@ class VoucherControllerTest extends TestCase
 
         $file = UploadedFile::fake()->create('vouchers.csv', 100, 'text/csv');
 
-        $response = $this->postJson('/api/admin/vouchers/store', [
+        $response = $this->postJson('/api/vouchers/store', [
             'file' => $file,
         ]);
 
@@ -136,7 +136,7 @@ class VoucherControllerTest extends TestCase
         $purchaseOrder = PurchaseOrder::factory()->create();
         PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(1)->create();
 
-        $response = $this->postJson('/api/admin/vouchers/store', [
+        $response = $this->postJson('/api/vouchers/store', [
             'voucher_codes' => 'not-an-array',
             'purchase_order_id' => $purchaseOrder->id,
         ]);
@@ -152,7 +152,7 @@ class VoucherControllerTest extends TestCase
         $purchaseOrder = PurchaseOrder::factory()->create();
         PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(1)->create();
 
-        $response = $this->postJson('/api/admin/vouchers/store', [
+        $response = $this->postJson('/api/vouchers/store', [
             'voucher_codes' => [],
             'purchase_order_id' => $purchaseOrder->id,
         ]);
@@ -170,7 +170,7 @@ class VoucherControllerTest extends TestCase
 
         $file = UploadedFile::fake()->create('vouchers.pdf', 100, 'application/pdf');
 
-        $response = $this->postJson('/api/admin/vouchers/store', [
+        $response = $this->postJson('/api/vouchers/store', [
             'file' => $file,
             'purchase_order_id' => $purchaseOrder->id,
         ]);
@@ -185,7 +185,7 @@ class VoucherControllerTest extends TestCase
 
         $file = UploadedFile::fake()->create('vouchers.csv', 100, 'text/csv');
 
-        $response = $this->postJson('/api/admin/vouchers/store', [
+        $response = $this->postJson('/api/vouchers/store', [
             'file' => $file,
             'purchase_order_id' => 99999, // Non-existent ID
         ]);
@@ -200,7 +200,7 @@ class VoucherControllerTest extends TestCase
 
         $file = UploadedFile::fake()->create('vouchers.csv', 100, 'text/csv');
 
-        $response = $this->postJson('/api/admin/vouchers/store', [
+        $response = $this->postJson('/api/vouchers/store', [
             'file' => $file,
             'purchase_order_id' => 'invalid',
         ]);
@@ -216,7 +216,7 @@ class VoucherControllerTest extends TestCase
 
         $file = UploadedFile::fake()->create('vouchers.csv', 100, 'text/csv');
 
-        $response = $this->postJson('/api/admin/vouchers/store', [
+        $response = $this->postJson('/api/vouchers/store', [
             'file' => $file,
             'purchase_order_id' => $purchaseOrder->id,
         ]);
@@ -233,7 +233,7 @@ class VoucherControllerTest extends TestCase
 
         $file = UploadedFile::fake()->create('vouchers.csv', 100, 'text/csv');
 
-        $response = $this->postJson('/api/admin/vouchers/store', [
+        $response = $this->postJson('/api/vouchers/store', [
             'file' => $file,
             'purchase_order_id' => $purchaseOrder->id,
         ]);
@@ -267,7 +267,7 @@ class VoucherControllerTest extends TestCase
             'purchase_order_id' => $purchaseOrder->id,
         ]);
 
-        $response = $this->getJson('/api/admin/vouchers');
+        $response = $this->getJson('/api/vouchers');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -306,7 +306,7 @@ class VoucherControllerTest extends TestCase
         Voucher::factory()->count(3)->create(['purchase_order_id' => $purchaseOrder1->id]);
         Voucher::factory()->count(2)->create(['purchase_order_id' => $purchaseOrder2->id]);
 
-        $response = $this->getJson("/api/admin/vouchers?purchase_order_id={$purchaseOrder1->id}");
+        $response = $this->getJson("/api/vouchers?purchase_order_id={$purchaseOrder1->id}");
 
         $response->assertStatus(200)
             ->assertJsonPath('data.total', 3);
@@ -325,7 +325,7 @@ class VoucherControllerTest extends TestCase
             'status' => 'available',
         ]);
 
-        $response = $this->postJson("/api/admin/vouchers/{$voucher->id}/code", [
+        $response = $this->postJson("/api/vouchers/{$voucher->id}/code", [
             'ip_address' => '127.0.0.1',
             'user_agent' => 'Mozilla/5.0 (Test Browser)',
         ]);
@@ -355,7 +355,7 @@ class VoucherControllerTest extends TestCase
             'status' => 'available',
         ]);
 
-        $response = $this->postJson("/api/admin/vouchers/{$voucher->id}/code", [
+        $response = $this->postJson("/api/vouchers/{$voucher->id}/code", [
             'ip_address' => '192.168.1.1',
             'user_agent' => 'Mozilla/5.0 (Test Browser)',
         ]);
@@ -375,14 +375,14 @@ class VoucherControllerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        $response = $this->getJson('/api/admin/vouchers/99999');
+        $response = $this->getJson('/api/vouchers/99999');
 
         $response->assertStatus(404);
     }
 
     public function test_unauthenticated_user_cannot_list_vouchers(): void
     {
-        $response = $this->getJson('/api/admin/vouchers');
+        $response = $this->getJson('/api/vouchers');
 
         $response->assertStatus(401);
     }
@@ -392,7 +392,7 @@ class VoucherControllerTest extends TestCase
         $purchaseOrder = PurchaseOrder::factory()->create();
         $voucher = Voucher::factory()->create(['purchase_order_id' => $purchaseOrder->id]);
 
-        $response = $this->postJson("/api/admin/vouchers/{$voucher->id}/code", [
+        $response = $this->postJson("/api/vouchers/{$voucher->id}/code", [
             'ip_address' => '127.0.0.1',
             'user_agent' => 'Mozilla/5.0 (Test Browser)',
         ]);
@@ -404,7 +404,7 @@ class VoucherControllerTest extends TestCase
     {
         $this->actingAs($this->user);
 
-        $response = $this->getJson('/api/admin/vouchers');
+        $response = $this->getJson('/api/vouchers');
 
         $response->assertStatus(403);
     }
@@ -416,7 +416,7 @@ class VoucherControllerTest extends TestCase
         $purchaseOrder = PurchaseOrder::factory()->create();
         $voucher = Voucher::factory()->create(['purchase_order_id' => $purchaseOrder->id]);
 
-        $response = $this->postJson("/api/admin/vouchers/{$voucher->id}/code", [
+        $response = $this->postJson("/api/vouchers/{$voucher->id}/code", [
             'ip_address' => '10.0.0.1',
             'user_agent' => 'Mozilla/5.0 (Test Browser)',
         ]);

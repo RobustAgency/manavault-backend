@@ -17,7 +17,7 @@ class PriceRulePreviewTest extends TestCase
 
     private User $adminUser;
 
-    private string $endpoint = '/api/admin/price-rules/preview';
+    private string $endpoint = '/api/price-rules/preview';
 
     protected function setUp(): void
     {
@@ -27,7 +27,7 @@ class PriceRulePreviewTest extends TestCase
 
     private function actingAsAdmin(): void
     {
-        $this->adminUser = User::factory()->create(['role' => 'admin']);
+        $this->adminUser = User::factory()->create(['role' => 'super_admin']);
         $this->actingAs($this->adminUser);
     }
 

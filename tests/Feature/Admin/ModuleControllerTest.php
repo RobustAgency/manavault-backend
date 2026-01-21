@@ -17,7 +17,7 @@ class ModuleControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->admin = User::factory()->create(['role' => 'admin']);
+        $this->admin = User::factory()->create(['role' => 'super_admin']);
     }
 
     /**
@@ -30,7 +30,7 @@ class ModuleControllerTest extends TestCase
             Permission::factory()->count(3)->create(['module_id' => $module->id]);
         }
 
-        $response = $this->actingAs($this->admin)->getJson('/api/admin/modules');
+        $response = $this->actingAs($this->admin)->getJson('/api/modules');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -76,7 +76,7 @@ class ModuleControllerTest extends TestCase
         Module::factory()->create(['name' => 'product_management', 'slug' => 'product-management']);
         Module::factory()->create(['name' => 'user_analytics', 'slug' => 'user-analytics']);
 
-        $response = $this->actingAs($this->admin)->getJson('/api/admin/modules?name=user');
+        $response = $this->actingAs($this->admin)->getJson('/api/modules?name=user');
 
         $response->assertStatus(200)
             ->assertJsonPath('data.total', 2)
@@ -96,7 +96,7 @@ class ModuleControllerTest extends TestCase
         Module::factory()->create(['name' => 'User Management', 'slug' => 'user-management']);
         Module::factory()->create(['name' => 'Product Management', 'slug' => 'product-management']);
 
-        $response = $this->actingAs($this->admin)->getJson('/api/admin/modules?slug=user-management');
+        $response = $this->actingAs($this->admin)->getJson('/api/modules?slug=user-management');
 
         $response->assertStatus(200)
             ->assertJsonPath('data.total', 1)
@@ -112,7 +112,7 @@ class ModuleControllerTest extends TestCase
             Module::factory()->create();
         }
 
-        $response = $this->actingAs($this->admin)->getJson('/api/admin/modules?per_page=25');
+        $response = $this->actingAs($this->admin)->getJson('/api/modules?per_page=25');
 
         $response->assertStatus(200)
             ->assertJsonPath('data.per_page', 25)
@@ -124,7 +124,7 @@ class ModuleControllerTest extends TestCase
      */
     public function test_empty_modules_list_returns_correct_structure(): void
     {
-        $response = $this->actingAs($this->admin)->getJson('/api/admin/modules');
+        $response = $this->actingAs($this->admin)->getJson('/api/modules');
 
         $response->assertStatus(200)
             ->assertJson([
@@ -145,7 +145,7 @@ class ModuleControllerTest extends TestCase
         Permission::factory()->create(['name' => 'create_module', 'module_id' => $module->id]);
         Permission::factory()->create(['name' => 'edit_module', 'module_id' => $module->id]);
 
-        $response = $this->actingAs($this->admin)->getJson('/api/admin/modules');
+        $response = $this->actingAs($this->admin)->getJson('/api/modules');
 
         $response->assertStatus(200)
             ->assertJsonPath('data.data.0.permissions', function ($permissions) {
@@ -160,7 +160,7 @@ class ModuleControllerTest extends TestCase
     {
         Module::factory()->create();
 
-        $response = $this->actingAs($this->admin)->getJson('/api/admin/modules');
+        $response = $this->actingAs($this->admin)->getJson('/api/modules');
 
         $response->assertJsonStructure([
             'error',
@@ -183,7 +183,7 @@ class ModuleControllerTest extends TestCase
         Module::factory()->create(['name' => 'user_analytics', 'slug' => 'user-analytics']);
         Module::factory()->create(['name' => 'product_management', 'slug' => 'product-management']);
 
-        $response = $this->actingAs($this->admin)->getJson('/api/admin/modules?name=user&slug=user-management');
+        $response = $this->actingAs($this->admin)->getJson('/api/modules?name=user&slug=user-management');
 
         $response->assertStatus(200)
             ->assertJsonPath('data.total', 1)
@@ -199,7 +199,7 @@ class ModuleControllerTest extends TestCase
             Module::factory()->create(['name' => "module_{$i}"]);
         }
 
-        $response = $this->actingAs($this->admin)->getJson('/api/admin/modules?per_page=15&page=2');
+        $response = $this->actingAs($this->admin)->getJson('/api/modules?per_page=15&page=2');
 
         $response->assertStatus(200)
             ->assertJsonPath('data.current_page', 2)
@@ -215,7 +215,7 @@ class ModuleControllerTest extends TestCase
             Module::factory()->create();
         }
 
-        $response = $this->actingAs($this->admin)->getJson('/api/admin/modules');
+        $response = $this->actingAs($this->admin)->getJson('/api/modules');
 
         $response->assertStatus(200)
             ->assertJsonPath('data.per_page', 15)
@@ -228,7 +228,7 @@ class ModuleControllerTest extends TestCase
      */
     public function test_validation_fails_with_invalid_per_page(): void
     {
-        $response = $this->actingAs($this->admin)->getJson('/api/admin/modules?per_page=999');
+        $response = $this->actingAs($this->admin)->getJson('/api/modules?per_page=999');
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors('per_page');
@@ -239,7 +239,7 @@ class ModuleControllerTest extends TestCase
      */
     public function test_validation_fails_with_negative_per_page(): void
     {
-        $response = $this->actingAs($this->admin)->getJson('/api/admin/modules?per_page=-5');
+        $response = $this->actingAs($this->admin)->getJson('/api/modules?per_page=-5');
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors('per_page');

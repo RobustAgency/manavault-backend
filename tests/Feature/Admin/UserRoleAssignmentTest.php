@@ -28,7 +28,7 @@ class UserRoleAssignmentTest extends TestCase
         $role = Role::create(['name' => 'editor', 'guard_name' => 'supabase']);
 
         $response = $this->actingAs($this->admin)
-            ->postJson("/api/admin/users/{$user->id}/assign-roles", [
+            ->postJson("/api/users/{$user->id}/assign-roles", [
                 'role_id' => $role->id,
             ]);
 
@@ -66,7 +66,7 @@ class UserRoleAssignmentTest extends TestCase
 
         // Assign new role
         $response = $this->actingAs($this->admin)
-            ->postJson("/api/admin/users/{$user->id}/assign-roles", [
+            ->postJson("/api/users/{$user->id}/assign-roles", [
                 'role_id' => $newRole->id,
             ]);
 
@@ -86,7 +86,7 @@ class UserRoleAssignmentTest extends TestCase
         $user = User::factory()->create();
 
         $response = $this->actingAs($this->admin)
-            ->postJson("/api/admin/users/{$user->id}/assign-roles", []);
+            ->postJson("/api/users/{$user->id}/assign-roles", []);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors('role_id');

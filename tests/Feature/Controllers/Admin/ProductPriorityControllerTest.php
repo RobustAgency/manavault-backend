@@ -17,7 +17,7 @@ class ProductPriorityControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->admin = User::factory()->create(['role' => 'admin']);
+        $this->admin = User::factory()->create(['role' => 'super_admin']);
     }
 
     public function test_update_digital_products_priority(): void
@@ -48,7 +48,7 @@ class ProductPriorityControllerTest extends TestCase
         ];
 
         $response = $this->postJson(
-            "/api/admin/products/{$product->id}/digital-products/priority",
+            "/api/products/{$product->id}/digital-products/priority",
             $priorityData
         );
 
@@ -99,7 +99,7 @@ class ProductPriorityControllerTest extends TestCase
         ];
 
         $response = $this->postJson(
-            "/api/admin/products/{$product->id}/digital-products/priority",
+            "/api/products/{$product->id}/digital-products/priority",
             $priorityData
         );
 
@@ -137,7 +137,7 @@ class ProductPriorityControllerTest extends TestCase
         ];
 
         $response = $this->postJson(
-            "/api/admin/products/{$product->id}/digital-products/priority",
+            "/api/products/{$product->id}/digital-products/priority",
             $priorityData
         );
 
@@ -152,7 +152,7 @@ class ProductPriorityControllerTest extends TestCase
         $product = Product::factory()->create();
 
         $response = $this->postJson(
-            "/api/admin/products/{$product->id}/digital-products/priority",
+            "/api/products/{$product->id}/digital-products/priority",
             []
         );
 
@@ -179,7 +179,7 @@ class ProductPriorityControllerTest extends TestCase
         ];
 
         $response = $this->postJson(
-            "/api/admin/products/{$product->id}/digital-products/priority",
+            "/api/products/{$product->id}/digital-products/priority",
             $priorityData
         );
 
@@ -206,7 +206,7 @@ class ProductPriorityControllerTest extends TestCase
         ];
 
         $response = $this->postJson(
-            "/api/admin/products/{$product->id}/digital-products/priority",
+            "/api/products/{$product->id}/digital-products/priority",
             $priorityData
         );
 
@@ -228,7 +228,7 @@ class ProductPriorityControllerTest extends TestCase
         ];
 
         $response = $this->postJson(
-            '/api/admin/products/999999/digital-products/priority',
+            '/api/products/999999/digital-products/priority',
             $priorityData
         );
 
@@ -249,7 +249,7 @@ class ProductPriorityControllerTest extends TestCase
         ];
 
         $response = $this->postJson(
-            "/api/admin/products/{$product->id}/digital-products/priority",
+            "/api/products/{$product->id}/digital-products/priority",
             $priorityData
         );
 
@@ -279,7 +279,7 @@ class ProductPriorityControllerTest extends TestCase
         ];
 
         $response = $this->postJson(
-            "/api/admin/products/{$product->id}/digital-products/priority",
+            "/api/products/{$product->id}/digital-products/priority",
             $priorityData
         );
 
