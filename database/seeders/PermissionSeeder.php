@@ -32,9 +32,6 @@ class PermissionSeeder extends Seeder
             ['name' => 'Supplier KPI', 'slug' => 'supplier_kpi',
                 'permissions' => [
                     'view',
-                    'create',
-                    'edit',
-                    'delete',
                 ]],
             ['name' => 'Product', 'slug' => 'product',
                 'permissions' => [

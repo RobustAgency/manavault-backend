@@ -18,105 +18,105 @@ use App\Http\Controllers\Admin\PurchaseOrderController;
 use App\Http\Controllers\Admin\DigitalProductController;
 use App\Http\Controllers\Admin\VoucherAuditLogController;
 
-Route::middleware(['auth:supabase', 'role:super_admin,admin'])->prefix('/admin')->group(function () {
+Route::middleware('auth:supabase')->group(function () {
 
     Route::middleware(['role:super_admin'])->prefix('/users')->controller(UserController::class)->group(function () {
-        Route::get('', 'index');
-        Route::get('/search', 'search');
-        Route::get('/{user}', 'show');
-        Route::post('/{user}/approve', 'approve');
-        Route::post('/{user}/revoke-approval', 'revokeApproval');
-        Route::post('/{user}/assign-roles', 'assignRoles');
+        Route::get('', 'index')->middleware('permission:view_user');
+        Route::get('/search', 'search')->middleware('permission:view_user');
+        Route::get('/{user}', 'show')->middleware('permission:view_user');
+        Route::post('/{user}/approve', 'approve')->middleware('permission:update_user');
+        Route::post('/{user}/revoke-approval', 'revokeApproval')->middleware('permission:update_user');
+        Route::post('/{user}/assign-roles', 'assignRoles')->middleware('permission:update_user');
     });
 
     Route::prefix('/suppliers')->group(function () {
-        Route::get('/kpis', [SupplierKpiController::class, 'index']);
+        Route::get('/kpis', [SupplierKpiController::class, 'index'])->middleware('permission:view_supplier_kpi');
 
         Route::controller(SupplierController::class)->group(function () {
-            Route::get('', 'index');
-            Route::post('', 'store');
-            Route::get('/{supplier}', 'show');
-            Route::post('/{supplier}', 'update');
-            Route::delete('/{supplier}', 'destroy');
+            Route::get('', 'index')->middleware('permission:view_supplier');
+            Route::post('', 'store')->middleware('permission:create_supplier');
+            Route::get('/{supplier}', 'show')->middleware('permission:view_supplier');
+            Route::post('/{supplier}', 'update')->middleware('permission:update_supplier');
+            Route::delete('/{supplier}', 'destroy')->middleware('permission:delete_supplier');
         });
     });
 
     Route::prefix('/products')->group(function () {
-        Route::get('', [ProductController::class, 'index']);
-        Route::post('', [ProductController::class, 'store']);
-        Route::get('/{product}', [ProductController::class, 'show']);
-        Route::post('/{product}/digital-products/priority', [ProductController::class, 'updateDigitalProductsPriority']);
-        Route::post('/{product}/digital_products', [ProductController::class, 'assignDigitalProducts']);
-        Route::post('/{product}', [ProductController::class, 'update']);
-        Route::delete('/{product}', [ProductController::class, 'destroy']);
+        Route::get('', [ProductController::class, 'index'])->middleware('permission:view_product');
+        Route::post('', [ProductController::class, 'store'])->middleware('permission:create_product');
+        Route::get('/{product}', [ProductController::class, 'show'])->middleware('permission:view_product');
+        Route::post('/{product}/digital-products/priority', [ProductController::class, 'updateDigitalProductsPriority'])->middleware('permission:update_product');
+        Route::post('/{product}/digital_products', [ProductController::class, 'assignDigitalProducts'])->middleware('permission:update_product');
+        Route::post('/{product}', [ProductController::class, 'update'])->middleware('permission:update_product');
+        Route::delete('/{product}', [ProductController::class, 'destroy'])->middleware('permission:delete_product');
     });
 
     Route::prefix('/digital-products')->controller(DigitalProductController::class)->group(function () {
-        Route::get('', 'index');
-        Route::post('', 'store');
-        Route::post('/batch-import', 'batchImport');
-        Route::get('/{digitalProduct}', 'show');
-        Route::post('/{digitalProduct}', 'update');
-        Route::delete('/{digitalProduct}', 'destroy');
+        Route::get('', 'index')->middleware('permission:view_digital_product');
+        Route::post('', 'store')->middleware('permission:create_digital_product');
+        Route::post('/batch-import', 'batchImport')->middleware('permission:create_digital_product');
+        Route::get('/{digitalProduct}', 'show')->middleware('permission:view_digital_product');
+        Route::post('/{digitalProduct}', 'update')->middleware('permission:update_digital_product');
+        Route::delete('/{digitalProduct}', 'destroy')->middleware('permission:delete_digital_product');
     });
 
     Route::prefix('/purchase-orders')->controller(PurchaseOrderController::class)->group(function () {
-        Route::get('', 'index');
-        Route::post('', 'store');
-        Route::get('/{purchaseOrder}', 'show');
+        Route::get('', 'index')->middleware('permission:view_purchase_order');
+        Route::post('', 'store')->middleware('permission:create_purchase_order');
+        Route::get('/{purchaseOrder}', 'show')->middleware('permission:view_purchase_order');
     });
 
     Route::prefix('/vouchers')->controller(VoucherController::class)->group(function () {
-        Route::get('', 'index');
-        Route::post('store', 'store');
-        Route::post('/{voucher}/code', 'show');
+        Route::get('', 'index')->middleware('permission:view_voucher');
+        Route::post('store', 'store')->middleware('permission:create_voucher');
+        Route::post('/{voucher}/code', 'show')->middleware('permission:view_voucher');
     });
 
     Route::prefix('/digital-stocks')->controller(DigitalStockController::class)->group(function () {
-        Route::get('', 'index');
-        Route::get('/low-stock', 'lowStockProducts');
+        Route::get('', 'index')->middleware('permission:view_digital_stock');
+        Route::get('/low-stock', 'lowStockProducts')->middleware('permission:view_digital_stock');
     });
 
     Route::prefix('/brands')->controller(BrandController::class)->group(function () {
-        Route::get('', 'index');
-        Route::post('', 'store');
-        Route::get('/{brand}', 'show');
-        Route::match(['put', 'post'], '/{brand}', 'update');
-        Route::delete('/{brand}', 'destroy');
+        Route::get('', 'index')->middleware('permission:view_brand');
+        Route::post('', 'store')->middleware('permission:create_brand');
+        Route::get('/{brand}', 'show')->middleware('permission:view_brand');
+        Route::match(['put', 'post'], '/{brand}', 'update')->middleware('permission:update_brand');
+        Route::delete('/{brand}', 'destroy')->middleware('permission:delete_brand');
     });
 
     Route::prefix('/voucher-audit-logs')->controller(VoucherAuditLogController::class)->group(function () {
-        Route::get('', 'index');
+        Route::get('', 'index')->middleware('permission:view_voucher_audit_log');
     });
 
     Route::prefix('/activity-logs')->controller(ActivityLogController::class)->group(function () {
-        Route::get('', 'index');
+        Route::get('', 'index')->middleware('permission:view_activity_log');
     });
 
     Route::prefix('/price-rules')->controller(PriceRuleController::class)->group(function () {
-        Route::get('', 'index');
-        Route::post('', 'store');
-        Route::post('/preview', 'preview');
-        Route::get('/{priceRule}', 'show');
-        Route::post('/{priceRule}', 'update');
-        Route::delete('/{priceRule}', 'destroy');
+        Route::get('', 'index')->middleware('permission:view_price_rule');
+        Route::post('', 'store')->middleware('permission:create_price_rule');
+        Route::post('/preview', 'preview')->middleware('permission:view_price_rule');
+        Route::get('/{priceRule}', 'show')->middleware('permission:view_price_rule');
+        Route::post('/{priceRule}', 'update')->middleware('permission:update_price_rule');
+        Route::delete('/{priceRule}', 'destroy')->middleware('permission:delete_price_rule');
     });
 
     Route::prefix('/sale-orders')->controller(SaleOrderController::class)->group(function () {
-        Route::get('', 'index');
-        Route::get('/{saleOrder}', 'show');
+        Route::get('', 'index')->middleware('permission:view_sale_order');
+        Route::get('/{saleOrder}', 'show')->middleware('permission:view_sale_order');
     });
 
     Route::prefix('/roles')->controller(RoleController::class)->group(function () {
-        Route::get('', 'index');
-        Route::post('', 'store');
-        Route::get('/{role}', 'show');
-        Route::post('/{role}', 'update');
-        Route::delete('/{role}', 'destroy');
+        Route::get('', 'index')->middleware('permission:view_role');
+        Route::post('', 'store')->middleware('permission:create_role');
+        Route::get('/{role}', 'show')->middleware('permission:view_role');
+        Route::post('/{role}', 'update')->middleware('permission:update_role');
+        Route::delete('/{role}', 'destroy')->middleware('permission:delete_role');
     });
 
-    Route::get('/permissions', [PermissionController::class, 'index']);
+    Route::get('/permissions', [PermissionController::class, 'index'])->middleware('permission:view_permission');
 
-    Route::get('/modules', [ModuleController::class, 'index']);
+    Route::get('/modules', [ModuleController::class, 'index'])->middleware('permission:view_module');
 
 });
