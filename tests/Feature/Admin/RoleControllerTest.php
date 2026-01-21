@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin;
 
 use Tests\TestCase;
 use App\Models\User;
+use App\Models\Module;
 use App\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -234,8 +235,20 @@ class RoleControllerTest extends TestCase
     public function test_admin_can_show_a_role(): void
     {
         $role = Role::create(['name' => 'test_role', 'guard_name' => 'supabase']);
-        $permissions = Permission::factory()->count(2)->create(['guard_name' => 'supabase']);
-        $role->syncPermissions($permissions);
+        $module = Module::factory()->create(['name' => 'Articles', 'slug' => 'articles']);
+        $permission1 = Permission::factory()->create([
+            'name' => 'edit articles',
+            'guard_name' => 'supabase',
+            'action' => 'edit',
+            'module_id' => $module->id,
+        ]);
+        $permission2 = Permission::factory()->create([
+            'name' => 'delete articles',
+            'guard_name' => 'supabase',
+            'action' => 'delete',
+            'module_id' => $module->id,
+        ]);
+        $role->syncPermissions([$permission1, $permission2]);
 
         $response = $this->actingAs($this->admin)
             ->getJson("/api/roles/{$role->id}");
@@ -249,11 +262,10 @@ class RoleControllerTest extends TestCase
                     'name' => $role->name,
                     'guard_name' => $role->guard_name,
                 ],
-            ])
-            ->assertJsonPath('data.permissions', collect($permissions)->map(fn ($p) => [
-                'id' => $p->id,
-                'name' => $p->name,
-            ])->toArray());
+            ]);
+        $this->assertCount(2, $response->json('data.permissions'));
+        $this->assertEquals('edit', $response->json('data.permissions.0.action'));
+        $this->assertEquals('delete', $response->json('data.permissions.1.action'));
     }
 
     /**
