@@ -9,3 +9,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('ezcards:add-voucher')->everyMinute();
+Schedule::command('ezcards:sync-products')->daily();
+Schedule::command('g2g:sync-products')->daily();
