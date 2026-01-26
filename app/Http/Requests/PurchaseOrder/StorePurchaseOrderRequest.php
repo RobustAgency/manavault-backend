@@ -62,6 +62,9 @@ class StorePurchaseOrderRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
+            if ($validator->errors()->has('digital_product_ids')) {
+                return;
+            }
             $currency = $this->input('currency');
             $items = $this->input('items', []);
 
@@ -78,8 +81,6 @@ class StorePurchaseOrderRequest extends FormRequest
                             );
                         }
                     } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-                        // This shouldn't happen since 'exists' rule already validated it,
-                        // but we catch it for safety
                         $validator->errors()->add(
                             "items.{$index}.digital_product_id",
                             'The selected digital product does not exist.'

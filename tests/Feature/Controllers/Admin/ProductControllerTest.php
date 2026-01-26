@@ -342,8 +342,8 @@ class ProductControllerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        $product = Product::factory()->create();
-        $digitalProducts = DigitalProduct::factory()->count(3)->create();
+        $product = Product::factory()->create(['currency' => 'usd']);
+        $digitalProducts = DigitalProduct::factory()->count(3)->create(['currency' => 'usd']);
 
         $response = $this->postJson('/api/products/'.$product->id.'/digital_products', [
             'digital_product_ids' => $digitalProducts->pluck('id')->toArray(),
@@ -364,6 +364,74 @@ class ProductControllerTest extends TestCase
         }
     }
 
+    public function test_assign_digital_products_missing_required_field(): void
+    {
+        $this->actingAs($this->admin);
+
+        $product = Product::factory()->create();
+
+        $response = $this->postJson('/api/products/'.$product->id.'/digital_products', []);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['digital_product_ids']);
+    }
+
+    public function test_assign_digital_products_empty_array(): void
+    {
+        $this->actingAs($this->admin);
+
+        $product = Product::factory()->create();
+
+        $response = $this->postJson('/api/products/'.$product->id.'/digital_products', [
+            'digital_product_ids' => [],
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['digital_product_ids']);
+    }
+
+    public function test_assign_digital_products_with_currency_mismatch(): void
+    {
+        $this->actingAs($this->admin);
+
+        $product = Product::factory()->create(['currency' => 'usd']);
+        $digitalProductUsd = DigitalProduct::factory()->create(['currency' => 'usd']);
+        $digitalProductEur = DigitalProduct::factory()->create(['currency' => 'eur']);
+
+        $response = $this->postJson('/api/products/'.$product->id.'/digital_products', [
+            'digital_product_ids' => [$digitalProductUsd->id, $digitalProductEur->id],
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['digital_product_ids.1']);
+
+        // Verify the error message mentions currency mismatch
+        $errors = $response->json('errors');
+        $this->assertStringContainsString('currency', $errors['digital_product_ids.1'][0]);
+    }
+
+    public function test_assign_digital_products_all_matching_currency(): void
+    {
+        $this->actingAs($this->admin);
+
+        $product = Product::factory()->create(['currency' => 'gbp']);
+        $digitalProducts = DigitalProduct::factory()->count(3)->create(['currency' => 'gbp']);
+
+        $response = $this->postJson('/api/products/'.$product->id.'/digital_products', [
+            'digital_product_ids' => $digitalProducts->pluck('id')->toArray(),
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('error', false);
+
+        foreach ($digitalProducts as $digitalProduct) {
+            $this->assertDatabaseHas('product_supplier', [
+                'product_id' => $product->id,
+                'digital_product_id' => $digitalProduct->id,
+            ]);
+        }
+    }
+
     public function test_assign_digital_products_with_invalid_product(): void
     {
         $this->actingAs($this->admin);
@@ -374,6 +442,49 @@ class ProductControllerTest extends TestCase
         );
 
         $response->assertStatus(404);
+    }
+
+    public function test_assign_digital_products_with_nonexistent_digital_product(): void
+    {
+        $this->actingAs($this->admin);
+
+        $product = Product::factory()->create(['currency' => 'usd']);
+        $validDigitalProduct = DigitalProduct::factory()->create(['currency' => 'usd']);
+
+        $response = $this->postJson('/api/products/'.$product->id.'/digital_products', [
+            'digital_product_ids' => [$validDigitalProduct->id, 999999],
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['digital_product_ids.1']);
+    }
+
+    public function test_assign_digital_products_with_invalid_data_type(): void
+    {
+        $this->actingAs($this->admin);
+
+        $product = Product::factory()->create();
+
+        $response = $this->postJson('/api/products/'.$product->id.'/digital_products', [
+            'digital_product_ids' => 'not-an-array',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['digital_product_ids']);
+    }
+
+    public function test_assign_digital_products_with_non_integer_ids(): void
+    {
+        $this->actingAs($this->admin);
+
+        $product = Product::factory()->create();
+
+        $response = $this->postJson('/api/products/'.$product->id.'/digital_products', [
+            'digital_product_ids' => ['one', 'two', 'three'],
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['digital_product_ids.0', 'digital_product_ids.1', 'digital_product_ids.2']);
     }
 
     public function test_update_product_with_custom_priority_sets_manual_fulfillment_mode(): void
