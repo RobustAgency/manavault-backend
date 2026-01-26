@@ -14,6 +14,9 @@ class DigitalProduct extends Model
 
     public const LOW_QUANTITY_THRESHOLD = 5;
 
+    /**
+     * @property string $currency
+     */
     protected $fillable = [
         'supplier_id',
         'name',
