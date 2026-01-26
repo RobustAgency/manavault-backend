@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin \Spatie\Permission\Models\Permission
+ * @mixin \App\Models\Permission
  */
 class PermissionResource extends JsonResource
 {
@@ -20,6 +20,7 @@ class PermissionResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'action' => $this->action ?? null,
         ];
     }
 }

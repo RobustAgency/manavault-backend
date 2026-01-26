@@ -20,7 +20,7 @@ class PurchaseOrderControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->admin = User::factory()->create(['role' => 'admin']);
+        $this->admin = User::factory()->create(['role' => 'super_admin']);
     }
 
     public function test_admin_list_purchase_orders(): void
@@ -29,7 +29,7 @@ class PurchaseOrderControllerTest extends TestCase
 
         PurchaseOrder::factory()->count(5)->create();
 
-        $response = $this->getJson('/api/admin/purchase-orders');
+        $response = $this->getJson('/api/purchase-orders');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -63,7 +63,7 @@ class PurchaseOrderControllerTest extends TestCase
 
         PurchaseOrder::factory()->count(25)->create();
 
-        $response = $this->getJson('/api/admin/purchase-orders?per_page=5');
+        $response = $this->getJson('/api/purchase-orders?per_page=5');
 
         $response->assertStatus(200)
             ->assertJsonPath('data.per_page', 5)
@@ -78,7 +78,7 @@ class PurchaseOrderControllerTest extends TestCase
 
         $purchaseOrder = PurchaseOrder::factory()->create();
 
-        $response = $this->getJson("/api/admin/purchase-orders/{$purchaseOrder->id}");
+        $response = $this->getJson("/api/purchase-orders/{$purchaseOrder->id}");
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -127,7 +127,7 @@ class PurchaseOrderControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->postJson('/api/admin/purchase-orders', $data);
+        $response = $this->postJson('/api/purchase-orders', $data);
 
         $response->assertStatus(201)
             ->assertJsonStructure([
@@ -197,7 +197,7 @@ class PurchaseOrderControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->postJson('/api/admin/purchase-orders', $data);
+        $response = $this->postJson('/api/purchase-orders', $data);
 
         $response->assertStatus(201)
             ->assertJson([
@@ -265,7 +265,7 @@ class PurchaseOrderControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->postJson('/api/admin/purchase-orders', $data);
+        $response = $this->postJson('/api/purchase-orders', $data);
 
         $response->assertStatus(201)
             ->assertJson([
@@ -312,7 +312,7 @@ class PurchaseOrderControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->postJson('/api/admin/purchase-orders', $data);
+        $response = $this->postJson('/api/purchase-orders', $data);
 
         $response->assertStatus(201)
             ->assertJson([
@@ -332,7 +332,7 @@ class PurchaseOrderControllerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        $response = $this->postJson('/api/admin/purchase-orders', []);
+        $response = $this->postJson('/api/purchase-orders', []);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors([
@@ -356,7 +356,7 @@ class PurchaseOrderControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->postJson('/api/admin/purchase-orders', $data);
+        $response = $this->postJson('/api/purchase-orders', $data);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors([
@@ -381,7 +381,7 @@ class PurchaseOrderControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->postJson('/api/admin/purchase-orders', $data);
+        $response = $this->postJson('/api/purchase-orders', $data);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['items.0.digital_product_id']);
@@ -404,7 +404,7 @@ class PurchaseOrderControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->postJson('/api/admin/purchase-orders', $data);
+        $response = $this->postJson('/api/purchase-orders', $data);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['items.0.quantity']);
@@ -421,7 +421,7 @@ class PurchaseOrderControllerTest extends TestCase
             'items' => [],
         ];
 
-        $response = $this->postJson('/api/admin/purchase-orders', $data);
+        $response = $this->postJson('/api/purchase-orders', $data);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['items']);
@@ -429,7 +429,7 @@ class PurchaseOrderControllerTest extends TestCase
 
     public function test_unauthenticated_user_cannot_access_purchase_orders(): void
     {
-        $response = $this->getJson('/api/admin/purchase-orders');
+        $response = $this->getJson('/api/purchase-orders');
 
         $response->assertStatus(401);
     }
@@ -449,7 +449,7 @@ class PurchaseOrderControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->postJson('/api/admin/purchase-orders', $data);
+        $response = $this->postJson('/api/purchase-orders', $data);
 
         $response->assertStatus(401);
     }
@@ -458,7 +458,7 @@ class PurchaseOrderControllerTest extends TestCase
     {
         $purchaseOrder = PurchaseOrder::factory()->create();
 
-        $response = $this->getJson("/api/admin/purchase-orders/{$purchaseOrder->id}");
+        $response = $this->getJson("/api/purchase-orders/{$purchaseOrder->id}");
 
         $response->assertStatus(401);
     }

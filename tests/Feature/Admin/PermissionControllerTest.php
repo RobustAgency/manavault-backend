@@ -16,7 +16,7 @@ class PermissionControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->admin = User::factory()->create(['role' => 'admin']);
+        $this->admin = User::factory()->create(['role' => 'super_admin']);
     }
 
     /**
@@ -28,7 +28,7 @@ class PermissionControllerTest extends TestCase
             Permission::factory()->withName("permission_{$i}")->create();
         }
 
-        $response = $this->actingAs($this->admin)->getJson('/api/admin/permissions');
+        $response = $this->actingAs($this->admin)->getJson('/api/permissions');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -73,7 +73,7 @@ class PermissionControllerTest extends TestCase
         Permission::factory()->withName('manage_posts')->create();
         Permission::factory()->withName('delete_comments')->create();
 
-        $response = $this->actingAs($this->admin)->getJson('/api/admin/permissions?name=manage');
+        $response = $this->actingAs($this->admin)->getJson('/api/permissions?name=manage');
 
         $response->assertStatus(200)
             ->assertJsonPath('data.total', 2)
@@ -94,7 +94,7 @@ class PermissionControllerTest extends TestCase
         Permission::factory()->withGuardName('api')->create();
         Permission::factory()->withGuardName('web')->create();
 
-        $response = $this->actingAs($this->admin)->getJson('/api/admin/permissions?guard_name=api');
+        $response = $this->actingAs($this->admin)->getJson('/api/permissions?guard_name=api');
 
         $response->assertStatus(200)
             ->assertJsonPath('data.total', 2)
@@ -110,7 +110,7 @@ class PermissionControllerTest extends TestCase
             Permission::factory()->create();
         }
 
-        $response = $this->actingAs($this->admin)->getJson('/api/admin/permissions?per_page=25');
+        $response = $this->actingAs($this->admin)->getJson('/api/permissions?per_page=25');
 
         $response->assertStatus(200)
             ->assertJsonPath('data.per_page', 25)
@@ -122,7 +122,7 @@ class PermissionControllerTest extends TestCase
      */
     public function test_empty_permissions_list_returns_correct_structure(): void
     {
-        $response = $this->actingAs($this->admin)->getJson('/api/admin/permissions');
+        $response = $this->actingAs($this->admin)->getJson('/api/permissions');
 
         $response->assertStatus(200)
             ->assertJson([

@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin;
 
 use Tests\TestCase;
 use App\Models\User;
+use App\Models\Module;
 use App\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -20,7 +21,7 @@ class RoleControllerTest extends TestCase
     {
         parent::setUp();
         $this->app->make(PermissionRegistrar::class)->forgetCachedPermissions();
-        $this->admin = User::factory()->create(['role' => 'admin']);
+        $this->admin = User::factory()->create(['role' => 'super_admin']);
     }
 
     /**
@@ -34,7 +35,7 @@ class RoleControllerTest extends TestCase
             $role->givePermissionTo([$permission->id]);
         }
 
-        $response = $this->actingAs($this->admin)->getJson('/api/admin/roles');
+        $response = $this->actingAs($this->admin)->getJson('/api/roles');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -79,7 +80,7 @@ class RoleControllerTest extends TestCase
         Role::create(['name' => 'user', 'guard_name' => 'supabase']);
         Role::create(['name' => 'admin_super', 'guard_name' => 'supabase']);
 
-        $response = $this->actingAs($this->admin)->getJson('/api/admin/roles?name=admin');
+        $response = $this->actingAs($this->admin)->getJson('/api/roles?name=admin');
 
         $response->assertStatus(200)
             ->assertJsonPath('data.total', 2)
@@ -99,7 +100,7 @@ class RoleControllerTest extends TestCase
         Role::create(['name' => 'api_admin', 'guard_name' => 'supabase']);
         Role::create(['name' => 'web_admin', 'guard_name' => 'web']);
 
-        $response = $this->actingAs($this->admin)->getJson('/api/admin/roles?guard_name=supabase');
+        $response = $this->actingAs($this->admin)->getJson('/api/roles?guard_name=supabase');
 
         $response->assertStatus(200)
             ->assertJsonPath('data.total', 1)
@@ -115,7 +116,7 @@ class RoleControllerTest extends TestCase
             Role::create(['name' => "role_{$i}", 'guard_name' => 'supabase']);
         }
 
-        $response = $this->actingAs($this->admin)->getJson('/api/admin/roles?per_page=25');
+        $response = $this->actingAs($this->admin)->getJson('/api/roles?per_page=25');
 
         $response->assertStatus(200)
             ->assertJsonPath('data.per_page', 25)
@@ -133,7 +134,7 @@ class RoleControllerTest extends TestCase
         ];
 
         $response = $this->actingAs($this->admin)
-            ->postJson('/api/admin/roles', $roleData);
+            ->postJson('/api/roles', $roleData);
 
         $response->assertStatus(201)
             ->assertJsonStructure([
@@ -171,7 +172,7 @@ class RoleControllerTest extends TestCase
         ];
 
         $response = $this->actingAs($this->admin)
-            ->postJson('/api/admin/roles', $roleData);
+            ->postJson('/api/roles', $roleData);
 
         $response->assertStatus(201)
             ->assertJson([
@@ -189,7 +190,7 @@ class RoleControllerTest extends TestCase
     public function test_creation_fails_without_name(): void
     {
         $response = $this->actingAs($this->admin)
-            ->postJson('/api/admin/roles', ['guard_name' => 'supabase']);
+            ->postJson('/api/roles', ['guard_name' => 'supabase']);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors('name');
@@ -203,7 +204,7 @@ class RoleControllerTest extends TestCase
         Role::create(['name' => 'existing_role', 'guard_name' => 'supabase']);
 
         $response = $this->actingAs($this->admin)
-            ->postJson('/api/admin/roles', [
+            ->postJson('/api/roles', [
                 'name' => 'existing_role',
                 'guard_name' => 'supabase',
             ]);
@@ -218,7 +219,7 @@ class RoleControllerTest extends TestCase
     public function test_creation_fails_with_invalid_permission_id(): void
     {
         $response = $this->actingAs($this->admin)
-            ->postJson('/api/admin/roles', [
+            ->postJson('/api/roles', [
                 'name' => 'invalid_perms_role',
                 'guard_name' => 'supabase',
                 'permission_ids' => [99999],
@@ -234,11 +235,23 @@ class RoleControllerTest extends TestCase
     public function test_admin_can_show_a_role(): void
     {
         $role = Role::create(['name' => 'test_role', 'guard_name' => 'supabase']);
-        $permissions = Permission::factory()->count(2)->create(['guard_name' => 'supabase']);
-        $role->syncPermissions($permissions);
+        $module = Module::factory()->create(['name' => 'Articles', 'slug' => 'articles']);
+        $permission1 = Permission::factory()->create([
+            'name' => 'edit articles',
+            'guard_name' => 'supabase',
+            'action' => 'edit',
+            'module_id' => $module->id,
+        ]);
+        $permission2 = Permission::factory()->create([
+            'name' => 'delete articles',
+            'guard_name' => 'supabase',
+            'action' => 'delete',
+            'module_id' => $module->id,
+        ]);
+        $role->syncPermissions([$permission1, $permission2]);
 
         $response = $this->actingAs($this->admin)
-            ->getJson("/api/admin/roles/{$role->id}");
+            ->getJson("/api/roles/{$role->id}");
 
         $response->assertStatus(200)
             ->assertJson([
@@ -249,11 +262,10 @@ class RoleControllerTest extends TestCase
                     'name' => $role->name,
                     'guard_name' => $role->guard_name,
                 ],
-            ])
-            ->assertJsonPath('data.permissions', collect($permissions)->map(fn ($p) => [
-                'id' => $p->id,
-                'name' => $p->name,
-            ])->toArray());
+            ]);
+        $this->assertCount(2, $response->json('data.permissions'));
+        $this->assertEquals('edit', $response->json('data.permissions.0.action'));
+        $this->assertEquals('delete', $response->json('data.permissions.1.action'));
     }
 
     /**
@@ -262,7 +274,7 @@ class RoleControllerTest extends TestCase
     public function test_showing_non_existent_role_returns_404(): void
     {
         $response = $this->actingAs($this->admin)
-            ->getJson('/api/admin/roles/99999');
+            ->getJson('/api/roles/99999');
 
         $response->assertStatus(404);
     }
@@ -279,7 +291,7 @@ class RoleControllerTest extends TestCase
         ];
 
         $response = $this->actingAs($this->admin)
-            ->postJson("/api/admin/roles/{$role->id}", $updateData);
+            ->postJson("/api/roles/{$role->id}", $updateData);
 
         $response->assertStatus(200)
             ->assertJson([
@@ -306,7 +318,7 @@ class RoleControllerTest extends TestCase
         $newPermissionIds = collect($newPermissions)->pluck('id')->toArray();
 
         $response = $this->actingAs($this->admin)
-            ->postJson("/api/admin/roles/{$role->id}", [
+            ->postJson("/api/roles/{$role->id}", [
                 'name' => $role->name,
                 'permission_ids' => $newPermissionIds,
             ]);
@@ -325,7 +337,7 @@ class RoleControllerTest extends TestCase
         $role = Role::create(['name' => 'same_name', 'guard_name' => 'supabase']);
 
         $response = $this->actingAs($this->admin)
-            ->postJson("/api/admin/roles/{$role->id}", [
+            ->postJson("/api/roles/{$role->id}", [
                 'name' => 'same_name',
             ]);
 
@@ -347,7 +359,7 @@ class RoleControllerTest extends TestCase
         $role2 = Role::create(['name' => 'role_2', 'guard_name' => 'supabase']);
 
         $response = $this->actingAs($this->admin)
-            ->postJson("/api/admin/roles/{$role2->id}", [
+            ->postJson("/api/roles/{$role2->id}", [
                 'name' => 'role_1',
             ]);
 
@@ -364,7 +376,7 @@ class RoleControllerTest extends TestCase
         $roleId = $role->id;
 
         $response = $this->actingAs($this->admin)
-            ->deleteJson("/api/admin/roles/{$role->id}");
+            ->deleteJson("/api/roles/{$role->id}");
 
         $response->assertStatus(200)
             ->assertJson([
@@ -381,7 +393,7 @@ class RoleControllerTest extends TestCase
     public function test_deleting_non_existent_role_returns_404(): void
     {
         $response = $this->actingAs($this->admin)
-            ->deleteJson('/api/admin/roles/99999');
+            ->deleteJson('/api/roles/99999');
 
         $response->assertStatus(404);
     }
@@ -394,7 +406,7 @@ class RoleControllerTest extends TestCase
         $role = Role::create(['name' => 'test_role', 'guard_name' => 'supabase']);
 
         $response = $this->actingAs($this->admin)
-            ->getJson("/api/admin/roles/{$role->id}");
+            ->getJson("/api/roles/{$role->id}");
 
         $response->assertJsonStructure([
             'error',
@@ -415,7 +427,7 @@ class RoleControllerTest extends TestCase
      */
     public function test_empty_role_list_returns_correct_structure(): void
     {
-        $response = $this->actingAs($this->admin)->getJson('/api/admin/roles');
+        $response = $this->actingAs($this->admin)->getJson('/api/roles');
 
         $response->assertStatus(200)
             ->assertJson([

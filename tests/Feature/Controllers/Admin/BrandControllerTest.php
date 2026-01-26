@@ -19,7 +19,7 @@ class BrandControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->admin = User::factory()->create(['role' => 'admin']);
+        $this->admin = User::factory()->create(['role' => 'super_admin']);
         $this->user = User::factory()->create(['role' => 'user']);
     }
 
@@ -29,7 +29,7 @@ class BrandControllerTest extends TestCase
 
         Brand::factory()->count(5)->create();
 
-        $response = $this->getJson('/api/admin/brands');
+        $response = $this->getJson('/api/brands');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -62,7 +62,7 @@ class BrandControllerTest extends TestCase
 
         Brand::factory()->count(25)->create();
 
-        $response = $this->getJson('/api/admin/brands?per_page=10');
+        $response = $this->getJson('/api/brands?per_page=10');
 
         $response->assertStatus(200)
             ->assertJsonPath('data.per_page', 10)
@@ -78,7 +78,7 @@ class BrandControllerTest extends TestCase
         Brand::factory()->create(['name' => 'Nike 1']);
         Brand::factory()->create(['name' => 'Adidas 1']);
 
-        $response = $this->getJson('/api/admin/brands?name=Nike');
+        $response = $this->getJson('/api/brands?name=Nike');
 
         $response->assertStatus(200)
             ->assertJsonPath('data.total', 1)
@@ -89,7 +89,7 @@ class BrandControllerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        $response = $this->postJson('/api/admin/brands', [
+        $response = $this->postJson('/api/brands', [
             'name' => 'New Brand',
         ]);
 
@@ -109,7 +109,7 @@ class BrandControllerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        $response = $this->postJson('/api/admin/brands', []);
+        $response = $this->postJson('/api/brands', []);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['name']);
@@ -121,7 +121,7 @@ class BrandControllerTest extends TestCase
 
         Brand::factory()->create(['name' => 'Existing Brand']);
 
-        $response = $this->postJson('/api/admin/brands', [
+        $response = $this->postJson('/api/brands', [
             'name' => 'Existing Brand',
         ]);
 
@@ -133,7 +133,7 @@ class BrandControllerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        $response = $this->postJson('/api/admin/brands', [
+        $response = $this->postJson('/api/brands', [
             'name' => str_repeat('a', 256),
         ]);
 
@@ -147,7 +147,7 @@ class BrandControllerTest extends TestCase
 
         $brand = Brand::factory()->create(['name' => 'Test Brand']);
 
-        $response = $this->getJson("/api/admin/brands/{$brand->id}");
+        $response = $this->getJson("/api/brands/{$brand->id}");
 
         $response->assertStatus(200)
             ->assertJson([
@@ -166,7 +166,7 @@ class BrandControllerTest extends TestCase
 
         $brand = Brand::factory()->create(['name' => 'Old Brand Name']);
 
-        $response = $this->putJson("/api/admin/brands/{$brand->id}", [
+        $response = $this->putJson("/api/brands/{$brand->id}", [
             'name' => 'Updated Brand Name',
         ]);
 
@@ -193,7 +193,7 @@ class BrandControllerTest extends TestCase
 
         $brand = Brand::factory()->create();
 
-        $response = $this->putJson("/api/admin/brands/{$brand->id}", [
+        $response = $this->putJson("/api/brands/{$brand->id}", [
             'name' => '',
         ]);
 
@@ -208,7 +208,7 @@ class BrandControllerTest extends TestCase
         $brand1 = Brand::factory()->create(['name' => 'Brand One']);
         $brand2 = Brand::factory()->create(['name' => 'Brand Two']);
 
-        $response = $this->putJson("/api/admin/brands/{$brand2->id}", [
+        $response = $this->putJson("/api/brands/{$brand2->id}", [
             'name' => 'Brand One',
         ]);
 
@@ -222,7 +222,7 @@ class BrandControllerTest extends TestCase
 
         $brand = Brand::factory()->create(['name' => 'Brand Name 2']);
 
-        $response = $this->putJson("/api/admin/brands/{$brand->id}", [
+        $response = $this->putJson("/api/brands/{$brand->id}", [
             'name' => 'Brand Name',
         ]);
 
@@ -241,7 +241,7 @@ class BrandControllerTest extends TestCase
 
         $brand = Brand::factory()->create();
 
-        $response = $this->postJson("/api/admin/brands/{$brand->id}", [
+        $response = $this->postJson("/api/brands/{$brand->id}", [
             'name' => str_repeat('a', 256),
         ]);
 
@@ -255,7 +255,7 @@ class BrandControllerTest extends TestCase
 
         $brand = Brand::factory()->create(['name' => 'Brand to Delete']);
 
-        $response = $this->deleteJson("/api/admin/brands/{$brand->id}");
+        $response = $this->deleteJson("/api/brands/{$brand->id}");
 
         $response->assertStatus(200)
             ->assertJson([
@@ -271,7 +271,7 @@ class BrandControllerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        $response = $this->getJson('/api/admin/brands/99999');
+        $response = $this->getJson('/api/brands/99999');
 
         $response->assertStatus(404);
     }
@@ -280,7 +280,7 @@ class BrandControllerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        $response = $this->putJson('/api/admin/brands/99999', [
+        $response = $this->putJson('/api/brands/99999', [
             'name' => 'New Name',
         ]);
 
@@ -291,14 +291,14 @@ class BrandControllerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        $response = $this->deleteJson('/api/admin/brands/99999');
+        $response = $this->deleteJson('/api/brands/99999');
 
         $response->assertStatus(404);
     }
 
     public function test_unauthenticated_user_cannot_list_brands(): void
     {
-        $response = $this->getJson('/api/admin/brands');
+        $response = $this->getJson('/api/brands');
 
         $response->assertStatus(401);
     }
@@ -307,7 +307,7 @@ class BrandControllerTest extends TestCase
     {
         $this->actingAs($this->user);
 
-        $response = $this->getJson('/api/admin/brands');
+        $response = $this->getJson('/api/brands');
 
         $response->assertStatus(403);
     }
@@ -316,7 +316,7 @@ class BrandControllerTest extends TestCase
     {
         $this->actingAs($this->user);
 
-        $response = $this->postJson('/api/admin/brands', [
+        $response = $this->postJson('/api/brands', [
             'name' => 'New Brand 1',
         ]);
 
@@ -329,7 +329,7 @@ class BrandControllerTest extends TestCase
 
         $brand = Brand::factory()->create();
 
-        $response = $this->getJson("/api/admin/brands/{$brand->id}");
+        $response = $this->getJson("/api/brands/{$brand->id}");
 
         $response->assertStatus(403);
     }
@@ -340,7 +340,7 @@ class BrandControllerTest extends TestCase
 
         $brand = Brand::factory()->create();
 
-        $response = $this->putJson("/api/admin/brands/{$brand->id}", [
+        $response = $this->putJson("/api/brands/{$brand->id}", [
             'name' => 'Updated Name',
         ]);
 
@@ -353,7 +353,7 @@ class BrandControllerTest extends TestCase
 
         $brand = Brand::factory()->create();
 
-        $response = $this->deleteJson("/api/admin/brands/{$brand->id}");
+        $response = $this->deleteJson("/api/brands/{$brand->id}");
 
         $response->assertStatus(403);
     }
@@ -362,7 +362,7 @@ class BrandControllerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        $response = $this->getJson('/api/admin/brands?per_page=invalid');
+        $response = $this->getJson('/api/brands?per_page=invalid');
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['per_page']);
@@ -372,7 +372,7 @@ class BrandControllerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        $response = $this->getJson('/api/admin/brands?per_page=0');
+        $response = $this->getJson('/api/brands?per_page=0');
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['per_page']);
@@ -382,7 +382,7 @@ class BrandControllerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        $response = $this->getJson('/api/admin/brands?per_page=101');
+        $response = $this->getJson('/api/brands?per_page=101');
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['per_page']);

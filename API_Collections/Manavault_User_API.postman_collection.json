@@ -1,0 +1,2453 @@
+{
+  "info": {
+    "name": "Manavault User API",
+    "description": "Complete User API collection for Manavault digital product marketplace",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Login",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login with email and password to get access token\n\nRequest Fields:\n- email (required, email format)\n- password (required, string)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Profile",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/profile",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "profile"
+              ]
+            },
+            "description": "Retrieve the authenticated user's profile with payment method status"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/profile/user-info",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "profile",
+                "user-info"
+              ]
+            },
+            "description": "Retrieve the authenticated user's information with permissions\n\nResponse Fields:\n- id (integer)\n- name (string)\n- email (string)\n- is_approved (boolean)\n- permissions (array of strings)\n- created_at (ISO8601 string)\n- updated_at (ISO8601 string)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Users",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users?per_page=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "10",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "List all users with pagination\n\nQuery Parameters:\n- per_page (optional, integer, default: 10)"
+          },
+          "response": []
+        },
+        {
+          "name": "Search Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/search?term=john",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "term",
+                  "value": "john",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Search users based on criteria\n\nQuery Parameters:\n- term (required, string, min: 2 characters)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/{{user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{user_id}}"
+              ]
+            },
+            "description": "Show a specific user with their details\n\nPath Parameters:\n- user_id (required, integer)"
+          },
+          "response": []
+        },
+        {
+          "name": "Approve User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/{{user_id}}/approve",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{user_id}}",
+                "approve"
+              ]
+            },
+            "description": "Approve a user account\n\nPath Parameters:\n- user_id (required, integer)"
+          },
+          "response": []
+        },
+        {
+          "name": "Revoke User Approval",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/{{user_id}}/revoke-approval",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{user_id}}",
+                "revoke-approval"
+              ]
+            },
+            "description": "Revoke approval for a user account\n\nPath Parameters:\n- user_id (required, integer)"
+          },
+          "response": []
+        },
+        {
+          "name": "Assign Roles to User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/{{user_id}}/assign-roles",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{user_id}}",
+                "assign-roles"
+              ]
+            },
+            "description": "Assign roles to a user\n\nPath Parameters:\n- user_id (required, integer)\n\nRequest Fields:\n- role_id (required, integer, must exist in roles table)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Roles",
+      "item": [
+        {
+          "name": "List Roles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/roles?per_page=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "roles"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "guard_name",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "10",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Display a listing of roles\n\nQuery Parameters:\n- name (optional, string, max: 255)\n- guard_name (optional, string, max: 255)\n- per_page (optional, integer, min: 1, max: 100)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Editor\",\n  \"guard_name\": \"web\",\n  \"permission_ids\": [1, 2, 3]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/roles",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "roles"
+              ]
+            },
+            "description": "Store a newly created role with permissions and guard\n\nRequest Fields:\n- name (required, string, max: 255, unique)\n- guard_name (optional, string, max: 255)\n- permission_ids (optional, array of integers, each must exist in permissions table)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Role Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/roles/{{role_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "roles",
+                "{{role_id}}"
+              ]
+            },
+            "description": "Display the specified role with permissions\n\nPath Parameters:\n- role_id (required, integer)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Editor Updated\",\n  \"guard_name\": \"web\",\n  \"permission_ids\": [1, 2, 3, 4]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/roles/{{role_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "roles",
+                "{{role_id}}"
+              ]
+            },
+            "description": "Update the specified role with permissions and guard\n\nPath Parameters:\n- role_id (required, integer)\n\nRequest Fields:\n- name (optional, string, max: 255, unique except for current role)\n- guard_name (optional, string, max: 255)\n- permission_ids (optional, array of integers, each must exist in permissions table)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Role",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/roles/{{role_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "roles",
+                "{{role_id}}"
+              ]
+            },
+            "description": "Remove the specified role\n\nPath Parameters:\n- role_id (required, integer)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Permissions",
+      "item": [
+        {
+          "name": "List Permissions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/permissions?per_page=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "permissions"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "guard_name",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "10",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Display a listing of permissions\n\nQuery Parameters:\n- name (optional, string, max: 255)\n- guard_name (optional, string, max: 255)\n- per_page (optional, integer, min: 1, max: 100)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. Modules",
+      "item": [
+        {
+          "name": "List Modules",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/modules?per_page=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "modules"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "slug",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "10",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Display a listing of modules with their permissions\n\nQuery Parameters:\n- name (optional, string, max: 255)\n- slug (optional, string, max: 255)\n- per_page (optional, integer, min: 1, max: 100)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "7. Brands",
+      "item": [
+        {
+          "name": "List Brands",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/brands?per_page=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "brands"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "10",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Display a listing of brands\n\nQuery Parameters:\n- name (optional, string, max: 255, must be unique)\n- per_page (optional, integer, min: 1, max: 100)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Brand",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Nike",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "type": "file",
+                  "disabled": true
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/brands",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "brands"
+              ]
+            },
+            "description": "Store a newly created brand\n\nRequest Fields:\n- name (required, string, max: 255, unique)\n- image (optional, file, mimes: jpeg/png/jpg, max: 2048KB)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Brand Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/brands/{{brand_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "brands",
+                "{{brand_id}}"
+              ]
+            },
+            "description": "Display the specified brand\n\nPath Parameters:\n- brand_id (required, integer)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Brand",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Nike Updated",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "type": "file",
+                  "disabled": true
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/brands/{{brand_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "brands",
+                "{{brand_id}}"
+              ]
+            },
+            "description": "Update the specified brand\n\nPath Parameters:\n- brand_id (required, integer)\n\nRequest Fields:\n- name (optional, string, max: 255, unique except current brand)\n- image (optional, file, mimes: jpeg/png/jpg, max: 2048KB)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Brand",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/brands/{{brand_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "brands",
+                "{{brand_id}}"
+              ]
+            },
+            "description": "Remove the specified brand\n\nPath Parameters:\n- brand_id (required, integer)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "8. Suppliers",
+      "item": [
+        {
+          "name": "List Suppliers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/suppliers?per_page=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "suppliers"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "type",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "10",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Display a listing of suppliers\n\nQuery Parameters:\n- name (optional, string, max: 255)\n- type (optional, string, max: 100)\n- status (optional, enum: active, inactive)\n- per_page (optional, integer, min: 1)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Supplier",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Supplier ABC\",\n  \"contact_email\": \"contact@supplier.com\",\n  \"contact_phone\": \"+1234567890\",\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/suppliers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "suppliers"
+              ]
+            },
+            "description": "Store a newly created supplier\n\nRequest Fields:\n- name (required, string, max: 255)\n- contact_email (optional, email, max: 255)\n- contact_phone (optional, string, max: 20)\n- status (optional, enum: active, inactive)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Supplier Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/suppliers/{{supplier_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "suppliers",
+                "{{supplier_id}}"
+              ]
+            },
+            "description": "Display the specified supplier\n\nPath Parameters:\n- supplier_id (required, integer)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Supplier",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Supplier ABC Updated\",\n  \"contact_email\": \"newemail@supplier.com\",\n  \"contact_phone\": \"+9876543210\",\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/suppliers/{{supplier_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "suppliers",
+                "{{supplier_id}}"
+              ]
+            },
+            "description": "Update the specified supplier\n\nPath Parameters:\n- supplier_id (required, integer)\n\nRequest Fields:\n- name (optional, string, max: 255, required if present)\n- contact_email (optional, email, max: 255)\n- contact_phone (optional, string, max: 20)\n- status (optional, enum: active, inactive)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Supplier",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/suppliers/{{supplier_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "suppliers",
+                "{{supplier_id}}"
+              ]
+            },
+            "description": "Remove the specified supplier\n\nPath Parameters:\n- supplier_id (required, integer)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "9. Products",
+      "item": [
+        {
+          "name": "List Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products?per_page=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "supplier_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "name",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "brand_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "currency",
+                  "value": "usd",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "10",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Display a listing of products\n\nQuery Parameters:\n- supplier_id (optional, integer, must exist in suppliers table)\n- name (optional, string, max: 255)\n- brand_id (optional, integer, must exist in brands table)\n- currency (optional, enum: usd, eur)\n- status (optional, enum: in_active, active, archived)\n- per_page (optional, integer, min: 1, max: 100)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Product ABC",
+                  "type": "text"
+                },
+                {
+                  "key": "sku",
+                  "value": "SKU-001",
+                  "type": "text"
+                },
+                {
+                  "key": "brand_id",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Product description",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "short_description",
+                  "value": "Short description",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "long_description",
+                  "value": "Long description",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "face_value",
+                  "value": "100",
+                  "type": "text"
+                },
+                {
+                  "key": "selling_price",
+                  "value": "120",
+                  "type": "text"
+                },
+                {
+                  "key": "currency",
+                  "value": "usd",
+                  "type": "text"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "type": "file",
+                  "disabled": true
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/products",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "products"
+              ]
+            },
+            "description": "Store a newly created product\n\nRequest Fields:\n- name (required, string, max: 255)\n- sku (required, string, max: 100, unique)\n- brand_id (optional, integer, must exist in brands table)\n- description (optional, string)\n- short_description (optional, string)\n- long_description (optional, string)\n- face_value (required, numeric, min: 1)\n- selling_price (required, numeric, min: 1)\n- currency (required, enum: usd, eur)\n- status (required, enum: in_active, active, archived)\n- image (optional, file, mimes: jpeg/png/jpg, max: 2048KB)\n- tags (optional, array)\n- regions (optional, array)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Product Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products/{{product_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "{{product_id}}"
+              ]
+            },
+            "description": "Display the specified product with digital products sorted by fulfillment mode\n\nPath Parameters:\n- product_id (required, integer)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Product ABC Updated",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "brand_id",
+                  "value": "2",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "face_value",
+                  "value": "110",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "selling_price",
+                  "value": "130",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "is_custom_priority",
+                  "value": "false",
+                  "type": "text",
+                  "disabled": true
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/products/{{product_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "{{product_id}}"
+              ]
+            },
+            "description": "Update the specified product\n\nPath Parameters:\n- product_id (required, integer)\n\nRequest Fields:\n- name (optional, string, max: 255)\n- brand_id (optional, integer, must exist in brands table)\n- description (optional, string)\n- short_description (optional, string)\n- long_description (optional, string)\n- face_value (optional, numeric, min: 1)\n- selling_price (optional, numeric, min: 1)\n- currency (optional, enum: usd, eur)\n- status (optional, enum: in_active, active, archived)\n- image (optional, file)\n- tags (optional, array)\n- regions (optional, array)\n- is_custom_priority (optional, boolean - if true, sets fulfillment_mode to MANUAL)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products/{{product_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "{{product_id}}"
+              ]
+            },
+            "description": "Remove the specified product\n\nPath Parameters:\n- product_id (required, integer)"
+          },
+          "response": []
+        },
+        {
+          "name": "Assign Digital Products",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"digital_product_ids\": [1, 2, 3]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/products/{{product_id}}/digital_products",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "{{product_id}}",
+                "digital_products"
+              ]
+            },
+            "description": "Assign digital products to a product\n\nPath Parameters:\n- product_id (required, integer)\n\nRequest Fields:\n- digital_product_ids (required, array, min: 1, each must exist in digital_products table)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Digital Products Priority",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"digital_products\": [\n    {\n      \"digital_product_id\": 1,\n      \"priority_order\": 1\n    },\n    {\n      \"digital_product_id\": 2,\n      \"priority_order\": 2\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/products/{{product_id}}/digital-products/priority",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "{{product_id}}",
+                "digital-products",
+                "priority"
+              ]
+            },
+            "description": "Update the priority/order of digital products for a product\n\nPath Parameters:\n- product_id (required, integer)\n\nRequest Fields:\n- digital_products (required, array, min: 1)\n  - digital_product_id (required, integer, must exist)\n  - priority_order (required, integer, min: 1)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "10. Digital Products",
+      "item": [
+        {
+          "name": "List Digital Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/digital-products?per_page=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "digital-products"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "brand",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "supplier_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "currency",
+                  "value": "usd",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "10",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Display a listing of digital products\n\nQuery Parameters:\n- name (optional, string, max: 255)\n- brand (optional, string, max: 255)\n- supplier_id (optional, integer, must exist in suppliers table)\n- currency (optional, enum: usd, eur)\n- per_page (optional, integer, min: 1, max: 100)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Digital Products",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"products\": [\n    {\n      \"supplier_id\": 1,\n      \"name\": \"Digital Product 1\",\n      \"sku\": \"DP-001\",\n      \"brand\": \"Brand Name\",\n      \"description\": \"Description here\",\n      \"cost_price\": 50,\n      \"currency\": \"usd\",\n      \"metadata\": {},\n      \"tags\": [\"tag1\", \"tag2\"],\n      \"region\": \"US\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/digital-products",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "digital-products"
+              ]
+            },
+            "description": "Store newly created digital products\n\nRequest Fields:\n- products (required, array, min: 1)\n  - supplier_id (required, integer, must exist in suppliers table)\n  - name (required, string, max: 255)\n  - sku (required, string, max: 255)\n  - brand (optional, string, max: 255)\n  - description (optional, string)\n  - cost_price (required, numeric, min: 0)\n  - currency (required, enum: usd, eur)\n  - metadata (optional, object)\n  - tags (optional, array of strings, each max: 255)\n  - region (optional, string, max: 255)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Digital Product Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/digital-products/{{digital_product_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "digital-products",
+                "{{digital_product_id}}"
+              ]
+            },
+            "description": "Display the specified digital product with supplier details\n\nPath Parameters:\n- digital_product_id (required, integer)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Digital Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Digital Product\",\n  \"sku\": \"DP-001-UPD\",\n  \"brand\": \"Updated Brand\",\n  \"cost_price\": 55,\n  \"currency\": \"usd\",\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/digital-products/{{digital_product_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "digital-products",
+                "{{digital_product_id}}"
+              ]
+            },
+            "description": "Update the specified digital product\n\nPath Parameters:\n- digital_product_id (required, integer)\n\nRequest Fields:\n- name (optional, string, max: 255)\n- sku (optional, string, max: 255)\n- brand (optional, string, max: 255)\n- description (optional, string)\n- cost_price (optional, numeric, min: 0)\n- currency (optional, enum: usd, eur)\n- status (optional, enum: active, inactive)\n- tags (optional, array of strings, each max: 255)\n- region (optional, string, max: 255)\n- metadata (optional, object)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Digital Product",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/digital-products/{{digital_product_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "digital-products",
+                "{{digital_product_id}}"
+              ]
+            },
+            "description": "Remove the specified digital product\n\nPath Parameters:\n- digital_product_id (required, integer)"
+          },
+          "response": []
+        },
+        {
+          "name": "Batch Import Digital Products",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "disabled": false
+                },
+                {
+                  "key": "supplier_id",
+                  "value": "1",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/digital-products/batch-import",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "digital-products",
+                "batch-import"
+              ]
+            },
+            "description": "Batch import digital products from CSV/TXT file\n\nRequest Fields:\n- file (required, file, mimes: csv/txt, max: 5120KB)\n- supplier_id (required, integer, must exist in suppliers table)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "11. Purchase Orders",
+      "item": [
+        {
+          "name": "List Purchase Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/purchase-orders?per_page=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "purchase-orders"
+              ],
+              "query": [
+                {
+                  "key": "order_number",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "supplier_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "10",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Display a listing of purchase orders\n\nQuery Parameters:\n- order_number (optional, string, max: 244)\n- supplier_id (optional, integer, must exist in suppliers table)\n- status (optional, string, max: 255)\n- per_page (optional, integer, min: 1, max: 100)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Purchase Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"supplier_id\": 1,\n      \"digital_product_id\": 1,\n      \"quantity\": 50\n    },\n    {\n      \"supplier_id\": 2,\n      \"digital_product_id\": 2,\n      \"quantity\": 30\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/purchase-orders",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "purchase-orders"
+              ]
+            },
+            "description": "Store a newly created purchase order\n\nRequest Fields:\n- items (required, array, min: 1)\n  - supplier_id (required, integer, must exist in suppliers table)\n  - digital_product_id (required, integer, must exist in digital_products table)\n  - quantity (required, integer, min: 1)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Purchase Order Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/purchase-orders/{{purchase_order_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "purchase-orders",
+                "{{purchase_order_id}}"
+              ]
+            },
+            "description": "Display the specified purchase order with items, digital products, suppliers, and vouchers\n\nPath Parameters:\n- purchase_order_id (required, integer)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "12. Vouchers",
+      "item": [
+        {
+          "name": "List Vouchers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/vouchers?per_page=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "vouchers"
+              ],
+              "query": [
+                {
+                  "key": "purchase_order_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "10",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Display a listing of vouchers\n\nQuery Parameters:\n- purchase_order_id (optional, integer, must exist in purchase_orders table)\n- per_page (optional, integer, min: 1)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Vouchers",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "disabled": true
+                },
+                {
+                  "key": "purchase_order_id",
+                  "value": "1",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/vouchers/store",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "vouchers",
+                "store"
+              ]
+            },
+            "description": "Store vouchers via file upload or manual entry\n\nRequest Fields:\n- file (optional, file, mimes: csv/txt/xlsx/xls/zip, max: 10240KB) - required if voucher_codes not provided\n- voucher_codes (optional, array, min: 1) - required if file not provided\n  - code (required, string, max: 255)\n  - digitalProductID (required, integer, must exist in digital_products table)\n- purchase_order_id (required, integer, must exist in purchase_orders table)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Voucher Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ip_address\": \"192.168.1.1\",\n  \"user_agent\": \"Mozilla/5.0 (Windows NT 10.0; Win64; x64)\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/vouchers/{{voucher_id}}/code",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "vouchers",
+                "{{voucher_id}}",
+                "code"
+              ]
+            },
+            "description": "Retrieve voucher code and log view audit\n\nPath Parameters:\n- voucher_id (required, integer)\n\nRequest Fields:\n- ip_address (required, valid IP address)\n- user_agent (required, string)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "13. Digital Stocks",
+      "item": [
+        {
+          "name": "List Digital Stocks",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/digital-stocks?per_page=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "digital-stocks"
+              ],
+              "query": [
+                {
+                  "key": "supplier_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "name",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "stock",
+                  "value": "low",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "10",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Display a listing of digital stocks\n\nQuery Parameters:\n- supplier_id (optional, integer, must exist in suppliers table)\n- name (optional, string, max: 255)\n- stock (optional, enum: low, high)\n- per_page (optional, integer, min: 1, max: 100)"
+          },
+          "response": []
+        },
+        {
+          "name": "List Low Stock Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/digital-stocks/low-stock?per_page=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "digital-stocks",
+                "low-stock"
+              ],
+              "query": [
+                {
+                  "key": "supplier_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "name",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "10",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Display digital products with low stock levels\n\nQuery Parameters:\n- supplier_id (optional, integer, must exist in suppliers table)\n- name (optional, string, max: 255)\n- per_page (optional, integer, min: 1, max: 100)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "14. Price Rules",
+      "item": [
+        {
+          "name": "List Price Rules",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/price-rules?per_page=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "price-rules"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "match_type",
+                  "value": "all",
+                  "disabled": true
+                },
+                {
+                  "key": "action_mode",
+                  "value": "absolute",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "10",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Display a listing of price rules\n\nQuery Parameters:\n- name (optional, string, max: 255)\n- match_type (optional, enum: all, any)\n- action_mode (optional, enum: absolute, percentage)\n- status (optional, enum: active, in_active)\n- per_page (optional, integer, min: 1, max: 100)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Price Rule",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Summer Discount\",\n  \"description\": \"10% off on summer products\",\n  \"match_type\": \"all\",\n  \"action_operator\": \"-\",\n  \"action_mode\": \"percentage\",\n  \"action_value\": 10,\n  \"status\": \"active\",\n  \"conditions\": [\n    {\n      \"field\": \"brand_id\",\n      \"operator\": \"=\",\n      \"value\": \"1\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/price-rules",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "price-rules"
+              ]
+            },
+            "description": "Store a newly created price rule\n\nRequest Fields:\n- name (required, string, max: 255)\n- description (optional, string)\n- match_type (required, enum: all, any - whether all or any conditions must match)\n- action_operator (required, enum: +, -, = for add, subtract, or set price)\n- action_mode (required, enum: absolute, percentage)\n- action_value (required, numeric, min: 0)\n- status (required, enum: active, in_active)\n- conditions (required, array, min: 1)\n  - field (required, string - the field to check)\n  - operator (required, enum: =, !=, >, <, >=, <=, contains)\n  - value (required, string - the value to compare)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Price Rule Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/price-rules/{{price_rule_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "price-rules",
+                "{{price_rule_id}}"
+              ]
+            },
+            "description": "Display the specified price rule with conditions\n\nPath Parameters:\n- price_rule_id (required, integer)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Price Rule",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Summer Discount Updated\",\n  \"description\": \"15% off on summer products\",\n  \"action_value\": 15,\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/price-rules/{{price_rule_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "price-rules",
+                "{{price_rule_id}}"
+              ]
+            },
+            "description": "Update the specified price rule\n\nPath Parameters:\n- price_rule_id (required, integer)\n\nRequest Fields:\n- name (optional, string, max: 255)\n- description (optional, string)\n- match_type (optional, enum: all, any)\n- action_operator (optional, enum: +, -, =)\n- action_mode (optional, enum: absolute, percentage)\n- action_value (optional, numeric, min: 0)\n- status (optional, enum: active, in_active)\n- conditions (optional, array, min: 1) - replaces existing conditions"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Price Rule",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/price-rules/{{price_rule_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "price-rules",
+                "{{price_rule_id}}"
+              ]
+            },
+            "description": "Remove the specified price rule\n\nPath Parameters:\n- price_rule_id (required, integer)"
+          },
+          "response": []
+        },
+        {
+          "name": "Preview Price Rule",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Preview Discount\",\n  \"description\": \"Test discount\",\n  \"match_type\": \"all\",\n  \"action_operator\": \"-\",\n  \"action_mode\": \"percentage\",\n  \"action_value\": 10,\n  \"status\": \"active\",\n  \"conditions\": [\n    {\n      \"field\": \"brand_id\",\n      \"operator\": \"=\",\n      \"value\": \"1\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/price-rules/preview",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "price-rules",
+                "preview"
+              ]
+            },
+            "description": "Preview the effect of a price rule without saving it\n\nRequest Fields: Same as Create Price Rule (all fields required for preview)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "15. Sale Orders",
+      "item": [
+        {
+          "name": "List Sale Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sale-orders?per_page=10&order_number=&source=&status=",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "sale-orders"
+              ],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "10",
+                  "disabled": true
+                },
+                {
+                  "key": "order_number",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "source",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Sale Order Status enum values: pending, completed, cancelled"
+                }
+              ]
+            },
+            "description": "Get paginated list of sale orders with optional filtering\n\nQuery Parameters:\n- per_page (optional, integer 1-100): Items per page, default 10\n- order_number (optional, string): Filter by order number\n- source (optional, string): Filter by source\n- status (optional, string): Filter by status - Enum: pending, completed, cancelled\n\nPermission Required: view_sale_order"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Sale Order Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sale-orders/{{sale_order_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "sale-orders",
+                "{{sale_order_id}}"
+              ]
+            },
+            "description": "Get detailed information for a specific sale order including items and products\n\nPath Parameters:\n- sale_order_id (required, integer)\n\nPermission Required: view_sale_order"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "16. Voucher Audit Logs",
+      "item": [
+        {
+          "name": "List Voucher Audit Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/voucher-audit-logs?per_page=10&page=1&name=&start_date=&end_date=",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "voucher-audit-logs"
+              ],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "10",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "name",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "start_date",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Date format: YYYY-MM-DD"
+                },
+                {
+                  "key": "end_date",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Date format: YYYY-MM-DD, must be >= start_date"
+                }
+              ]
+            },
+            "description": "Get paginated list of voucher audit logs with optional date range and name filtering\n\nQuery Parameters:\n- per_page (optional, integer 1-100): Items per page, default 10\n- page (optional, integer >= 1): Page number for pagination\n- name (optional, string): Filter by voucher name\n- start_date (optional, date YYYY-MM-DD): Filter from start date\n- end_date (optional, date YYYY-MM-DD): Filter until end date, must be >= start_date\n\nPermission Required: view_voucher_audit_log"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "17. Activity Logs",
+      "item": [
+        {
+          "name": "List Activity Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/activity-logs?user_id=&event=&date_from=&date_to=",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "activity-logs"
+              ],
+              "query": [
+                {
+                  "key": "user_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "event",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "date_from",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Date format: YYYY-MM-DD"
+                },
+                {
+                  "key": "date_to",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Date format: YYYY-MM-DD"
+                }
+              ]
+            },
+            "description": "Get list of activity logs with optional filtering by user, event, and date range\n\nQuery Parameters:\n- user_id (optional, integer): Filter by user ID, must exist in users table\n- event (optional, string): Filter by event type or name\n- date_from (optional, date YYYY-MM-DD): Filter from start date\n- date_to (optional, date YYYY-MM-DD): Filter until end date\n\nPermission Required: view_activity_log"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "18. Supplier KPI",
+      "item": [
+        {
+          "name": "List Supplier KPIs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/suppliers/kpis?supplier_id=&per_page=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "suppliers",
+                "kpis"
+              ],
+              "query": [
+                {
+                  "key": "supplier_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "10",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get paginated list of supplier Key Performance Indicators (KPIs)\n\nQuery Parameters:\n- supplier_id (optional, integer): Filter by specific supplier, must exist in suppliers table\n- per_page (optional, integer >= 1): Items per page for pagination, default 10\n\nPermission Required: view_supplier_kpi"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "role_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "brand_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "supplier_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "product_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "digital_product_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "purchase_order_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "voucher_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "price_rule_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sale_order_id",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

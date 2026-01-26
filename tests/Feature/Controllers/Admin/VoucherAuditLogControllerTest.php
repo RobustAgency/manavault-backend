@@ -17,7 +17,7 @@ class VoucherAuditLogControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->admin = User::factory()->create(['role' => 'admin']);
+        $this->admin = User::factory()->create(['role' => 'super_admin']);
     }
 
     public function test_it_can_list_all_voucher_audit_logs()
@@ -31,7 +31,7 @@ class VoucherAuditLogControllerTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->admin, 'supabase')
-            ->getJson('/api/admin/voucher-audit-logs');
+            ->getJson('/api/voucher-audit-logs');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -91,7 +91,7 @@ class VoucherAuditLogControllerTest extends TestCase
         $endDate = now()->format('Y-m-d');
 
         $response = $this->actingAs($this->admin, 'supabase')
-            ->getJson("/api/admin/voucher-audit-logs?start_date={$startDate}&end_date={$endDate}");
+            ->getJson("/api/voucher-audit-logs?start_date={$startDate}&end_date={$endDate}");
 
         $response->assertStatus(200);
         $this->assertEquals(4, $response->json('data.total'));
@@ -108,7 +108,7 @@ class VoucherAuditLogControllerTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->admin, 'supabase')
-            ->getJson('/api/admin/voucher-audit-logs?per_page=10&page=1');
+            ->getJson('/api/voucher-audit-logs?per_page=10&page=1');
 
         $response->assertStatus(200);
         $this->assertEquals(10, $response->json('data.per_page'));
@@ -142,7 +142,7 @@ class VoucherAuditLogControllerTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->admin, 'supabase')
-            ->getJson('/api/admin/voucher-audit-logs');
+            ->getJson('/api/voucher-audit-logs');
 
         $response->assertStatus(200);
         $data = $response->json('data.data');
@@ -154,7 +154,7 @@ class VoucherAuditLogControllerTest extends TestCase
 
     public function test_it_requires_authentication()
     {
-        $response = $this->getJson('/api/admin/voucher-audit-logs');
+        $response = $this->getJson('/api/voucher-audit-logs');
 
         $response->assertStatus(401);
     }
@@ -162,7 +162,7 @@ class VoucherAuditLogControllerTest extends TestCase
     public function test_it_validates_date_range()
     {
         $response = $this->actingAs($this->admin, 'supabase')
-            ->getJson('/api/admin/voucher-audit-logs?start_date=2025-12-01&end_date=2025-11-01');
+            ->getJson('/api/voucher-audit-logs?start_date=2025-12-01&end_date=2025-11-01');
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['end_date']);
@@ -179,7 +179,7 @@ class VoucherAuditLogControllerTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->admin, 'supabase')
-            ->getJson('/api/admin/voucher-audit-logs');
+            ->getJson('/api/voucher-audit-logs');
 
         $response->assertStatus(200);
         $data = $response->json('data.data.0');
