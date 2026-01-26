@@ -50,10 +50,10 @@ Route::middleware(['auth:supabase', 'user.approved'])->group(function () {
         Route::get('', [ProductController::class, 'index'])->middleware('permission:view_product');
         Route::post('', [ProductController::class, 'store'])->middleware('permission:create_product');
         Route::get('/{product}', [ProductController::class, 'show'])->middleware('permission:view_product');
-        Route::post('/{product}/digital-products/priority', [ProductController::class, 'updateDigitalProductsPriority'])->middleware('permission:update_product');
-        Route::post('/{product}/digital_products', [ProductController::class, 'assignDigitalProducts'])->middleware('permission:update_product');
         Route::post('/{product}', [ProductController::class, 'update'])->middleware('permission:update_product');
         Route::delete('/{product}', [ProductController::class, 'destroy'])->middleware('permission:delete_product');
+        Route::post('/{product}/digital-products/priority', [ProductController::class, 'updateDigitalProductsPriority'])->middleware('permission:update_product');
+        Route::post('/{product}/digital_products', [ProductController::class, 'assignDigitalProducts'])->middleware('permission:update_product');
     });
 
     Route::prefix('/digital-products')->controller(DigitalProductController::class)->group(function () {
