@@ -33,5 +33,6 @@
         <env name="SUPABASE_URL" value="http://fake-supabase.local"/>
         <env name="SUPABASE_KEY" value="fake-service-key"/>
         <env name="SUPABASE_JWT_SECRET" value="fake-jwt-secret"/>
+        <env name="MANASTORE_API_KEY" value="test-manastore-api-key"/>
     </php>
 </phpunit>
