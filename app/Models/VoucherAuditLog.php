@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 class VoucherAuditLog extends Model
 {
@@ -34,20 +33,5 @@ class VoucherAuditLog extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    /**
-     * @return HasOneThrough<DigitalProduct, PurchaseOrderItem, $this>
-     */
-    public function digitalProduct(): HasOneThrough
-    {
-        return $this->hasOneThrough(
-            DigitalProduct::class,
-            PurchaseOrderItem::class,
-            'id',
-            'id',
-            'voucher_id',
-            'digital_product_id'
-        );
     }
 }
