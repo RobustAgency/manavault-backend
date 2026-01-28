@@ -4,6 +4,7 @@ namespace App\Services\PurchaseOrder;
 
 use App\Models\PurchaseOrder;
 use App\Enums\PurchaseOrderStatus;
+use App\Events\PurchaseOrderFulfill;
 use App\Enums\PurchaseOrderSupplierStatus;
 
 class PurchaseOrderStatusService
@@ -11,7 +12,6 @@ class PurchaseOrderStatusService
     public function updateStatus(PurchaseOrder $purchaseOrder): void
     {
         $purchaseOrder->load('vouchers');
-        $totalVouchers = $purchaseOrder->vouchers()->count();
 
         // Get the total quantity from all purchase order items
         $expectedQuantity = $purchaseOrder->totalQuantity();
@@ -24,6 +24,7 @@ class PurchaseOrderStatusService
         if ($availableVouchers == $expectedQuantity) {
             $purchaseOrder->update(['status' => PurchaseOrderStatus::COMPLETED->value]);
             $purchaseOrder->purchaseOrderSuppliers()->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
+            event(new PurchaseOrderFulfill($purchaseOrder));
         }
     }
 }
