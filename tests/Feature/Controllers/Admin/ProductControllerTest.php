@@ -507,7 +507,7 @@ class ProductControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson(['error' => false])
-            ->assertJsonPath('data.fulfillment_mode', FulfillmentMode::MANUAL->value);
+            ->assertJsonPath('data.is_custom_fulfillment_mode', true);
 
         $this->assertDatabaseHas('products', [
             'id' => $product->id,
@@ -538,7 +538,7 @@ class ProductControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson(['error' => false])
-            ->assertJsonPath('data.fulfillment_mode', FulfillmentMode::PRICE->value);
+            ->assertJsonPath('data.is_custom_fulfillment_mode', false);
 
         $this->assertDatabaseHas('products', [
             'id' => $product->id,
