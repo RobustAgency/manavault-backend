@@ -12,12 +12,14 @@ use App\Repositories\VoucherRepository;
 use App\Http\Requests\ListVouchersRequest;
 use App\Http\Requests\Voucher\ShowVoucherRequest;
 use App\Http\Requests\Voucher\StoreVoucherRequest;
+use App\Services\Voucher\VoucherPurchaseOrderValidator;
 
 class VoucherController extends Controller
 {
     public function __construct(
         private VoucherRepository $voucherRepository,
         private VoucherAuditService $voucherAuditService,
+        private VoucherPurchaseOrderValidator $voucherPurchaseOrderValidator
     ) {}
 
     public function index(ListVouchersRequest $request): JsonResponse
@@ -40,10 +42,12 @@ class VoucherController extends Controller
 
     public function store(StoreVoucherRequest $request): JsonResponse
     {
-        $validated = $request->validated();
+        $validatedFormRequest = $request->validated();
+
+        $this->voucherPurchaseOrderValidator->validate($validatedFormRequest);
 
         try {
-            $this->voucherRepository->storeVouchers($validated);
+            $this->voucherRepository->storeVouchers($validatedFormRequest);
 
             return response()->json([
                 'error' => false,
