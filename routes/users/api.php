@@ -28,10 +28,12 @@ Route::middleware(['auth:supabase', 'user.approved'])->group(function () {
     Route::prefix('/users')->controller(UserController::class)->group(function () {
         Route::get('', 'index')->middleware('permission:view_user');
         Route::get('/search', 'search')->middleware('permission:view_user');
+        Route::post('', 'store')->middleware('permission:create_user');
         Route::get('/{user}', 'show')->middleware('permission:view_user');
         Route::post('/{user}/approve', 'approve')->middleware('permission:update_user');
         Route::post('/{user}/revoke-approval', 'revokeApproval')->middleware('permission:update_user');
         Route::post('/{user}/assign-roles', 'assignRoles')->middleware('permission:update_user');
+        Route::delete('/{user}', 'destroy')->middleware('permission:delete_user');
     });
 
     Route::prefix('/suppliers')->group(function () {
