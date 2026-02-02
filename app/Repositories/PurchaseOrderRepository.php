@@ -197,4 +197,16 @@ class PurchaseOrderRepository
             default => throw new \RuntimeException("Unknown external supplier: {$supplier->slug}"),
         };
     }
+
+    public function getPurchaseOrderByID(int $purchaseOrderID): PurchaseOrder
+    {
+        /** @var PurchaseOrder|null $purchaseOrder */
+        $purchaseOrder = PurchaseOrder::with('items')->find($purchaseOrderID);
+
+        if (! $purchaseOrder) {
+            throw new \RuntimeException('Purchase order not found with ID: '.$purchaseOrderID);
+        }
+
+        return $purchaseOrder;
+    }
 }

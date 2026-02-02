@@ -2,17 +2,14 @@
 
 namespace App\Imports;
 
-use RuntimeException;
-use App\Models\Voucher;
-use App\Models\PurchaseOrder;
 use Illuminate\Support\Collection;
-use App\Services\VoucherCipherService;
-use Illuminate\Support\Facades\Validator;
 use Maatwebsite\Excel\Concerns\ToCollection;
-use Illuminate\Validation\ValidationException;
+use App\Repositories\PurchaseOrderRepository;
+use App\Services\Voucher\VoucherCipherService;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithBatchInserts;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
+use App\Services\Voucher\VoucherPurchaseOrderValidator;
 
 class VoucherImport implements ToCollection, WithBatchInserts, WithChunkReading, WithHeadingRow
 {
@@ -28,11 +25,20 @@ class VoucherImport implements ToCollection, WithBatchInserts, WithChunkReading,
 
     protected VoucherCipherService $voucherCipherService;
 
-    public function __construct(VoucherCipherService $voucherCipherService, int $purchaseOrderID, int $purchaseOrderTotalQuantity)
-    {
+    protected VoucherPurchaseOrderValidator $validator;
+
+    protected PurchaseOrderRepository $purchaseOrderRepo;
+
+    public function __construct(
+        int $purchaseOrderID,
+        PurchaseOrderRepository $purchaseOrderRepo,
+        VoucherCipherService $voucherCipherService,
+        VoucherPurchaseOrderValidator $validator
+    ) {
         $this->purchaseOrderID = $purchaseOrderID;
-        $this->purchaseOrderTotalQuantity = $purchaseOrderTotalQuantity;
+        $this->purchaseOrderRepo = $purchaseOrderRepo;
         $this->voucherCipherService = $voucherCipherService;
+        $this->validator = $validator;
     }
 
     /**
@@ -40,51 +46,21 @@ class VoucherImport implements ToCollection, WithBatchInserts, WithChunkReading,
      */
     public function collection(Collection $rows): void
     {
-        $totalRows = $rows->count();
+        $rows = $rows->toArray();
+        $this->validator->validate($rows);
+        foreach ($rows as $row) {
+            $purchaseOrder = $this->purchaseOrderRepo->getPurchaseOrderByID($this->purchaseOrderID);
+            $digitalProductID = $row['digital_product_id'];
+            $purchaseOrderItem = $purchaseOrder->items->firstWhere('digital_product_id', $digitalProductID);
 
-        if ($totalRows !== $this->purchaseOrderTotalQuantity) {
-            throw new RuntimeException("The number of voucher codes ({$totalRows}) does not match the total quantity of the purchase order ({$this->purchaseOrderTotalQuantity}).");
-        }
-
-        try {
-            $purchaseOrder = PurchaseOrder::find($this->purchaseOrderID);
-            foreach ($rows as $row) {
-                // @phpstan-ignore function.impossibleType
-                $rowData = is_array($row) ? $row : $row->toArray();
-
-                $this->validateRow($rowData);
-                $code = $this->voucherCipherService->encryptCode($rowData['code']);
-                $digitalProductID = $rowData['digital_product_id'];
-                $purchaseOrderItem = $purchaseOrder->items->firstWhere('digital_product_id', $digitalProductID);
-
-                if (! $purchaseOrderItem) {
-                    throw new RuntimeException("Digital product ID {$digitalProductID} does not exist in the purchase order items.");
-                }
-
-                Voucher::create([
-                    'code' => $code,
-                    'purchase_order_id' => $this->purchaseOrderID,
-                    'purchase_order_item_id' => $purchaseOrderItem->id,
-                    'status' => 'available',
-                ]);
-                $this->successCount++;
-            }
-        } catch (ValidationException $e) {
-            throw new RuntimeException($e->getMessage());
-        } catch (\Exception $e) {
-            throw $e;
-        }
-    }
-
-    protected function validateRow(array $data): void
-    {
-        $validator = Validator::make($data, [
-            'code' => 'required|string|max:255|unique:vouchers,code',
-            'digital_product_id' => 'required|integer|exists:digital_products,id',
-        ]);
-
-        if ($validator->fails()) {
-            throw new ValidationException($validator);
+            $data = [
+                'purchase_order_id' => $this->purchaseOrderID,
+                'purchase_order_item_id' => $purchaseOrderItem->id,
+                'code' => $this->voucherCipherService->encryptCode($row['code']),
+                'serial_number' => $row['serial_number'] ?? null,
+                'pin_code' => $row['pin_code'] ?? null,
+                'status' => 'available',
+            ];
         }
     }
 
