@@ -6,6 +6,7 @@ use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
 use App\Enums\Product\FulfillmentMode;
+use App\Events\DigitalProductAssigned;
 use App\Http\Resources\ProductResource;
 use App\Repositories\ProductRepository;
 use App\Http\Requests\Product\ListProductRequest;
@@ -98,6 +99,8 @@ class ProductController extends Controller
         $validated = $request->validated();
 
         $product->digitalProducts()->syncWithoutDetaching($validated['digital_product_ids']);
+
+        event(new DigitalProductAssigned($product));
 
         return response()->json([
             'error' => false,

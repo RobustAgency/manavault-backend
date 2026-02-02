@@ -22,7 +22,7 @@ class ProductControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->admin = User::factory()->create(['role' => 'admin']);
+        $this->admin = User::factory()->create(['role' => 'super_admin']);
     }
 
     public function test_admin_list_products(): void
@@ -31,7 +31,7 @@ class ProductControllerTest extends TestCase
 
         Product::factory()->count(5)->create();
 
-        $response = $this->getJson('/api/admin/products');
+        $response = $this->getJson('/api/products');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -75,7 +75,7 @@ class ProductControllerTest extends TestCase
         Product::factory()->count(3)->create(['status' => 'active']);
         Product::factory()->count(2)->create(['status' => 'inactive']);
 
-        $response = $this->getJson('/api/admin/products?status=active');
+        $response = $this->getJson('/api/products?status=active');
 
         $response->assertStatus(200);
         $this->assertCount(3, $response->json('data.data'));
@@ -87,7 +87,7 @@ class ProductControllerTest extends TestCase
 
         Product::factory()->count(25)->create();
 
-        $response = $this->getJson('/api/admin/products?per_page=5');
+        $response = $this->getJson('/api/products?per_page=5');
 
         $response->assertStatus(200)
             ->assertJsonPath('data.per_page', 5)
@@ -105,7 +105,7 @@ class ProductControllerTest extends TestCase
             'selling_price' => 99.99,
         ]);
 
-        $response = $this->getJson("/api/admin/products/{$product->id}");
+        $response = $this->getJson("/api/products/{$product->id}");
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -144,7 +144,7 @@ class ProductControllerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        $response = $this->getJson('/api/admin/products/999999');
+        $response = $this->getJson('/api/products/999999');
 
         $response->assertStatus(404);
     }
@@ -173,7 +173,7 @@ class ProductControllerTest extends TestCase
             'regions' => ['US', 'CA'],
         ];
 
-        $response = $this->postJson('/api/admin/products', $data);
+        $response = $this->postJson('/api/products', $data);
 
         $response->assertStatus(201)
             ->assertJsonStructure([
@@ -236,7 +236,7 @@ class ProductControllerTest extends TestCase
             'selling_price' => 199.99,
         ];
 
-        $response = $this->postJson("/api/admin/products/{$product->id}", $updateData);
+        $response = $this->postJson("/api/products/{$product->id}", $updateData);
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -286,7 +286,7 @@ class ProductControllerTest extends TestCase
 
         $product = Product::factory()->create();
 
-        $response = $this->deleteJson("/api/admin/products/{$product->id}");
+        $response = $this->deleteJson("/api/products/{$product->id}");
 
         $response->assertStatus(200)
             ->assertJson([
@@ -303,14 +303,14 @@ class ProductControllerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        $response = $this->deleteJson('/api/admin/products/999999');
+        $response = $this->deleteJson('/api/products/999999');
 
         $response->assertStatus(404);
     }
 
     public function test_unauthenticated_user_access_products(): void
     {
-        $response = $this->getJson('/api/admin/products');
+        $response = $this->getJson('/api/products');
 
         $response->assertStatus(401);
     }
@@ -322,7 +322,7 @@ class ProductControllerTest extends TestCase
             'selling_price' => 99.99,
         ];
 
-        $response = $this->postJson('/api/admin/products', $data);
+        $response = $this->postJson('/api/products', $data);
 
         $response->assertStatus(401);
     }
@@ -332,7 +332,7 @@ class ProductControllerTest extends TestCase
         $this->actingAs($this->admin);
 
         // Test per_page exceeds maximum
-        $response = $this->getJson('/api/admin/products?per_page=150');
+        $response = $this->getJson('/api/products?per_page=150');
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['per_page']);
@@ -342,10 +342,10 @@ class ProductControllerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        $product = Product::factory()->create();
-        $digitalProducts = DigitalProduct::factory()->count(3)->create();
+        $product = Product::factory()->create(['currency' => 'usd']);
+        $digitalProducts = DigitalProduct::factory()->count(3)->create(['currency' => 'usd']);
 
-        $response = $this->postJson('/api/admin/products/'.$product->id.'/digital_products', [
+        $response = $this->postJson('/api/products/'.$product->id.'/digital_products', [
             'digital_product_ids' => $digitalProducts->pluck('id')->toArray(),
         ]);
 
@@ -364,16 +364,127 @@ class ProductControllerTest extends TestCase
         }
     }
 
+    public function test_assign_digital_products_missing_required_field(): void
+    {
+        $this->actingAs($this->admin);
+
+        $product = Product::factory()->create();
+
+        $response = $this->postJson('/api/products/'.$product->id.'/digital_products', []);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['digital_product_ids']);
+    }
+
+    public function test_assign_digital_products_empty_array(): void
+    {
+        $this->actingAs($this->admin);
+
+        $product = Product::factory()->create();
+
+        $response = $this->postJson('/api/products/'.$product->id.'/digital_products', [
+            'digital_product_ids' => [],
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['digital_product_ids']);
+    }
+
+    public function test_assign_digital_products_with_currency_mismatch(): void
+    {
+        $this->actingAs($this->admin);
+
+        $product = Product::factory()->create(['currency' => 'usd']);
+        $digitalProductUsd = DigitalProduct::factory()->create(['currency' => 'usd']);
+        $digitalProductEur = DigitalProduct::factory()->create(['currency' => 'eur']);
+
+        $response = $this->postJson('/api/products/'.$product->id.'/digital_products', [
+            'digital_product_ids' => [$digitalProductUsd->id, $digitalProductEur->id],
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['digital_product_ids.1']);
+
+        // Verify the error message mentions currency mismatch
+        $errors = $response->json('errors');
+        $this->assertStringContainsString('currency', $errors['digital_product_ids.1'][0]);
+    }
+
+    public function test_assign_digital_products_all_matching_currency(): void
+    {
+        $this->actingAs($this->admin);
+
+        $product = Product::factory()->create(['currency' => 'gbp']);
+        $digitalProducts = DigitalProduct::factory()->count(3)->create(['currency' => 'gbp']);
+
+        $response = $this->postJson('/api/products/'.$product->id.'/digital_products', [
+            'digital_product_ids' => $digitalProducts->pluck('id')->toArray(),
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('error', false);
+
+        foreach ($digitalProducts as $digitalProduct) {
+            $this->assertDatabaseHas('product_supplier', [
+                'product_id' => $product->id,
+                'digital_product_id' => $digitalProduct->id,
+            ]);
+        }
+    }
+
     public function test_assign_digital_products_with_invalid_product(): void
     {
         $this->actingAs($this->admin);
 
-        $response = $this->postJson('/api/admin/products/999999/digital_products', [
+        $response = $this->postJson('/api/products/999999/digital_products', [
             'digital_product_ids' => [1, 2, 3],
         ]
         );
 
         $response->assertStatus(404);
+    }
+
+    public function test_assign_digital_products_with_nonexistent_digital_product(): void
+    {
+        $this->actingAs($this->admin);
+
+        $product = Product::factory()->create(['currency' => 'usd']);
+        $validDigitalProduct = DigitalProduct::factory()->create(['currency' => 'usd']);
+
+        $response = $this->postJson('/api/products/'.$product->id.'/digital_products', [
+            'digital_product_ids' => [$validDigitalProduct->id, 999999],
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['digital_product_ids.1']);
+    }
+
+    public function test_assign_digital_products_with_invalid_data_type(): void
+    {
+        $this->actingAs($this->admin);
+
+        $product = Product::factory()->create();
+
+        $response = $this->postJson('/api/products/'.$product->id.'/digital_products', [
+            'digital_product_ids' => 'not-an-array',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['digital_product_ids']);
+    }
+
+    public function test_assign_digital_products_with_non_integer_ids(): void
+    {
+        $this->actingAs($this->admin);
+
+        $product = Product::factory()->create();
+
+        $response = $this->postJson('/api/products/'.$product->id.'/digital_products', [
+            'digital_product_ids' => ['one', 'two', 'three'],
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['digital_product_ids.0', 'digital_product_ids.1', 'digital_product_ids.2']);
     }
 
     public function test_update_product_with_custom_priority_sets_manual_fulfillment_mode(): void
@@ -392,7 +503,7 @@ class ProductControllerTest extends TestCase
             'is_custom_priority' => true,
         ];
 
-        $response = $this->postJson("/api/admin/products/{$product->id}", $data);
+        $response = $this->postJson("/api/products/{$product->id}", $data);
 
         $response->assertStatus(200)
             ->assertJson(['error' => false])
@@ -423,7 +534,7 @@ class ProductControllerTest extends TestCase
             'is_custom_priority' => false,
         ];
 
-        $response = $this->postJson("/api/admin/products/{$product->id}", $data);
+        $response = $this->postJson("/api/products/{$product->id}", $data);
 
         $response->assertStatus(200)
             ->assertJson(['error' => false])

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
+use App\Http\Resources\UserResource;
 use Illuminate\Support\Facades\Auth;
 
 class ProfileController extends Controller
@@ -23,6 +24,18 @@ class ProfileController extends Controller
             'error' => false,
             'message' => 'Profile retrieved successfully.',
             'data' => $data,
+        ]);
+    }
+
+    public function userInfo(): JsonResponse
+    {
+        /** @var User $user */
+        $user = Auth::user();
+
+        return response()->json([
+            'error' => false,
+            'message' => 'User info retrieved successfully.',
+            'data' => new UserResource($user),
         ]);
     }
 }

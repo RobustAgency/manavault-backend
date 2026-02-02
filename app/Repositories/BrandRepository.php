@@ -26,7 +26,7 @@ class BrandRepository
 
         $perPage = $filters['per_page'] ?? 15;
 
-        return $query->orderBy('name', 'asc')->paginate($perPage);
+        return $query->orderBy('created_at', 'desc')->paginate($perPage);
     }
 
     /**

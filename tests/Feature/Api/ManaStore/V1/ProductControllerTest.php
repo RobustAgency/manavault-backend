@@ -324,22 +324,167 @@ class ProductControllerTest extends TestCase
     }
 
     /**
-     * Test: Get products with pagination-like data
+     * Test: Get products filters by product ids parameter
      */
-    public function test_get_products_with_large_dataset(): void
+    public function test_get_products_filters_by_product_ids(): void
     {
         $brand = Brand::factory()->create();
-        Product::factory()->count(100)->create(['brand_id' => $brand->id]);
+        $product1 = Product::factory()->create(['brand_id' => $brand->id]);
+        $product2 = Product::factory()->create(['brand_id' => $brand->id]);
+        Product::factory()->count(3)->create(['brand_id' => $brand->id]);
+
+        $response = $this->withHeader('x-api-key', $this->token)
+            ->getJson("{$this->endpoint}?ids[]={$product1->id}&ids[]={$product2->id}");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'error' => false,
+                'message' => 'Products retrieved successfully.',
+            ]);
+
+        $this->assertCount(2, $response->json('data.data'));
+        $retrievedIds = collect($response->json('data.data'))->pluck('id')->all();
+        $this->assertContains($product1->id, $retrievedIds);
+        $this->assertContains($product2->id, $retrievedIds);
+    }
+
+    /**
+     * Test: Get products with single product id
+     */
+    public function test_get_products_with_single_product_id(): void
+    {
+        $brand = Brand::factory()->create();
+        $product = Product::factory()->create(['brand_id' => $brand->id]);
+        Product::factory()->count(2)->create(['brand_id' => $brand->id]);
+
+        $response = $this->withHeader('x-api-key', $this->token)
+            ->getJson("{$this->endpoint}?ids[]={$product->id}");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'error' => false,
+                'message' => 'Products retrieved successfully.',
+            ]);
+
+        $this->assertCount(1, $response->json('data.data'));
+        $this->assertEquals($product->id, $response->json('data.data.0.id'));
+    }
+
+    /**
+     * Test: Get products with nonexistent product ids returns empty
+     */
+    public function test_get_products_with_nonexistent_product_ids_returns_validation_error(): void
+    {
+        Brand::factory()->create();
+        Product::factory()->count(3)->create();
+
+        $response = $this->withHeader('x-api-key', $this->token)
+            ->getJson("{$this->endpoint}?ids[]=9999&ids[]=10000");
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['ids.0', 'ids.1']);
+    }
+
+    /**
+     * Test: Get products with mixed valid and invalid ids
+     */
+    public function test_get_products_with_mixed_valid_and_invalid_ids(): void
+    {
+        $brand = Brand::factory()->create();
+        $validProduct = Product::factory()->create(['brand_id' => $brand->id]);
+        Product::factory()->count(2)->create(['brand_id' => $brand->id]);
+
+        $response = $this->withHeader('x-api-key', $this->token)
+            ->getJson("{$this->endpoint}?ids[]={$validProduct->id}&ids[]=9999");
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['ids.1']);
+    }
+
+    /**
+     * Test: Get products without ids parameter returns all products
+     */
+    public function test_get_products_without_ids_parameter_returns_all_products(): void
+    {
+        $brand = Brand::factory()->create();
+        Product::factory()->count(5)->create(['brand_id' => $brand->id]);
 
         $response = $this->withHeader('x-api-key', $this->token)
             ->getJson($this->endpoint);
 
-        $response->assertStatus(200);
-        // Default pagination is 15 items per page, so we expect 15 items in the first request
-        $data = collect($response->json('data.data'));
-        $this->assertLessThanOrEqual(100, $data->count());
-        $this->assertGreaterThan(0, $data->count());
-        // Check total count in pagination metadata
-        $this->assertEquals(100, $response->json('data.total'));
+        $response->assertStatus(200)
+            ->assertJson([
+                'error' => false,
+                'message' => 'Products retrieved successfully.',
+            ]);
+
+        $this->assertCount(5, $response->json('data.data'));
+    }
+
+    /**
+     * Test: Get products with empty ids parameter returns all products
+     */
+    public function test_get_products_with_empty_ids_parameter_returns_all_products(): void
+    {
+        $brand = Brand::factory()->create();
+        Product::factory()->count(5)->create(['brand_id' => $brand->id]);
+
+        $response = $this->withHeader('x-api-key', $this->token)
+            ->getJson($this->endpoint);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'error' => false,
+                'message' => 'Products retrieved successfully.',
+            ]);
+
+        $this->assertCount(5, $response->json('data.data'));
+    }
+
+    /**
+     * Test: Get products with multiple ids maintains data structure
+     */
+    public function test_get_products_with_multiple_ids_maintains_data_structure(): void
+    {
+        $brand = Brand::factory()->create();
+        $product1 = Product::factory()->create([
+            'brand_id' => $brand->id,
+            'name' => 'Product 1',
+            'face_value' => 50.00,
+            'selling_price' => 60.00,
+        ]);
+        $product2 = Product::factory()->create([
+            'brand_id' => $brand->id,
+            'name' => 'Product 2',
+            'face_value' => 100.00,
+            'selling_price' => 120.00,
+        ]);
+
+        $response = $this->withHeader('x-api-key', $this->token)
+            ->getJson("{$this->endpoint}?ids[]={$product1->id}&ids[]={$product2->id}");
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'error',
+                'data' => [
+                    'data' => [
+                        '*' => [
+                            'id',
+                            'name',
+                            'brand_id',
+                            'face_value',
+                            'selling_price',
+                            'status',
+                        ],
+                    ],
+                    'total',
+                    'per_page',
+                    'current_page',
+                ],
+                'message',
+            ]);
+
+        $data = $response->json('data.data');
+        $this->assertCount(2, $data);
     }
 }

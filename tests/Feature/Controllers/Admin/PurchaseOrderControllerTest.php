@@ -20,7 +20,7 @@ class PurchaseOrderControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->admin = User::factory()->create(['role' => 'admin']);
+        $this->admin = User::factory()->create(['role' => 'super_admin']);
     }
 
     public function test_admin_list_purchase_orders(): void
@@ -29,7 +29,7 @@ class PurchaseOrderControllerTest extends TestCase
 
         PurchaseOrder::factory()->count(5)->create();
 
-        $response = $this->getJson('/api/admin/purchase-orders');
+        $response = $this->getJson('/api/purchase-orders');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -63,7 +63,7 @@ class PurchaseOrderControllerTest extends TestCase
 
         PurchaseOrder::factory()->count(25)->create();
 
-        $response = $this->getJson('/api/admin/purchase-orders?per_page=5');
+        $response = $this->getJson('/api/purchase-orders?per_page=5');
 
         $response->assertStatus(200)
             ->assertJsonPath('data.per_page', 5)
@@ -78,7 +78,7 @@ class PurchaseOrderControllerTest extends TestCase
 
         $purchaseOrder = PurchaseOrder::factory()->create();
 
-        $response = $this->getJson("/api/admin/purchase-orders/{$purchaseOrder->id}");
+        $response = $this->getJson("/api/purchase-orders/{$purchaseOrder->id}");
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -118,6 +118,7 @@ class PurchaseOrderControllerTest extends TestCase
         ]);
 
         $data = [
+            'currency' => 'usd',
             'items' => [
                 [
                     'supplier_id' => $supplier->id,
@@ -127,7 +128,7 @@ class PurchaseOrderControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->postJson('/api/admin/purchase-orders', $data);
+        $response = $this->postJson('/api/purchase-orders', $data);
 
         $response->assertStatus(201)
             ->assertJsonStructure([
@@ -188,6 +189,7 @@ class PurchaseOrderControllerTest extends TestCase
         ]);
 
         $data = [
+            'currency' => 'usd',
             'items' => [
                 [
                     'supplier_id' => $supplier->id,
@@ -197,7 +199,7 @@ class PurchaseOrderControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->postJson('/api/admin/purchase-orders', $data);
+        $response = $this->postJson('/api/purchase-orders', $data);
 
         $response->assertStatus(201)
             ->assertJson([
@@ -256,6 +258,7 @@ class PurchaseOrderControllerTest extends TestCase
         ]);
 
         $data = [
+            'currency' => 'usd',
             'items' => [
                 [
                     'supplier_id' => $supplier->id,
@@ -265,7 +268,7 @@ class PurchaseOrderControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->postJson('/api/admin/purchase-orders', $data);
+        $response = $this->postJson('/api/purchase-orders', $data);
 
         $response->assertStatus(201)
             ->assertJson([
@@ -298,6 +301,7 @@ class PurchaseOrderControllerTest extends TestCase
         $digitalProduct2 = DigitalProduct::factory()->create(['cost_price' => 15.00]);
 
         $data = [
+            'currency' => 'usd',
             'items' => [
                 [
                     'supplier_id' => $supplier->id,
@@ -312,7 +316,7 @@ class PurchaseOrderControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->postJson('/api/admin/purchase-orders', $data);
+        $response = $this->postJson('/api/purchase-orders', $data);
 
         $response->assertStatus(201)
             ->assertJson([
@@ -332,10 +336,11 @@ class PurchaseOrderControllerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        $response = $this->postJson('/api/admin/purchase-orders', []);
+        $response = $this->postJson('/api/purchase-orders', []);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors([
+                'currency',
                 'items',
             ]);
     }
@@ -344,10 +349,7 @@ class PurchaseOrderControllerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        $supplier = Supplier::factory()->create();
-
         $data = [
-            'supplier_id' => $supplier->id,
             'items' => [
                 [
                     'digital_product_id' => 999999,
@@ -356,7 +358,7 @@ class PurchaseOrderControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->postJson('/api/admin/purchase-orders', $data);
+        $response = $this->postJson('/api/purchase-orders', $data);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors([
@@ -381,7 +383,7 @@ class PurchaseOrderControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->postJson('/api/admin/purchase-orders', $data);
+        $response = $this->postJson('/api/purchase-orders', $data);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['items.0.digital_product_id']);
@@ -404,7 +406,7 @@ class PurchaseOrderControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->postJson('/api/admin/purchase-orders', $data);
+        $response = $this->postJson('/api/purchase-orders', $data);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['items.0.quantity']);
@@ -421,7 +423,7 @@ class PurchaseOrderControllerTest extends TestCase
             'items' => [],
         ];
 
-        $response = $this->postJson('/api/admin/purchase-orders', $data);
+        $response = $this->postJson('/api/purchase-orders', $data);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['items']);
@@ -429,7 +431,7 @@ class PurchaseOrderControllerTest extends TestCase
 
     public function test_unauthenticated_user_cannot_access_purchase_orders(): void
     {
-        $response = $this->getJson('/api/admin/purchase-orders');
+        $response = $this->getJson('/api/purchase-orders');
 
         $response->assertStatus(401);
     }
@@ -449,7 +451,7 @@ class PurchaseOrderControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->postJson('/api/admin/purchase-orders', $data);
+        $response = $this->postJson('/api/purchase-orders', $data);
 
         $response->assertStatus(401);
     }
@@ -458,8 +460,89 @@ class PurchaseOrderControllerTest extends TestCase
     {
         $purchaseOrder = PurchaseOrder::factory()->create();
 
-        $response = $this->getJson("/api/admin/purchase-orders/{$purchaseOrder->id}");
+        $response = $this->getJson("/api/purchase-orders/{$purchaseOrder->id}");
 
         $response->assertStatus(401);
+    }
+
+    public function test_purchase_order_requires_currency(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create();
+        $digitalProduct = DigitalProduct::factory()->create();
+
+        $data = [
+            'items' => [
+                [
+                    'supplier_id' => $supplier->id,
+                    'digital_product_id' => $digitalProduct->id,
+                    'quantity' => 5,
+                ],
+            ],
+        ];
+
+        $response = $this->postJson('/api/purchase-orders', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['currency']);
+    }
+
+    public function test_purchase_order_currency_must_match_digital_product_currency(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create();
+        $digitalProduct = DigitalProduct::factory()->create([
+            'currency' => 'EUR',
+        ]);
+
+        $data = [
+            'currency' => 'USD',
+            'items' => [
+                [
+                    'supplier_id' => $supplier->id,
+                    'digital_product_id' => $digitalProduct->id,
+                    'quantity' => 5,
+                ],
+            ],
+        ];
+
+        $response = $this->postJson('/api/purchase-orders', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['items.0.digital_product_id']);
+    }
+
+    public function test_purchase_order_creation_succeeds_when_currency_matches_digital_product(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create([
+            'type' => 'internal',
+        ]);
+        $digitalProduct = DigitalProduct::factory()->create([
+            'currency' => 'usd',
+            'cost_price' => 10.00,
+        ]);
+
+        $data = [
+            'currency' => 'usd',
+            'items' => [
+                [
+                    'supplier_id' => $supplier->id,
+                    'digital_product_id' => $digitalProduct->id,
+                    'quantity' => 5,
+                ],
+            ],
+        ];
+
+        $response = $this->postJson('/api/purchase-orders', $data);
+
+        $response->assertStatus(201)
+            ->assertJson([
+                'error' => false,
+                'message' => 'Purchase order created successfully.',
+            ]);
     }
 }

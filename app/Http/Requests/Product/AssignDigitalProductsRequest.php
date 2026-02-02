@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Product;
 
+use App\Models\DigitalProduct;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
 
 class AssignDigitalProductsRequest extends FormRequest
 {
@@ -55,5 +57,42 @@ class AssignDigitalProductsRequest extends FormRequest
             'digital_product_ids' => 'digital product IDs',
             'digital_product_ids.*' => 'digital product ID',
         ];
+    }
+
+    /**
+     * Configure the validator instance.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            // Only perform custom validation if the basic array validation passed
+            if ($validator->errors()->has('digital_product_ids')) {
+                return;
+            }
+
+            /** @var \App\Models\Product $product */
+            $product = $this->route('product');
+            $productCurrency = $product->currency;
+            /** @var array<int> $digitalProductIds */
+            $digitalProductIds = $this->input('digital_product_ids', []);
+
+            foreach ($digitalProductIds as $index => $digitalProductId) {
+                try {
+                    /** @var DigitalProduct $digitalProduct */
+                    $digitalProduct = DigitalProduct::findOrFail($digitalProductId);
+                    if ($digitalProduct->currency !== $productCurrency) {
+                        $validator->errors()->add(
+                            "digital_product_ids.{$index}",
+                            "The digital product currency must match the product currency ({$productCurrency})."
+                        );
+                    }
+                } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+                    $validator->errors()->add(
+                        "digital_product_ids.{$index}",
+                        'The selected digital product does not exist.'
+                    );
+                }
+            }
+        });
     }
 }

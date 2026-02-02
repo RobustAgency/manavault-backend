@@ -19,14 +19,14 @@ class DigitalProductControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->admin = User::factory()->create(['role' => 'admin']);
+        $this->admin = User::factory()->create(['role' => 'super_admin']);
     }
 
     public function test_admin_show_nonexistent_digital_product(): void
     {
         $this->actingAs($this->admin);
 
-        $response = $this->getJson('/api/admin/digital-products/999999');
+        $response = $this->getJson('/api/digital-products/999999');
 
         $response->assertStatus(404);
     }
@@ -54,7 +54,7 @@ class DigitalProductControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->postJson('/api/admin/digital-products', $data);
+        $response = $this->postJson('/api/digital-products', $data);
 
         $response->assertStatus(201)
             ->assertJsonStructure([
@@ -125,7 +125,7 @@ class DigitalProductControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->postJson('/api/admin/digital-products', $data);
+        $response = $this->postJson('/api/digital-products', $data);
 
         $response->assertStatus(201);
         $this->assertCount(3, $response->json('data'));
@@ -148,7 +148,7 @@ class DigitalProductControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->postJson('/api/admin/digital-products', $data);
+        $response = $this->postJson('/api/digital-products', $data);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors([
@@ -173,7 +173,7 @@ class DigitalProductControllerTest extends TestCase
             'cost_price' => 199.99,
         ];
 
-        $response = $this->postJson("/api/admin/digital-products/{$digitalProduct->id}", $updateData);
+        $response = $this->postJson("/api/digital-products/{$digitalProduct->id}", $updateData);
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -209,7 +209,7 @@ class DigitalProductControllerTest extends TestCase
 
         $digitalProduct = DigitalProduct::factory()->create();
 
-        $response = $this->deleteJson("/api/admin/digital-products/{$digitalProduct->id}");
+        $response = $this->deleteJson("/api/digital-products/{$digitalProduct->id}");
 
         $response->assertStatus(200)
             ->assertJson([
@@ -226,7 +226,7 @@ class DigitalProductControllerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        $response = $this->deleteJson('/api/admin/digital-products/999999');
+        $response = $this->deleteJson('/api/digital-products/999999');
 
         $response->assertStatus(404);
     }
@@ -246,7 +246,7 @@ class DigitalProductControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->postJson('/api/admin/digital-products', $data);
+        $response = $this->postJson('/api/digital-products', $data);
 
         $response->assertStatus(401);
     }
@@ -266,7 +266,7 @@ class DigitalProductControllerTest extends TestCase
 
         $uploadedFile = new UploadedFile($tempFile, 'vouchers.csv', 'text/csv', null, true);
 
-        $response = $this->postJson('/api/admin/digital-products/batch-import', [
+        $response = $this->postJson('/api/digital-products/batch-import', [
             'file' => $uploadedFile,
             'supplier_id' => $supplier->id,
         ]);
@@ -311,7 +311,7 @@ class DigitalProductControllerTest extends TestCase
 
         $file = \Illuminate\Http\UploadedFile::fake()->createWithContent('products.csv', $csvContent);
 
-        $response = $this->postJson('/api/admin/digital-products/batch-import', [
+        $response = $this->postJson('/api/digital-products/batch-import', [
             'file' => $file,
             'supplier_id' => $nonexistentSupplierId,
         ]);
@@ -331,7 +331,7 @@ class DigitalProductControllerTest extends TestCase
 
         $file = \Illuminate\Http\UploadedFile::fake()->createWithContent('products.csv', $csvContent);
 
-        $response = $this->postJson('/api/admin/digital-products/batch-import', [
+        $response = $this->postJson('/api/digital-products/batch-import', [
             'file' => $file,
             'supplier_id' => $supplier->id,
         ]);
@@ -354,7 +354,7 @@ class DigitalProductControllerTest extends TestCase
 
         $supplier = Supplier::factory()->create();
 
-        $response = $this->postJson('/api/admin/digital-products/batch-import', [
+        $response = $this->postJson('/api/digital-products/batch-import', [
             'supplier_id' => $supplier->id,
             // Missing 'file'
         ]);
@@ -372,7 +372,7 @@ class DigitalProductControllerTest extends TestCase
 
         $file = \Illuminate\Http\UploadedFile::fake()->createWithContent('products.csv', $csvContent);
 
-        $response = $this->postJson('/api/admin/digital-products/batch-import', [
+        $response = $this->postJson('/api/digital-products/batch-import', [
             'file' => $file,
             // Missing 'supplier_id'
         ]);
@@ -390,7 +390,7 @@ class DigitalProductControllerTest extends TestCase
 
         $file = \Illuminate\Http\UploadedFile::fake()->createWithContent('products.csv', $csvContent);
 
-        $response = $this->postJson('/api/admin/digital-products/batch-import', [
+        $response = $this->postJson('/api/digital-products/batch-import', [
             'file' => $file,
             'supplier_id' => $supplier->id,
         ]);

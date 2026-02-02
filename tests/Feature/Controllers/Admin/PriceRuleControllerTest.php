@@ -25,7 +25,7 @@ class PriceRuleControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->user = User::factory()->create(['role' => 'admin', 'is_approved' => true]);
+        $this->user = User::factory()->create(['role' => 'super_admin', 'is_approved' => true]);
         $this->brand = Brand::factory()->create();
     }
 
@@ -33,7 +33,7 @@ class PriceRuleControllerTest extends TestCase
     {
         PriceRule::factory()->count(5)->create();
 
-        $response = $this->actingAs($this->user)->getJson('/api/admin/price-rules');
+        $response = $this->actingAs($this->user)->getJson('/api/price-rules');
         $response->assertStatus(200)
             ->assertJsonStructure([
                 'error',
@@ -68,7 +68,7 @@ class PriceRuleControllerTest extends TestCase
         PriceRule::factory()->count(3)->create(['match_type' => 'all']);
         PriceRule::factory()->count(2)->create(['match_type' => 'any']);
 
-        $response = $this->actingAs($this->user)->getJson('/api/admin/price-rules?match_type=all');
+        $response = $this->actingAs($this->user)->getJson('/api/price-rules?match_type=all');
 
         $response->assertStatus(200)
             ->assertJson(['error' => false]);
@@ -81,7 +81,7 @@ class PriceRuleControllerTest extends TestCase
         PriceRule::factory()->count(2)->create(['action_mode' => ActionMode::PERCENTAGE->value]);
         PriceRule::factory()->count(3)->create(['action_mode' => ActionMode::ABSOLUTE->value]);
 
-        $response = $this->actingAs($this->user)->getJson('/api/admin/price-rules?action_mode=percentage');
+        $response = $this->actingAs($this->user)->getJson('/api/price-rules?action_mode=percentage');
 
         $response->assertStatus(200)
             ->assertJson(['error' => false]);
@@ -94,7 +94,7 @@ class PriceRuleControllerTest extends TestCase
         PriceRule::factory()->count(3)->create(['status' => Status::ACTIVE->value]);
         PriceRule::factory()->count(2)->create(['status' => Status::INACTIVE->value]);
 
-        $response = $this->actingAs($this->user)->getJson('/api/admin/price-rules?status=active');
+        $response = $this->actingAs($this->user)->getJson('/api/price-rules?status=active');
 
         $response->assertStatus(200)
             ->assertJson(['error' => false]);
@@ -106,7 +106,7 @@ class PriceRuleControllerTest extends TestCase
     {
         PriceRule::factory()->count(25)->create();
 
-        $response = $this->actingAs($this->user)->getJson('/api/admin/price-rules?per_page=10');
+        $response = $this->actingAs($this->user)->getJson('/api/price-rules?per_page=10');
 
         $response->assertStatus(200);
         $this->assertEquals(10, $response['data']['per_page']);
@@ -133,7 +133,7 @@ class PriceRuleControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->actingAs($this->user)->postJson('/api/admin/price-rules', $data);
+        $response = $this->actingAs($this->user)->postJson('/api/price-rules', $data);
 
         $response->assertStatus(200)
             ->assertJson([
@@ -173,7 +173,7 @@ class PriceRuleControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->actingAs($this->user)->postJson('/api/admin/price-rules', $data);
+        $response = $this->actingAs($this->user)->postJson('/api/price-rules', $data);
 
         $response->assertStatus(200)
             ->assertJson([
@@ -201,7 +201,7 @@ class PriceRuleControllerTest extends TestCase
             // Missing other required fields
         ];
 
-        $response = $this->actingAs($this->user)->postJson('/api/admin/price-rules', $data);
+        $response = $this->actingAs($this->user)->postJson('/api/price-rules', $data);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors([
@@ -232,7 +232,7 @@ class PriceRuleControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->actingAs($this->user)->postJson('/api/admin/price-rules', $data);
+        $response = $this->actingAs($this->user)->postJson('/api/price-rules', $data);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['action_value']);
@@ -250,7 +250,7 @@ class PriceRuleControllerTest extends TestCase
             'conditions' => [], // Empty conditions array
         ];
 
-        $response = $this->actingAs($this->user)->postJson('/api/admin/price-rules', $data);
+        $response = $this->actingAs($this->user)->postJson('/api/price-rules', $data);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['conditions']);
@@ -274,7 +274,7 @@ class PriceRuleControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->actingAs($this->user)->postJson('/api/admin/price-rules', $data);
+        $response = $this->actingAs($this->user)->postJson('/api/price-rules', $data);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['conditions.0.operator']);
@@ -298,7 +298,7 @@ class PriceRuleControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->actingAs($this->user)->postJson('/api/admin/price-rules', $data);
+        $response = $this->actingAs($this->user)->postJson('/api/price-rules', $data);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['conditions.0.operator']);
@@ -322,7 +322,7 @@ class PriceRuleControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->actingAs($this->user)->postJson('/api/admin/price-rules', $data);
+        $response = $this->actingAs($this->user)->postJson('/api/price-rules', $data);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['conditions.0.operator']);
@@ -346,7 +346,7 @@ class PriceRuleControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->actingAs($this->user)->postJson('/api/admin/price-rules', $data);
+        $response = $this->actingAs($this->user)->postJson('/api/price-rules', $data);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['conditions.0.operator']);
@@ -373,7 +373,7 @@ class PriceRuleControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->actingAs($this->user)->postJson('/api/admin/price-rules', $data);
+        $response = $this->actingAs($this->user)->postJson('/api/price-rules', $data);
 
         $response->assertStatus(200)
             ->assertJson([
@@ -425,7 +425,7 @@ class PriceRuleControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->actingAs($this->user)->postJson('/api/admin/price-rules', $data);
+        $response = $this->actingAs($this->user)->postJson('/api/price-rules', $data);
 
         $response->assertStatus(200)
             ->assertJson([
@@ -475,7 +475,7 @@ class PriceRuleControllerTest extends TestCase
             'value' => '100',
         ]);
 
-        $response = $this->actingAs($this->user)->getJson("/api/admin/price-rules/{$priceRule->id}");
+        $response = $this->actingAs($this->user)->getJson("/api/price-rules/{$priceRule->id}");
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -514,7 +514,7 @@ class PriceRuleControllerTest extends TestCase
 
     public function test_show_returns_404_for_nonexistent_rule(): void
     {
-        $response = $this->actingAs($this->user)->getJson('/api/admin/price-rules/999');
+        $response = $this->actingAs($this->user)->getJson('/api/price-rules/999');
 
         $response->assertStatus(404);
     }
@@ -543,7 +543,7 @@ class PriceRuleControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->actingAs($this->user)->postJson("/api/admin/price-rules/{$priceRule->id}", $data);
+        $response = $this->actingAs($this->user)->postJson("/api/price-rules/{$priceRule->id}", $data);
 
         $response->assertStatus(200)
             ->assertJson([
@@ -583,7 +583,7 @@ class PriceRuleControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->actingAs($this->user)->postJson("/api/admin/price-rules/{$priceRule->id}", $data);
+        $response = $this->actingAs($this->user)->postJson("/api/price-rules/{$priceRule->id}", $data);
 
         $response->assertStatus(200);
 
@@ -613,7 +613,7 @@ class PriceRuleControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->actingAs($this->user)->postJson("/api/admin/price-rules/{$priceRule->id}", $data);
+        $response = $this->actingAs($this->user)->postJson("/api/price-rules/{$priceRule->id}", $data);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['conditions.0.operator']);
@@ -634,7 +634,7 @@ class PriceRuleControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->actingAs($this->user)->postJson("/api/admin/price-rules/{$priceRule->id}", $data);
+        $response = $this->actingAs($this->user)->postJson("/api/price-rules/{$priceRule->id}", $data);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['conditions.0.operator']);
@@ -655,7 +655,7 @@ class PriceRuleControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->actingAs($this->user)->postJson("/api/admin/price-rules/{$priceRule->id}", $data);
+        $response = $this->actingAs($this->user)->postJson("/api/price-rules/{$priceRule->id}", $data);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['conditions.0.operator']);
@@ -670,7 +670,7 @@ class PriceRuleControllerTest extends TestCase
             'value' => '5',
         ]);
 
-        $response = $this->actingAs($this->user)->deleteJson("/api/admin/price-rules/{$priceRule->id}");
+        $response = $this->actingAs($this->user)->deleteJson("/api/price-rules/{$priceRule->id}");
 
         $response->assertStatus(200)
             ->assertJson([
@@ -684,7 +684,7 @@ class PriceRuleControllerTest extends TestCase
 
     public function test_destroy_returns_404_for_nonexistent_rule(): void
     {
-        $response = $this->actingAs($this->user)->deleteJson('/api/admin/price-rules/999');
+        $response = $this->actingAs($this->user)->deleteJson('/api/price-rules/999');
 
         $response->assertStatus(404);
     }

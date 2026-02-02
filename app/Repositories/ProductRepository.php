@@ -146,13 +146,31 @@ class ProductRepository
      *
      * @return \Illuminate\Pagination\LengthAwarePaginator<int, Product>
      */
-    public function getAllProducts(): LengthAwarePaginator
+    public function getAllProducts(array $productIds = []): LengthAwarePaginator
     {
-        return Product::paginate(100);
+        return Product::query()
+            ->when(
+                ! empty($productIds),
+                fn ($q) => $q->whereIn('id', $productIds)
+            )
+            ->paginate(100);
     }
 
     public function getProductById(int $id): ?Product
     {
         return Product::find($id);
+    }
+
+    public function getProductIdsByDigitalProductIds(array $digitalProductIds): array
+    {
+        if (empty($digitalProductIds)) {
+            return [];
+        }
+
+        return Product::query()
+            ->whereHas('digitalProducts', fn ($q) => $q->whereIn('digital_products.id', $digitalProductIds)
+            )
+            ->pluck('id')
+            ->all();
     }
 }

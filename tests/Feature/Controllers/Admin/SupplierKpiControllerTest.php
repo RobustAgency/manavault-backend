@@ -17,7 +17,7 @@ class SupplierKpiControllerTest extends TestCase
 
     public function test_index_returns_supplier_kpis()
     {
-        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+        $admin = User::factory()->create(['role' => UserRole::SUPER_ADMIN->value]);
         $supplier = Supplier::factory()->create(['name' => 'Test Supplier']);
         PurchaseOrderSupplier::factory()->create([
             'supplier_id' => $supplier->id,
@@ -33,7 +33,7 @@ class SupplierKpiControllerTest extends TestCase
             'subtotal' => 100.0,
         ]);
 
-        $response = $this->actingAs($admin)->getJson('/api/admin/suppliers/kpis');
+        $response = $this->actingAs($admin)->getJson('/api/suppliers/kpis');
 
         $response->assertStatus(200)
             ->assertJsonStructure([

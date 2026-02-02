@@ -2,7 +2,11 @@
 
 namespace App\Http\Requests\PurchaseOrder;
 
+use App\Enums\Currency;
+use App\Models\DigitalProduct;
+use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
 
 class StorePurchaseOrderRequest extends FormRequest
 {
@@ -22,6 +26,7 @@ class StorePurchaseOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'currency' => ['required', Rule::enum(Currency::class)],
             'items' => ['required', 'array', 'min:1'],
             'items.*.supplier_id' => ['required', 'exists:suppliers,id'],
             'items.*.digital_product_id' => ['required', 'exists:digital_products,id'],
@@ -37,6 +42,8 @@ class StorePurchaseOrderRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'currency.required' => 'Currency is required.',
+            'currency.enum' => 'Currency must be a valid enum value.',
             'items.required' => 'At least one item is required.',
             'items.min' => 'At least one item is required.',
             'items.*.supplier_id.required' => 'Supplier is required for all items.',
@@ -47,5 +54,40 @@ class StorePurchaseOrderRequest extends FormRequest
             'items.*.quantity.integer' => 'Quantity must be an integer.',
             'items.*.quantity.min' => 'Quantity must be at least 1.',
         ];
+    }
+
+    /**
+     * Configure the validator instance.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            if ($validator->errors()->has('digital_product_ids')) {
+                return;
+            }
+            $currency = $this->input('currency');
+            $items = $this->input('items', []);
+
+            foreach ($items as $index => $item) {
+                $digitalProductId = $item['digital_product_id'] ?? null;
+                if ($digitalProductId) {
+                    try {
+                        /** @var DigitalProduct $digitalProduct */
+                        $digitalProduct = DigitalProduct::findOrFail($digitalProductId);
+                        if ($digitalProduct->currency !== $currency) {
+                            $validator->errors()->add(
+                                "items.{$index}.digital_product_id",
+                                "The digital product currency must match the request currency ({$currency})."
+                            );
+                        }
+                    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+                        $validator->errors()->add(
+                            "items.{$index}.digital_product_id",
+                            'The selected digital product does not exist.'
+                        );
+                    }
+                }
+            }
+        });
     }
 }

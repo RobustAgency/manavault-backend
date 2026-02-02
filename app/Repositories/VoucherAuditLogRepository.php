@@ -16,7 +16,7 @@ class VoucherAuditLogRepository
     public function getFilteredLogs(array $filters): LengthAwarePaginator
     {
         $query = VoucherAuditLog::with([
-            'digitalProduct',
+            'voucher.purchaseOrderItem.digitalProduct',
             'user',
         ]);
 

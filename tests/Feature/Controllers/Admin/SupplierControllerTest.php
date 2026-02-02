@@ -13,12 +13,19 @@ class SupplierControllerTest extends TestCase
 {
     use RefreshDatabase, WithFaker;
 
+    private User $admin;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->admin = User::factory()->create(['role' => 'super_admin']);
+    }
+
     public function test_admin_get_paginated_suppliers(): void
     {
         $suppliers = Supplier::factory()->count(5)->create();
-        $user = User::factory()->create(['role' => 'admin']);
-        $this->actingAs($user);
-        $response = $this->getJson('/api/admin/suppliers');
+        $this->actingAs($this->admin);
+        $response = $this->getJson('/api/suppliers');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -55,8 +62,7 @@ class SupplierControllerTest extends TestCase
 
     public function test_admin_can_create_only_internal_supplier(): void
     {
-        $user = User::factory()->create(['role' => 'admin']);
-        $this->actingAs($user);
+        $this->actingAs($this->admin);
         $supplierData = [
             'name' => $this->faker->company,
             'contact_email' => $this->faker->unique()->safeEmail,
@@ -64,7 +70,7 @@ class SupplierControllerTest extends TestCase
             'status' => $this->faker->randomElement(['active', 'inactive']),
         ];
 
-        $response = $this->postJson('/api/admin/suppliers', $supplierData);
+        $response = $this->postJson('/api/suppliers', $supplierData);
 
         $response->assertStatus(201)
             ->assertJsonStructure([
@@ -92,14 +98,13 @@ class SupplierControllerTest extends TestCase
     public function test_admin_update_supplier(): void
     {
         $supplier = Supplier::factory()->create();
-        $user = User::factory()->create(['role' => 'admin']);
-        $this->actingAs($user);
+        $this->actingAs($this->admin);
         $updateData = [
             'name' => $this->faker->company,
             'status' => $this->faker->randomElement(['active', 'inactive']),
         ];
 
-        $response = $this->postJson("/api/admin/suppliers/{$supplier->id}", $updateData);
+        $response = $this->postJson("/api/suppliers/{$supplier->id}", $updateData);
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -118,10 +123,9 @@ class SupplierControllerTest extends TestCase
     public function test_admin_delete_supplier(): void
     {
         $supplier = Supplier::factory()->create();
-        $user = User::factory()->create(['role' => 'admin']);
-        $this->actingAs($user);
+        $this->actingAs($this->admin);
 
-        $response = $this->deleteJson("/api/admin/suppliers/{$supplier->id}");
+        $response = $this->deleteJson("/api/suppliers/{$supplier->id}");
 
         $response->assertStatus(200)
             ->assertJsonStructure([
