@@ -34,7 +34,7 @@ class RoleRepository
     public function createRole(array $data): Role
     {
 
-        $guardName = $data['guard_name'] ?? 'api';
+        $guardName = $data['guard_name'] ?? 'supabase';
 
         // We create the role specifically for this group context
         $role = Role::create([
