@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Enums\UserRole;
 use App\Clients\SupabaseClient;
 use Illuminate\Console\Command;
+use Spatie\Permission\Models\Role;
 
 class CreateSuperAdminCommand extends Command
 {
@@ -53,7 +54,7 @@ class CreateSuperAdminCommand extends Command
 
         $supabaseId = $supabaseUser['id'] ?? null;
 
-        User::create([
+        $user = User::create([
             'name' => $name,
             'email' => $email,
             'password' => \bcrypt($password),
@@ -61,6 +62,13 @@ class CreateSuperAdminCommand extends Command
             'supabase_id' => $supabaseId,
             'is_approved' => true,
         ]);
+
+        $role = Role::firstOrCreate([
+            'name' => UserRole::SUPER_ADMIN->value,
+            'guard_name' => 'supabase',
+        ]);
+
+        $user->assignRole($role);
 
         $this->info("Super admin '$email' created successfully.");
 
