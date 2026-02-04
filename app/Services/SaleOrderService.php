@@ -10,14 +10,13 @@ use Illuminate\Support\Facades\DB;
 use App\Enums\Product\FulfillmentMode;
 use App\Repositories\ProductRepository;
 use App\Repositories\SaleOrderRepository;
-use App\Repositories\DigitalStockRepository;
 
 class SaleOrderService
 {
     public function __construct(
         private ProductRepository $productRepository,
         private SaleOrderRepository $saleOrderRepository,
-        private DigitalStockRepository $digitalStockRepository
+        private VoucherAllocationService $voucherAllocationService
     ) {}
 
     public function createOrder(array $data): SaleOrder
@@ -88,6 +87,7 @@ class SaleOrderService
 
     /**
      * Inventory validation with row-level locking.
+     * Checks available unallocated vouchers for the product.
      */
     private function validateItemInventory(Product $product, int $quantity): void
     {
@@ -97,7 +97,7 @@ class SaleOrderService
 
         $totalAvailable = 0;
         foreach ($product->digitalProducts as $digitalProduct) {
-            $totalAvailable += $this->digitalStockRepository->getDigitalProductQuantity($digitalProduct->id);
+            $totalAvailable += $this->voucherAllocationService->getAvailableQuantity($digitalProduct->id);
         }
 
         if ($totalAvailable < $quantity) {
@@ -109,7 +109,10 @@ class SaleOrderService
     }
 
     /**
-     * Allocate and deduct locked inventory.
+     * Allocate vouchers to digital products in a sale order item.
+     *
+     * Does NOT modify purchase orders (maintains immutability).
+     * Each allocated voucher is stored as a record in sale_order_item_digital_products.
      */
     private function allocateDigitalProducts(SaleOrderItem $item, Product $product, int $quantity): void
     {
@@ -130,22 +133,28 @@ class SaleOrderService
                 break;
             }
 
-            $available = $this->digitalStockRepository->getDigitalProductQuantity($digitalProduct->id);
-            $deduct = min($remaining, $available);
+            try {
+                // Get available vouchers without modifying purchase orders
+                $vouchers = $this->voucherAllocationService
+                    ->getAvailableVouchersForDigitalProduct($digitalProduct->id, $remaining);
 
-            if ($deduct <= 0) {
-                continue;
+                // Create allocation records (one per voucher)
+                foreach ($vouchers as $voucher) {
+                    $this->voucherAllocationService->allocateVoucher(
+                        $item->id,
+                        $digitalProduct->id,
+                        $voucher
+                    );
+
+                    $remaining--;
+                }
+            } catch (\Exception $e) {
+                // Insufficient vouchers from this digital product, try next
+                if (str_contains($e->getMessage(), 'Insufficient vouchers')) {
+                    continue;
+                }
+                throw $e;
             }
-
-            $item->digitalProducts()->create([
-                'digital_product_id' => $digitalProduct->id,
-                'quantity_deducted' => $deduct,
-            ]);
-
-            // Deduct from purchase_order_items using repository
-            $this->digitalStockRepository->deductDigitalProductQuantity($digitalProduct->id, $deduct);
-
-            $remaining -= $deduct;
         }
 
         if ($remaining > 0) {

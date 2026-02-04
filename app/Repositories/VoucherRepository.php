@@ -98,4 +98,44 @@ class VoucherRepository
         // If not encrypted (legacy plain text), return as-is
         return $voucher->code;
     }
+
+    /**
+     * @param  int  $quantity  Number of vouchers to fetch
+     * @return \Illuminate\Support\Collection<int, Voucher>
+     *
+     * @throws \Exception If insufficient vouchers available
+     */
+    public function getAvailableVouchersForDigitalProduct(int $digitalProductId, int $quantity): \Illuminate\Support\Collection
+    {
+        $vouchers = Voucher::query()
+            ->join('purchase_order_items', 'vouchers.purchase_order_item_id', '=', 'purchase_order_items.id')
+            ->where('purchase_order_items.digital_product_id', $digitalProductId)
+            ->where('vouchers.status', 'completed')
+            ->select('vouchers.*')
+            ->orderBy('vouchers.created_at', 'asc')
+            ->lockForUpdate()
+            ->limit($quantity)
+            ->get();
+
+        if ($vouchers->count() < $quantity) {
+            throw new \Exception(
+                "Insufficient vouchers available for digital product {$digitalProductId}. "
+                ."Requested: {$quantity}, Available: {$vouchers->count()}"
+            );
+        }
+
+        return $vouchers->keyBy('id');
+    }
+
+    /**
+     * Get available quantity (count of unallocated vouchers) for a digital product.
+     */
+    public function getAvailableQuantity(int $digitalProductId): int
+    {
+        return Voucher::query()
+            ->join('purchase_order_items', 'vouchers.purchase_order_item_id', '=', 'purchase_order_items.id')
+            ->where('purchase_order_items.digital_product_id', $digitalProductId)
+            ->where('vouchers.status', 'completed')
+            ->count();
+    }
 }
