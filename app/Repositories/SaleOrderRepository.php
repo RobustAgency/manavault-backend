@@ -132,4 +132,11 @@ class SaleOrderRepository
     {
         return SaleOrder::count();
     }
+
+    public function getSaleOrderVoucherCode(SaleOrder $saleOrder): ?string
+    {
+        $voucher = $saleOrder->vouchers()->first();
+
+        return $voucher ? $voucher->code : null;
+    }
 }

@@ -457,11 +457,9 @@ class SaleOrderControllerTest extends TestCase
             ->assertJsonStructure([
                 'data' => [
                     '*' => [
-                        'id',
                         'code',
-                        'status',
-                        'purchase_order_id',
-                        'purchase_order_item_id',
+                        'serial_number',
+                        'pin_code',
                     ],
                 ],
             ]);
@@ -469,9 +467,12 @@ class SaleOrderControllerTest extends TestCase
         // Verify correct number of vouchers returned
         $this->assertCount(2, $response->json('data'));
 
-        // Verify voucher statuses are ALLOCATED
+        // Verify voucher data is properly formatted
         foreach ($response->json('data') as $voucherData) {
-            $this->assertEquals(VoucherCodeStatus::ALLOCATED->value, $voucherData['status']);
+            $this->assertArrayHasKey('code', $voucherData);
+            $this->assertArrayHasKey('serial_number', $voucherData);
+            $this->assertArrayHasKey('pin_code', $voucherData);
+            $this->assertIsString($voucherData['code']);
         }
     }
 
@@ -589,11 +590,9 @@ class SaleOrderControllerTest extends TestCase
             ->assertJsonStructure([
                 'data' => [
                     '*' => [
-                        'id',
                         'code',
-                        'status',
-                        'purchase_order_id',
-                        'purchase_order_item_id',
+                        'serial_number',
+                        'pin_code',
                     ],
                 ],
             ]);
@@ -601,15 +600,12 @@ class SaleOrderControllerTest extends TestCase
         // Verify correct total number of vouchers returned (2 from product1 + 1 from product2)
         $this->assertCount(3, $response->json('data'));
 
-        // Verify all vouchers have ALLOCATED status
+        // Verify all vouchers have proper data structure
         foreach ($response->json('data') as $voucherData) {
-            $this->assertEquals(VoucherCodeStatus::ALLOCATED->value, $voucherData['status']);
+            $this->assertArrayHasKey('code', $voucherData);
+            $this->assertArrayHasKey('serial_number', $voucherData);
+            $this->assertArrayHasKey('pin_code', $voucherData);
+            $this->assertNotEmpty($voucherData['code']);
         }
-
-        // Verify vouchers come from both purchase orders
-        $purchaseOrderIds = collect($response->json('data'))->pluck('purchase_order_id')->unique();
-        $this->assertCount(2, $purchaseOrderIds);
-        $this->assertTrue($purchaseOrderIds->contains($purchaseOrder1->id));
-        $this->assertTrue($purchaseOrderIds->contains($purchaseOrder2->id));
     }
 }

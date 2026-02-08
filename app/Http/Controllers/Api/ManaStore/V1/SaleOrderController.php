@@ -6,9 +6,9 @@ use App\Models\SaleOrder;
 use Illuminate\Http\JsonResponse;
 use App\Services\SaleOrderService;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\VoucherResource;
 use App\Repositories\VoucherRepository;
 use App\Http\Resources\SaleOrderResource;
+use App\Http\Resources\ManaStore\V1\VoucherResource;
 use App\Http\Requests\SaleOrder\StoreSaleOrderRequest;
 
 class SaleOrderController extends Controller
