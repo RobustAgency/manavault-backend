@@ -138,4 +138,28 @@ class VoucherRepository
             ->where('vouchers.status', 'completed')
             ->count();
     }
+
+    public function updateVoucherStatus(int $voucherId, string $status): void
+    {
+        $voucher = Voucher::findOrFail($voucherId);
+        $voucher->status = $status;
+        $voucher->save();
+    }
+
+    /**
+     * Get all vouchers allocated to a sale order.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, Voucher>
+     */
+    public function getVouchersForSaleOrder(int $saleOrderId): \Illuminate\Database\Eloquent\Collection
+    {
+        return Voucher::query()
+            ->join('sale_order_item_digital_products', 'vouchers.id', '=', 'sale_order_item_digital_products.voucher_id')
+            ->join('sale_order_items', 'sale_order_item_digital_products.sale_order_item_id', '=', 'sale_order_items.id')
+            ->where('sale_order_items.sale_order_id', $saleOrderId)
+            ->select('vouchers.*')
+            ->orderBy('vouchers.created_at', 'asc')
+            ->with(['purchaseOrder', 'purchaseOrderItem'])
+            ->get();
+    }
 }
