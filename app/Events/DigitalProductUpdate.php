@@ -7,12 +7,12 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Broadcasting\InteractsWithSockets;
 
-class DigitalProductAssigned
+class DigitalProductUpdate
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     /**
-     * Create a new event instance.
+     * The product instance.
      */
     public function __construct(public Product $product) {}
 }
