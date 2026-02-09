@@ -6,16 +6,14 @@ use App\Models\SaleOrder;
 use Illuminate\Http\JsonResponse;
 use App\Services\SaleOrderService;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\SaleOrderResource;
-use App\Repositories\SaleOrderRepository;
-use App\Http\Resources\ManaStore\V1\VoucherResource;
 use App\Http\Requests\SaleOrder\StoreSaleOrderRequest;
+use App\Http\Resources\ManaStore\V1\SaleOrderResource;
+use App\Http\Resources\ManaStore\V1\VoucherCodesResource;
 
 class SaleOrderController extends Controller
 {
     public function __construct(
         private SaleOrderService $saleOrderService,
-        private SaleOrderRepository $saleOrderRepository
     ) {}
 
     /**
@@ -48,12 +46,16 @@ class SaleOrderController extends Controller
     public function getVoucherCodes(SaleOrder $saleOrder): JsonResponse
     {
         try {
-            $voucherCodes = $this->saleOrderRepository->getSaleOrderVoucherCode($saleOrder);
+            $saleOrder->load([
+                'items.product',
+                'items.digitalProducts.voucher',
+            ]);
+            $voucherCodes = VoucherCodesResource::format($saleOrder);
 
             return response()->json([
                 'error' => false,
                 'message' => 'Voucher codes retrieved successfully.',
-                'data' => VoucherResource::collection($voucherCodes),
+                'data' => $voucherCodes,
             ], 200);
         } catch (\Exception $e) {
             logger()->error('Failed to retrieve voucher codes', ['error' => $e->getMessage()]);

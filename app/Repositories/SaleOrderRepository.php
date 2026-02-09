@@ -132,15 +132,4 @@ class SaleOrderRepository
     {
         return SaleOrder::count();
     }
-
-    /**
-     * Get all voucher codes allocated to products in a sale order with complete product details.
-     */
-    public function getSaleOrderVoucherCode(SaleOrder $saleOrder): SaleOrder
-    {
-        return $saleOrder->load([
-            'items.product',
-            'items.digitalProducts.voucher',
-        ]);
-    }
 }

@@ -42,10 +42,17 @@ class SaleOrderControllerTest extends TestCase
         $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
 
         $purchaseOrder = PurchaseOrder::factory()->create();
-        PurchaseOrderItem::factory()->create([
+        $purchaseOrderItem = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $purchaseOrder->id,
             'digital_product_id' => $digitalProduct->id,
             'quantity' => 100,
+        ]);
+
+        // Create available vouchers for allocation
+        Voucher::factory()->count(100)->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_item_id' => $purchaseOrderItem->id,
+            'status' => VoucherCodeStatus::AVAILABLE->value,
         ]);
 
         $data = [
@@ -100,17 +107,29 @@ class SaleOrderControllerTest extends TestCase
         $product2->digitalProducts()->attach($digitalProduct2->id, ['priority' => 1]);
 
         $po1 = PurchaseOrder::factory()->create();
-        PurchaseOrderItem::factory()->create([
+        $poi1 = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $po1->id,
             'digital_product_id' => $digitalProduct1->id,
             'quantity' => 50,
         ]);
 
+        Voucher::factory()->count(50)->create([
+            'purchase_order_id' => $po1->id,
+            'purchase_order_item_id' => $poi1->id,
+            'status' => VoucherCodeStatus::AVAILABLE->value,
+        ]);
+
         $po2 = PurchaseOrder::factory()->create();
-        PurchaseOrderItem::factory()->create([
+        $poi2 = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $po2->id,
             'digital_product_id' => $digitalProduct2->id,
             'quantity' => 50,
+        ]);
+
+        Voucher::factory()->count(50)->create([
+            'purchase_order_id' => $po2->id,
+            'purchase_order_item_id' => $poi2->id,
+            'status' => VoucherCodeStatus::AVAILABLE->value,
         ]);
 
         $data = [
@@ -304,10 +323,16 @@ class SaleOrderControllerTest extends TestCase
         $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
 
         $purchaseOrder = PurchaseOrder::factory()->create();
-        PurchaseOrderItem::factory()->create([
+        $purchaseOrderItem = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $purchaseOrder->id,
             'digital_product_id' => $digitalProduct->id,
             'quantity' => 100,
+        ]);
+
+        Voucher::factory()->count(100)->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_item_id' => $purchaseOrderItem->id,
+            'status' => VoucherCodeStatus::AVAILABLE->value,
         ]);
 
         $data = [
@@ -338,10 +363,16 @@ class SaleOrderControllerTest extends TestCase
         $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
 
         $purchaseOrder = PurchaseOrder::factory()->create();
-        PurchaseOrderItem::factory()->create([
+        $purchaseOrderItem = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $purchaseOrder->id,
             'digital_product_id' => $digitalProduct->id,
             'quantity' => 100,
+        ]);
+
+        Voucher::factory()->count(100)->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_item_id' => $purchaseOrderItem->id,
+            'status' => VoucherCodeStatus::AVAILABLE->value,
         ]);
 
         $data = [
@@ -362,7 +393,7 @@ class SaleOrderControllerTest extends TestCase
             ->assertJson(['error' => false]);
     }
 
-    public function test_store_returns_order_with_items(): void
+    public function test_store_returns_order(): void
     {
         $supplier = Supplier::factory()->create(['type' => 'internal']);
         $product = Product::factory()->create(['fulfillment_mode' => FulfillmentMode::MANUAL->value]);
@@ -370,10 +401,16 @@ class SaleOrderControllerTest extends TestCase
         $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
 
         $purchaseOrder = PurchaseOrder::factory()->create();
-        PurchaseOrderItem::factory()->create([
+        $purchaseOrderItem = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $purchaseOrder->id,
             'digital_product_id' => $digitalProduct->id,
             'quantity' => 100,
+        ]);
+
+        Voucher::factory()->count(100)->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_item_id' => $purchaseOrderItem->id,
+            'status' => VoucherCodeStatus::AVAILABLE->value,
         ]);
 
         $data = [
@@ -393,15 +430,6 @@ class SaleOrderControllerTest extends TestCase
                 'data' => [
                     'id',
                     'order_number',
-                    'items' => [
-                        '*' => [
-                            'id',
-                            'quantity',
-                            'unit_price',
-                            'subtotal',
-                            'product_id',
-                        ],
-                    ],
                 ],
             ]);
     }
@@ -428,7 +456,7 @@ class SaleOrderControllerTest extends TestCase
         $vouchers = Voucher::factory()->count(3)->create([
             'purchase_order_id' => $purchaseOrder->id,
             'purchase_order_item_id' => $purchaseOrderItem->id,
-            'status' => VoucherCodeStatus::COMPLETED->value,
+            'status' => VoucherCodeStatus::AVAILABLE->value,
         ]);
 
         // Create sale order
@@ -452,28 +480,25 @@ class SaleOrderControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'error' => false,
-                'message' => 'Vouchers retrieved successfully.',
+                'message' => 'Voucher codes retrieved successfully.',
             ])
             ->assertJsonStructure([
                 'data' => [
                     '*' => [
-                        'code',
-                        'serial_number',
-                        'pin_code',
+                        'title',
+                        'codes' => [
+                            '*' => [
+                                'code',
+                                'serial_number',
+                                'pin_code',
+                            ],
+                        ],
                     ],
                 ],
             ]);
 
         // Verify correct number of vouchers returned
-        $this->assertCount(2, $response->json('data'));
-
-        // Verify voucher data is properly formatted
-        foreach ($response->json('data') as $voucherData) {
-            $this->assertArrayHasKey('code', $voucherData);
-            $this->assertArrayHasKey('serial_number', $voucherData);
-            $this->assertArrayHasKey('pin_code', $voucherData);
-            $this->assertIsString($voucherData['code']);
-        }
+        $this->assertCount(2, $response->json('data.0.codes'));
     }
 
     /**
@@ -503,7 +528,7 @@ class SaleOrderControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'error' => false,
-                'message' => 'Vouchers retrieved successfully.',
+                'message' => 'Voucher codes retrieved successfully.',
                 'data' => [],
             ]);
     }
@@ -535,7 +560,7 @@ class SaleOrderControllerTest extends TestCase
         $vouchers1 = Voucher::factory()->count(3)->create([
             'purchase_order_id' => $purchaseOrder1->id,
             'purchase_order_item_id' => $purchaseOrderItem1->id,
-            'status' => VoucherCodeStatus::COMPLETED->value,
+            'status' => VoucherCodeStatus::AVAILABLE->value,
         ]);
 
         // Product 2 setup
@@ -557,7 +582,7 @@ class SaleOrderControllerTest extends TestCase
         $vouchers2 = Voucher::factory()->count(2)->create([
             'purchase_order_id' => $purchaseOrder2->id,
             'purchase_order_item_id' => $purchaseOrderItem2->id,
-            'status' => VoucherCodeStatus::COMPLETED->value,
+            'status' => VoucherCodeStatus::AVAILABLE->value,
         ]);
 
         // Create sale order with multiple products
@@ -585,27 +610,25 @@ class SaleOrderControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'error' => false,
-                'message' => 'Vouchers retrieved successfully.',
+                'message' => 'Voucher codes retrieved successfully.',
             ])
             ->assertJsonStructure([
                 'data' => [
                     '*' => [
-                        'code',
-                        'serial_number',
-                        'pin_code',
+                        'title',
+                        'codes' => [
+                            '*' => [
+                                'code',
+                                'serial_number',
+                                'pin_code',
+                            ],
+                        ],
                     ],
                 ],
             ]);
 
         // Verify correct total number of vouchers returned (2 from product1 + 1 from product2)
-        $this->assertCount(3, $response->json('data'));
-
-        // Verify all vouchers have proper data structure
-        foreach ($response->json('data') as $voucherData) {
-            $this->assertArrayHasKey('code', $voucherData);
-            $this->assertArrayHasKey('serial_number', $voucherData);
-            $this->assertArrayHasKey('pin_code', $voucherData);
-            $this->assertNotEmpty($voucherData['code']);
-        }
+        $this->assertCount(2, $response->json('data.0.codes'));
+        $this->assertCount(1, $response->json('data.1.codes'));
     }
 }

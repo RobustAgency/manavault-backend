@@ -4,9 +4,12 @@ namespace App\Repositories;
 
 use App\Models\Voucher;
 use App\Models\PurchaseOrder;
+use App\Enums\VoucherCodeStatus;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use App\Services\VoucherCipherService;
 use App\Services\VoucherImportService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use App\Services\PurchaseOrder\PurchaseOrderStatusService;
 
@@ -100,31 +103,27 @@ class VoucherRepository
     }
 
     /**
-     * @param  int  $quantity  Number of vouchers to fetch
-     * @return \Illuminate\Support\Collection<int, Voucher>
-     *
-     * @throws \Exception If insufficient vouchers available
+     * @return Collection<int, \App\Models\Voucher>
      */
-    public function getAvailableVouchersForDigitalProduct(int $digitalProductId, int $quantity): \Illuminate\Support\Collection
+    public function getAvailableVouchersForDigitalProduct(int $digitalProductId, int $quantity): Collection
     {
-        $vouchers = Voucher::query()
-            ->join('purchase_order_items', 'vouchers.purchase_order_item_id', '=', 'purchase_order_items.id')
-            ->where('purchase_order_items.digital_product_id', $digitalProductId)
-            ->where('vouchers.status', 'completed')
-            ->select('vouchers.*')
-            ->orderBy('vouchers.created_at', 'asc')
+        $vouchers = $this->availableVouchersQuery($digitalProductId)
+            ->orderBy('created_at')
             ->lockForUpdate()
             ->limit($quantity)
             ->get();
 
         if ($vouchers->count() < $quantity) {
-            throw new \Exception(
+            throw new \RuntimeException(
                 "Insufficient vouchers available for digital product {$digitalProductId}. "
                 ."Requested: {$quantity}, Available: {$vouchers->count()}"
             );
         }
 
-        return $vouchers->keyBy('id');
+        /** @var Collection<int, \App\Models\Voucher> $keyed */
+        $keyed = $vouchers->keyBy('id');
+
+        return $keyed;
     }
 
     /**
@@ -132,11 +131,7 @@ class VoucherRepository
      */
     public function getAvailableQuantity(int $digitalProductId): int
     {
-        return Voucher::query()
-            ->join('purchase_order_items', 'vouchers.purchase_order_item_id', '=', 'purchase_order_items.id')
-            ->where('purchase_order_items.digital_product_id', $digitalProductId)
-            ->where('vouchers.status', 'completed')
-            ->count();
+        return $this->availableVouchersQuery($digitalProductId)->count();
     }
 
     public function updateVoucherStatus(int $voucherId, string $status): void
@@ -144,5 +139,19 @@ class VoucherRepository
         $voucher = Voucher::findOrFail($voucherId);
         $voucher->status = $status;
         $voucher->save();
+    }
+
+    /**
+     * Get a query builder for available vouchers of a digital product.
+     *
+     * @return Builder<Voucher>
+     */
+    private function availableVouchersQuery(int $digitalProductId): Builder
+    {
+        return Voucher::query()
+            ->where('status', VoucherCodeStatus::AVAILABLE->value)
+            ->whereHas('purchaseOrderItem', function ($q) use ($digitalProductId) {
+                $q->where('digital_product_id', $digitalProductId);
+            });
     }
 }

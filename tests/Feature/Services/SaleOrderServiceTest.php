@@ -50,7 +50,7 @@ class SaleOrderServiceTest extends TestCase
         Voucher::factory()->count(2)->create([
             'purchase_order_id' => $purchaseOrder->id,
             'purchase_order_item_id' => $purchaseOrderItem->id,
-            'status' => VoucherCodeStatus::COMPLETED->value,
+            'status' => VoucherCodeStatus::AVAILABLE->value,
         ]);
 
         $this->expectException(\Exception::class);
@@ -91,7 +91,7 @@ class SaleOrderServiceTest extends TestCase
         Voucher::factory()->count(5)->create([
             'purchase_order_id' => $purchaseOrder->id,
             'purchase_order_item_id' => $purchaseOrderItem->id,
-            'status' => VoucherCodeStatus::COMPLETED->value,
+            'status' => VoucherCodeStatus::AVAILABLE->value,
         ]);
 
         $saleOrder = $this->service->createOrder([
@@ -132,7 +132,7 @@ class SaleOrderServiceTest extends TestCase
         $vouchers = Voucher::factory()->count(2)->create([
             'purchase_order_id' => $purchaseOrder->id,
             'purchase_order_item_id' => $purchaseOrderItem->id,
-            'status' => VoucherCodeStatus::COMPLETED->value,
+            'status' => VoucherCodeStatus::AVAILABLE->value,
         ]);
 
         // Act: Create sale order
@@ -184,7 +184,7 @@ class SaleOrderServiceTest extends TestCase
         Voucher::factory()->count(3)->create([
             'purchase_order_id' => $purchaseOrder->id,
             'purchase_order_item_id' => $purchaseOrderItem->id,
-            'status' => VoucherCodeStatus::COMPLETED->value,
+            'status' => VoucherCodeStatus::AVAILABLE->value,
         ]);
 
         // Act: Create sale order
@@ -234,7 +234,7 @@ class SaleOrderServiceTest extends TestCase
         Voucher::factory()->count(3)->create([
             'purchase_order_id' => $purchaseOrder1->id,
             'purchase_order_item_id' => $purchaseOrderItem1->id,
-            'status' => VoucherCodeStatus::COMPLETED->value,
+            'status' => VoucherCodeStatus::AVAILABLE->value,
         ]);
 
         // Setup digital products and vouchers for product2
@@ -251,7 +251,7 @@ class SaleOrderServiceTest extends TestCase
         Voucher::factory()->count(2)->create([
             'purchase_order_id' => $purchaseOrder2->id,
             'purchase_order_item_id' => $purchaseOrderItem2->id,
-            'status' => VoucherCodeStatus::COMPLETED->value,
+            'status' => VoucherCodeStatus::AVAILABLE->value,
         ]);
 
         // Act: Create sale order with multiple items
@@ -316,7 +316,7 @@ class SaleOrderServiceTest extends TestCase
         Voucher::factory()->count(2)->create([
             'purchase_order_id' => $purchaseOrder->id,
             'purchase_order_item_id' => $purchaseOrderItem->id,
-            'status' => VoucherCodeStatus::COMPLETED->value,
+            'status' => VoucherCodeStatus::AVAILABLE->value,
         ]);
 
         // Act: Create first sale order
@@ -413,7 +413,7 @@ class SaleOrderServiceTest extends TestCase
             Voucher::factory()->count(2)->create([
                 'purchase_order_id' => $po->id,
                 'purchase_order_item_id' => $poi->id,
-                'status' => VoucherCodeStatus::COMPLETED->value,
+                'status' => VoucherCodeStatus::AVAILABLE->value,
             ]);
         }
 
@@ -467,7 +467,7 @@ class SaleOrderServiceTest extends TestCase
             Voucher::factory()->count(2)->create([
                 'purchase_order_id' => $po->id,
                 'purchase_order_item_id' => $poi->id,
-                'status' => VoucherCodeStatus::COMPLETED->value,
+                'status' => VoucherCodeStatus::AVAILABLE->value,
             ]);
         }
 
