@@ -6,8 +6,8 @@ use App\Models\SaleOrder;
 use Illuminate\Http\JsonResponse;
 use App\Services\SaleOrderService;
 use App\Http\Controllers\Controller;
-use App\Repositories\VoucherRepository;
 use App\Http\Resources\SaleOrderResource;
+use App\Repositories\SaleOrderRepository;
 use App\Http\Resources\ManaStore\V1\VoucherResource;
 use App\Http\Requests\SaleOrder\StoreSaleOrderRequest;
 
@@ -15,7 +15,7 @@ class SaleOrderController extends Controller
 {
     public function __construct(
         private SaleOrderService $saleOrderService,
-        private VoucherRepository $voucherRepository
+        private SaleOrderRepository $saleOrderRepository
     ) {}
 
     /**
@@ -45,18 +45,18 @@ class SaleOrderController extends Controller
     /**
      * Get all vouchers allocated to a sale order.
      */
-    public function getVouchers(SaleOrder $saleOrder): JsonResponse
+    public function getVoucherCodes(SaleOrder $saleOrder): JsonResponse
     {
         try {
-            $vouchers = $this->voucherRepository->getVouchersForSaleOrder($saleOrder->id);
+            $voucherCodes = $this->saleOrderRepository->getSaleOrderVoucherCode($saleOrder);
 
             return response()->json([
                 'error' => false,
-                'message' => 'Vouchers retrieved successfully.',
-                'data' => VoucherResource::collection($vouchers),
+                'message' => 'Voucher codes retrieved successfully.',
+                'data' => VoucherResource::collection($voucherCodes),
             ], 200);
         } catch (\Exception $e) {
-            logger()->error('Failed to retrieve vouchers', ['error' => $e->getMessage()]);
+            logger()->error('Failed to retrieve voucher codes', ['error' => $e->getMessage()]);
 
             return response()->json([
                 'error' => true,
