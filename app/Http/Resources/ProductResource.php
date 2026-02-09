@@ -35,7 +35,7 @@ class ProductResource extends JsonResource
             'currency' => $this->currency,
             'status' => $this->status,
             'regions' => $this->regions,
-            'is_custom_fulfillment_mode' => $this->fulfillment_mode === FulfillmentMode::MANUAL->value ? true : false,
+            'is_custom_priority' => $this->fulfillment_mode === FulfillmentMode::MANUAL->value ? true : false,
             'created_at' => $this->created_at->toDateTimeString(),
             'updated_at' => $this->updated_at->toDateTimeString(),
             'digital_products' => DigitalProductResource::collection($this->whenLoaded('digitalProducts')),
