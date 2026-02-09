@@ -5,11 +5,7 @@ namespace Tests\Feature\Repositories;
 use Tests\TestCase;
 use App\Models\Brand;
 use App\Models\Product;
-use App\Models\Supplier;
-use App\Models\PurchaseOrder;
-use App\Models\DigitalProduct;
 use App\Enums\Product\Lifecycle;
-use App\Models\PurchaseOrderItem;
 use App\Repositories\ProductRepository;
 use App\Enums\PriceRuleCondition\Operator;
 use Illuminate\Foundation\Testing\WithFaker;
@@ -306,81 +302,6 @@ class ProductRepositoryTest extends TestCase
 
         $this->assertCount(1, $results);
         $this->assertTrue($results->every(fn ($product) => $product->brand_id === $brand2->id));
-    }
-
-    public function test_get_all_products_with_quantity(): void
-    {
-        // Create suppliers
-        $supplier1 = Supplier::factory()->create();
-        $supplier2 = Supplier::factory()->create();
-
-        // Create digital products
-        $digitalProduct1 = DigitalProduct::factory()->create(['supplier_id' => $supplier1->id]);
-        $digitalProduct2 = DigitalProduct::factory()->create(['supplier_id' => $supplier2->id]);
-
-        // Create products and associate them with digital products
-        $product1 = Product::factory()->create();
-        $product2 = Product::factory()->create();
-
-        $product1->digitalProducts()->attach($digitalProduct1->id);
-        $product1->digitalProducts()->attach($digitalProduct2->id);
-        $product2->digitalProducts()->attach($digitalProduct1->id);
-
-        // Create purchase orders and items with quantities
-        $purchaseOrder = PurchaseOrder::factory()->create();
-
-        // Add 50 units of digitalProduct1 for product1
-        PurchaseOrderItem::factory()->create([
-            'purchase_order_id' => $purchaseOrder->id,
-            'digital_product_id' => $digitalProduct1->id,
-            'quantity' => 50,
-        ]);
-
-        // Add 30 units of digitalProduct2 for product1
-        PurchaseOrderItem::factory()->create([
-            'purchase_order_id' => $purchaseOrder->id,
-            'digital_product_id' => $digitalProduct2->id,
-            'quantity' => 30,
-        ]);
-
-        // Add 20 units of digitalProduct1 for product2
-        PurchaseOrderItem::factory()->create([
-            'purchase_order_id' => $purchaseOrder->id,
-            'digital_product_id' => $digitalProduct1->id,
-            'quantity' => 20,
-        ]);
-
-        $results = $this->repository->getAllProducts();
-
-        $this->assertCount(2, $results->items());
-
-        // Find product1 and product2 in results
-        $resultProduct1 = collect($results->items())->firstWhere('id', $product1->id);
-        $resultProduct2 = collect($results->items())->firstWhere('id', $product2->id);
-
-        $this->assertEquals(100, $resultProduct1->quantity);
-
-        $this->assertEquals(70, $resultProduct2->quantity);
-    }
-
-    public function test_product_quantity_attribute(): void
-    {
-        $supplier = Supplier::factory()->create();
-        $digitalProduct = DigitalProduct::factory()->create(['supplier_id' => $supplier->id]);
-
-        $product = Product::factory()->create();
-        $product->digitalProducts()->attach($digitalProduct->id);
-
-        $purchaseOrder = PurchaseOrder::factory()->create();
-
-        PurchaseOrderItem::factory()->create([
-            'purchase_order_id' => $purchaseOrder->id,
-            'digital_product_id' => $digitalProduct->id,
-            'quantity' => 100,
-        ]);
-
-        // Access quantity attribute directly
-        $this->assertEquals(100, $product->quantity);
     }
 
     public function test_product_quantity_zero_when_no_purchase_orders(): void

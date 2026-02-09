@@ -158,7 +158,8 @@ class ProfileControllerTest extends TestCase
         $this->assertFalse($responseData['error']);
         $this->assertEquals($user->id, $responseData['data']['id']);
         $this->assertEquals($user->email, $responseData['data']['email']);
-        $this->assertCount(2, $responseData['data']['permissions']);
+        $this->assertEquals('editor', $responseData['data']['role']);
+        $this->assertIsArray($responseData['data']['modules']);
     }
 
     public function test_non_approved_user_cannot_access_user_info(): void

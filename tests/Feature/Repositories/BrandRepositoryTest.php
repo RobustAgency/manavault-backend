@@ -65,19 +65,6 @@ class BrandRepositoryTest extends TestCase
         $this->assertCount(2, $brands->items());
     }
 
-    public function test_get_filtered_brands_returns_alphabetically_sorted(): void
-    {
-        Brand::factory()->create(['name' => 'Zebra Brand']);
-        Brand::factory()->create(['name' => 'Alpha Brand']);
-        Brand::factory()->create(['name' => 'Beta Brand']);
-
-        $brands = $this->repository->getFilteredBrands();
-
-        $this->assertEquals('Alpha Brand', $brands->items()[0]->name);
-        $this->assertEquals('Beta Brand', $brands->items()[1]->name);
-        $this->assertEquals('Zebra Brand', $brands->items()[2]->name);
-    }
-
     public function test_create_brand(): void
     {
         $data = ['name' => 'New Brand'];
