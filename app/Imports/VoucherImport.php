@@ -5,6 +5,7 @@ namespace App\Imports;
 use RuntimeException;
 use App\Models\Voucher;
 use App\Models\PurchaseOrder;
+use App\Enums\VoucherCodeStatus;
 use Illuminate\Support\Collection;
 use App\Services\VoucherCipherService;
 use Illuminate\Support\Facades\Validator;
@@ -65,7 +66,7 @@ class VoucherImport implements ToCollection, WithBatchInserts, WithChunkReading,
                     'code' => $code,
                     'purchase_order_id' => $this->purchaseOrderID,
                     'purchase_order_item_id' => $purchaseOrderItem->id,
-                    'status' => 'available',
+                    'status' => VoucherCodeStatus::AVAILABLE->value,
                 ]);
                 $this->successCount++;
             }

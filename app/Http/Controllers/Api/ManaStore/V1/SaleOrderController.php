@@ -2,15 +2,19 @@
 
 namespace App\Http\Controllers\Api\Manastore\V1;
 
+use App\Models\SaleOrder;
 use Illuminate\Http\JsonResponse;
 use App\Services\SaleOrderService;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\SaleOrderResource;
 use App\Http\Requests\SaleOrder\StoreSaleOrderRequest;
+use App\Http\Resources\ManaStore\V1\SaleOrderResource;
+use App\Http\Resources\ManaStore\V1\VoucherCodesResource;
 
 class SaleOrderController extends Controller
 {
-    public function __construct(private SaleOrderService $saleOrderService) {}
+    public function __construct(
+        private SaleOrderService $saleOrderService,
+    ) {}
 
     /**
      * Create a new sale order.
@@ -28,6 +32,33 @@ class SaleOrderController extends Controller
             ], 201);
         } catch (\Exception $e) {
             logger()->error('Failed to create sale order', ['error' => $e->getMessage()]);
+
+            return response()->json([
+                'error' => true,
+                'message' => $e->getMessage(),
+            ], 400);
+        }
+    }
+
+    /**
+     * Get all vouchers allocated to a sale order.
+     */
+    public function getVoucherCodes(SaleOrder $saleOrder): JsonResponse
+    {
+        try {
+            $saleOrder->load([
+                'items.product',
+                'items.digitalProducts.voucher',
+            ]);
+            $voucherCodes = VoucherCodesResource::format($saleOrder);
+
+            return response()->json([
+                'error' => false,
+                'message' => 'Voucher codes retrieved successfully.',
+                'data' => $voucherCodes,
+            ], 200);
+        } catch (\Exception $e) {
+            logger()->error('Failed to retrieve voucher codes', ['error' => $e->getMessage()]);
 
             return response()->json([
                 'error' => true,

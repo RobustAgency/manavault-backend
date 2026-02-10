@@ -123,37 +123,4 @@ class DigitalStockRepository
 
         return $result->total_quantity ?? 0;
     }
-
-    /**
-     * Deduct quantity from purchase order items for a digital product.
-     *
-     * @throws \Exception
-     */
-    public function deductDigitalProductQuantity(int $digitalProductId, int $quantity): int
-    {
-        $remaining = $quantity;
-
-        $items = DB::table('purchase_order_items')
-            ->where('digital_product_id', $digitalProductId)
-            ->where('quantity', '>', 0)
-            ->orderBy('created_at', 'asc')
-            ->lockForUpdate()
-            ->get();
-
-        foreach ($items as $item) {
-            if ($remaining <= 0) {
-                break;
-            }
-
-            $deduct = min($remaining, $item->quantity);
-
-            DB::table('purchase_order_items')
-                ->where('id', $item->id)
-                ->decrement('quantity', $deduct);
-
-            $remaining -= $deduct;
-        }
-
-        return $remaining;
-    }
 }

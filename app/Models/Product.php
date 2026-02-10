@@ -29,10 +29,6 @@ class Product extends Model
         'fulfillment_mode',
     ];
 
-    protected $appends = [
-        'quantity',
-    ];
-
     protected $casts = [
         'tags' => 'array',
         'regions' => 'array',
@@ -57,16 +53,5 @@ class Product extends Model
     public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class);
-    }
-
-    /**
-     * Calculate the total quantity of the product from all associated digital products' purchase order items.
-     */
-    public function getQuantityAttribute(): int
-    {
-        return (int) $this->digitalProducts()
-            ->withSum('purchaseOrderItems as total_quantity', 'quantity')
-            ->get()
-            ->sum('total_quantity');
     }
 }
