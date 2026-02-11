@@ -38,5 +38,6 @@ class ProductObserver
     public function deleted(Product $product): void
     {
         $this->activityLogRepository->createActivityLog($product, $product->id, ActivityEvents::PRODUCT_DELETED);
+        $this->dispatchProductSyncWebhook->execute(ActivityEvents::PRODUCT_DELETED, [$product->id]);
     }
 }
