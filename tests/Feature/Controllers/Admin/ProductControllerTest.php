@@ -507,7 +507,7 @@ class ProductControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson(['error' => false])
-            ->assertJsonPath('data.is_custom_fulfillment_mode', true);
+            ->assertJsonPath('data.is_custom_priority', true);
 
         $this->assertDatabaseHas('products', [
             'id' => $product->id,
@@ -538,7 +538,7 @@ class ProductControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson(['error' => false])
-            ->assertJsonPath('data.is_custom_fulfillment_mode', false);
+            ->assertJsonPath('data.is_custom_priority', false);
 
         $this->assertDatabaseHas('products', [
             'id' => $product->id,

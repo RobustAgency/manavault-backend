@@ -27,7 +27,6 @@ Route::middleware(['auth:supabase', 'user.approved'])->group(function () {
 
     Route::prefix('/users')->controller(UserController::class)->group(function () {
         Route::get('', 'index')->middleware('permission:view_user');
-        Route::get('/search', 'search')->middleware('permission:view_user');
         Route::post('', 'store')->middleware('permission:create_user');
         Route::get('/{user}', 'show')->middleware('permission:view_user');
         Route::post('/{user}/approve', 'approve')->middleware('permission:update_user');

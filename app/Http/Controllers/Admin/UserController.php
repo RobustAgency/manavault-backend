@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Models\User;
 use App\Enums\UserRole;
-use Illuminate\Http\Request;
 use App\Clients\SupabaseClient;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
@@ -27,31 +26,15 @@ class UserController extends Controller
     /**
      * List all users with pagination.
      */
-    public function index(Request $request): JsonResponse
+    public function index(SearchUsersRequest $request): JsonResponse
     {
-        $perPage = $request->input('per_page', 10);
-        $users = $this->userRepository->getPaginated($perPage);
+        $validated = $request->validated();
+        $users = $this->userRepository->searchPaginated($validated);
 
         return response()->json([
             'error' => false,
             'message' => 'Users retrieved successfully',
             'data' => $users,
-        ]);
-    }
-
-    /**
-     * Search users based on criteria.
-     */
-    public function search(SearchUsersRequest $request): JsonResponse
-    {
-        $validated = $request->validated();
-
-        $users = $this->userRepository->search($validated['term']);
-
-        return response()->json([
-            'error' => false,
-            'message' => 'Users retrieved successfully',
-            'data' => UserResource::collection($users),
         ]);
     }
 
