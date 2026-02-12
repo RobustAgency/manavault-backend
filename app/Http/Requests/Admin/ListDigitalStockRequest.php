@@ -28,6 +28,7 @@ class ListDigitalStockRequest extends FormRequest
             'supplier_id' => ['sometimes', 'integer', 'exists:suppliers,id'],
             'name' => ['sometimes', 'string', 'max:255'],
             'stock' => ['sometimes', Rule::enum(Stock::class)],
+            'brand' => ['sometimes', 'string', 'max:255'],
         ];
     }
 }
