@@ -2,23 +2,21 @@
 
 namespace App\Services\Voucher;
 
+use App\DTOs\VoucherDTO;
 use App\Models\PurchaseOrder;
 use Illuminate\Validation\ValidationException;
 
 class VoucherPurchaseOrderValidator
 {
-    public function validate(array $data): PurchaseOrder
+    /**
+     * Validate voucher DTOs against purchase order
+     *
+     * @param  array<int, VoucherDTO>  $voucherDTOs
+     */
+    public function validateVoucherDTOs(array $voucherDTOs, int $purchaseOrderId): PurchaseOrder
     {
-        $purchaseOrderId = $data['purchase_order_id'] ?? null;
-
-        if (! $purchaseOrderId) {
-            throw ValidationException::withMessages([
-                'purchase_order_id' => 'Purchase order ID is required.',
-            ]);
-        }
-
         /** @var PurchaseOrder|null $purchaseOrder */
-        $purchaseOrder = PurchaseOrder::with('items')->find($purchaseOrderId);
+        $purchaseOrder = PurchaseOrder::with('items.digitalProduct')->find($purchaseOrderId);
 
         if (! $purchaseOrder) {
             throw ValidationException::withMessages([
@@ -26,73 +24,63 @@ class VoucherPurchaseOrderValidator
             ]);
         }
 
-        $this->validateVoucherProducts($purchaseOrder, $data);
-        $this->validateVoucherQuantities($purchaseOrder, $data);
+        $this->validateVoucherProductsDTO($purchaseOrder, $voucherDTOs);
+        $this->validateVoucherQuantitiesDTO($purchaseOrder, $voucherDTOs);
 
         return $purchaseOrder;
     }
 
     /**
-     * Ensure voucher count per digital product matches the purchase order item quantity.
-     * Validates that each digital product and supplier combination has the correct number of vouchers.
+     * Validate that all voucher digital products exist in the purchase order (DTO version)
+     * AND that all purchase order items have corresponding vouchers provided
+     *
+     * @param  array<int, VoucherDTO>  $voucherDTOs
      */
-    private function validateVoucherQuantities(PurchaseOrder $purchaseOrder, array $data): void
+    private function validateVoucherProductsDTO(PurchaseOrder $purchaseOrder, array $voucherDTOs): void
     {
-        if (isset($data['voucher_codes']) && is_array($data['voucher_codes'])) {
-            // Group voucher codes by digital product
-            $codesByProductId = [];
-            foreach ($data['voucher_codes'] as $voucher) {
-                $productId = $voucher['digitalProductID'] ?? null;
-                if ($productId) {
-                    $codesByProductId[$productId] = ($codesByProductId[$productId] ?? 0) + 1;
-                }
-            }
+        $purchaseProductIds = $purchaseOrder->items
+            ->pluck('digital_product_id')
+            ->toArray();
 
-            // Load items with supplier relationships
-            $purchaseOrder->load([
-                'items' => fn ($query) => $query->with('digitalProduct.supplier'),
+        $voucherProductIds = collect($voucherDTOs)
+            ->pluck('digital_product_id')
+            ->toArray();
+
+        $invalidVoucherIds = array_diff($voucherProductIds, $purchaseProductIds);
+
+        if (! empty($invalidVoucherIds)) {
+            throw ValidationException::withMessages([
+                'voucher_codes' => 'Some voucher digital products do not exist in the purchase order.',
             ]);
+        }
 
-            // Validate quantity for each digital product with internal supplier
-            foreach ($purchaseOrder->items as $item) {
-                $supplier = $item->digitalProduct?->supplier;
+        // Validate: all purchase order products have vouchers
+        $missingVoucherIds = array_diff($purchaseProductIds, $voucherProductIds);
 
-                // Skip items with non-internal suppliers
-                if ($supplier?->type !== 'internal') {
-                    continue;
-                }
-
-                $productId = $item->digital_product_id;
-                $expectedQuantity = $item->quantity;
-                $actualQuantity = $codesByProductId[$productId] ?? 0;
-
-                if ($actualQuantity !== $expectedQuantity) {
-                    throw ValidationException::withMessages([
-                        'voucher_codes' => "Digital product ID {$productId} must have exactly {$expectedQuantity} voucher codes, but {$actualQuantity} provided.",
-                    ]);
-                }
-            }
+        if (! empty($missingVoucherIds)) {
+            throw ValidationException::withMessages([
+                'voucher_codes' => 'All digital products in the purchase order must have voucher codes.',
+            ]);
         }
     }
 
     /**
-     * Ensure voucher products exist in the purchase order.
+     * @param  array<int, VoucherDTO>  $voucherDTOs
      */
-    private function validateVoucherProducts(PurchaseOrder $purchaseOrder, array $data): void
+    private function validateVoucherQuantitiesDTO(PurchaseOrder $purchaseOrder, array $voucherDTOs): void
     {
-        if (! isset($data['voucher_codes']) || ! is_array($data['voucher_codes'])) {
-            return;
-        }
+        $countByDigitalProductId = collect($voucherDTOs)
+            ->groupBy('digital_product_id')
+            ->map(fn ($group) => $group->count());
 
-        $itemsByProductId = $purchaseOrder->items
-            ->keyBy('digital_product_id');
+        foreach ($purchaseOrder->items as $item) {
+            $digitalProductId = $item->digital_product_id;
+            $digitalProductQuantity = $item->quantity;
+            $incomingDigitalProductQuantity = $countByDigitalProductId->get($digitalProductId, 0);
 
-        foreach ($data['voucher_codes'] as $index => $voucher) {
-            $productId = $voucher['digitalProductID'] ?? null;
-
-            if (! $productId || ! $itemsByProductId->has($productId)) {
+            if ($incomingDigitalProductQuantity !== $digitalProductQuantity) {
                 throw ValidationException::withMessages([
-                    "voucher_codes.{$index}.digitalProductID" => "Digital product ID {$productId} does not exist in the purchase order.",
+                    'voucher_codes' => "Digital product ID {$digitalProductId} must have exactly {$digitalProductQuantity} voucher codes, {$incomingDigitalProductQuantity} given.",
                 ]);
             }
         }

@@ -2,9 +2,11 @@
 
 namespace App\Imports;
 
+use App\Models\Voucher;
+use App\DTOs\VoucherDTO;
+use App\Enums\VoucherCodeStatus;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
-use App\Repositories\PurchaseOrderRepository;
 use App\Services\Voucher\VoucherCipherService;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithBatchInserts;
@@ -15,30 +17,12 @@ class VoucherImport implements ToCollection, WithBatchInserts, WithChunkReading,
 {
     protected int $purchaseOrderID;
 
-    protected int $purchaseOrderTotalQuantity;
-
-    protected array $errors = [];
-
-    protected int $successCount = 0;
-
-    protected int $failureCount = 0;
-
-    protected VoucherCipherService $voucherCipherService;
-
     protected VoucherPurchaseOrderValidator $validator;
-
-    protected PurchaseOrderRepository $purchaseOrderRepo;
 
     public function __construct(
         int $purchaseOrderID,
-        PurchaseOrderRepository $purchaseOrderRepo,
-        VoucherCipherService $voucherCipherService,
-        VoucherPurchaseOrderValidator $validator
     ) {
         $this->purchaseOrderID = $purchaseOrderID;
-        $this->purchaseOrderRepo = $purchaseOrderRepo;
-        $this->voucherCipherService = $voucherCipherService;
-        $this->validator = $validator;
     }
 
     /**
@@ -47,20 +31,39 @@ class VoucherImport implements ToCollection, WithBatchInserts, WithChunkReading,
     public function collection(Collection $rows): void
     {
         $rows = $rows->toArray();
-        $this->validator->validate($rows);
-        foreach ($rows as $row) {
-            $purchaseOrder = $this->purchaseOrderRepo->getPurchaseOrderByID($this->purchaseOrderID);
-            $digitalProductID = $row['digital_product_id'];
-            $purchaseOrderItem = $purchaseOrder->items->firstWhere('digital_product_id', $digitalProductID);
 
-            $data = [
+        // Convert rows to DTOs for consistent validation and processing
+        $voucherDTOs = array_map(
+            fn (array $row) => VoucherDTO::fromFileRow($row),
+            $rows
+        );
+
+        $validator = new VoucherPurchaseOrderValidator;
+        $purchaseOrder = $validator->validateVoucherDTOs(
+            $voucherDTOs,
+            $this->purchaseOrderID
+        );
+
+        foreach ($voucherDTOs as $voucherDTO) {
+            // Find the purchase order item for this digital product
+            $purchaseOrderItem = $purchaseOrder->items->firstWhere(
+                'digital_product_id',
+                $voucherDTO->digital_product_id
+            );
+
+            // Encrypt the code
+            $voucherCipherService = new VoucherCipherService;
+            $encryptedCode = $voucherCipherService->encryptCode($voucherDTO->code);
+
+            // Create voucher record
+            Voucher::create([
                 'purchase_order_id' => $this->purchaseOrderID,
                 'purchase_order_item_id' => $purchaseOrderItem->id,
-                'code' => $this->voucherCipherService->encryptCode($row['code']),
-                'serial_number' => $row['serial_number'] ?? null,
-                'pin_code' => $row['pin_code'] ?? null,
-                'status' => 'available',
-            ];
+                'code' => $encryptedCode,
+                'serial_number' => $voucherDTO->serial_number,
+                'pin_code' => $voucherDTO->pin_code,
+                'status' => VoucherCodeStatus::AVAILABLE->value,
+            ]);
         }
     }
 

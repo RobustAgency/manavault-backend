@@ -8,22 +8,22 @@ use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Http\UploadedFile;
 use Maatwebsite\Excel\Facades\Excel;
-use App\Services\VoucherImportService;
 use Illuminate\Foundation\Testing\WithFaker;
+use App\Services\Voucher\VoucherFileImportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class VoucherImportServiceTest extends TestCase
 {
     use RefreshDatabase, WithFaker;
 
-    private VoucherImportService $service;
+    private VoucherFileImportService $service;
 
     private PurchaseOrder $purchaseOrder;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = app(VoucherImportService::class);
+        $this->service = app(VoucherFileImportService::class);
         $this->purchaseOrder = PurchaseOrder::factory()->create();
 
         // Create purchase order items with total quantity of 3

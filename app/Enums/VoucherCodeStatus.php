@@ -6,4 +6,5 @@ enum VoucherCodeStatus: string
 {
     case PROCESSING = 'PROCESSING';
     case COMPLETED = 'COMPLETED';
+    case AVAILABLE = 'available';
 }
