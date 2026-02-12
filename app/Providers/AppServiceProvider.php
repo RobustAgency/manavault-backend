@@ -43,7 +43,15 @@ class AppServiceProvider extends ServiceProvider
 
         // Register gate for role-based access control
         Gate::before(function ($user, $ability) {
-            return $user->role === UserRole::SUPER_ADMIN ? true : null;
+            if ($user->role === UserRole::SUPER_ADMIN) {
+                return true;
+            }
+
+            if ($user->hasRole('super_admin')) {
+                return true;
+            }
+
+            return null;
         });
     }
 }
