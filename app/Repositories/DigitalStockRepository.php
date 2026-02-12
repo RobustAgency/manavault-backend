@@ -39,7 +39,7 @@ class DigitalStockRepository
     {
         $threshold = self::LOW_STOCK_THRESHOLD;
         $query->where(function (Builder $query) use ($threshold) {
-            $query->whereRaw('COALESCE(poi_totals.total_quantity, 0) < ?', [$threshold]);
+            $query->whereRaw('COALESCE(available_vouchers.available_quantity, 0) < ?', [$threshold]);
         });
 
         return $query;
@@ -53,7 +53,7 @@ class DigitalStockRepository
     {
         $threshold = self::LOW_STOCK_THRESHOLD;
         $query->where(function (Builder $query) use ($threshold) {
-            $query->whereRaw('COALESCE(poi_totals.total_quantity, 0) >= ?', [$threshold]);
+            $query->whereRaw('COALESCE(available_vouchers.available_quantity, 0) >= ?', [$threshold]);
         });
 
         return $query;
@@ -66,30 +66,32 @@ class DigitalStockRepository
      */
     private function buildBaseQuery(array $filters = []): Builder
     {
-        $quantitySubquery = DB::table('purchase_order_items')
-            ->select('digital_product_id')
-            ->selectRaw('SUM(quantity) as total_quantity')
-            ->groupBy('digital_product_id');
+        $availableVouchersSubquery = DB::table('vouchers')
+            ->select('purchase_order_items.digital_product_id')
+            ->selectRaw('COUNT(*) as available_quantity')
+            ->join('purchase_order_items', 'vouchers.purchase_order_item_id', '=', 'purchase_order_items.id')
+            ->where('vouchers.status', 'available')
+            ->groupBy('purchase_order_items.digital_product_id');
 
         $query = DigitalProduct::query();
 
         $query->join('suppliers', 'digital_products.supplier_id', '=', 'suppliers.id')
-            ->leftJoinSub($quantitySubquery, 'poi_totals', function ($join) {
-                $join->on('digital_products.id', '=', 'poi_totals.digital_product_id');
+            ->leftJoinSub($availableVouchersSubquery, 'available_vouchers', function ($join) {
+                $join->on('digital_products.id', '=', 'available_vouchers.digital_product_id');
             });
 
         $query->select([
             'digital_products.*',
             'suppliers.name as supplier_name',
             'suppliers.type as supplier_type',
-            DB::raw('COALESCE(poi_totals.total_quantity, 0) as quantity'),
+            DB::raw('COALESCE(available_vouchers.available_quantity, 0) as quantity'),
         ]);
 
         $query->where(function (Builder $query) {
             $query->where('suppliers.type', 'internal')
                 ->orWhere(function (Builder $subQuery) {
                     $subQuery->where('suppliers.type', 'external')
-                        ->whereRaw('COALESCE(poi_totals.total_quantity, 0) > 0');
+                        ->whereRaw('COALESCE(available_vouchers.available_quantity, 0) > 0');
                 });
         });
 
@@ -112,15 +114,16 @@ class DigitalStockRepository
     }
 
     /**
-     * Get total available quantity for a specific digital product
+     * Get total available voucher count for a specific digital product
      */
     public function getDigitalProductQuantity(int $digitalProductId): int
     {
-        $result = DB::table('purchase_order_items')
-            ->where('digital_product_id', $digitalProductId)
-            ->selectRaw('SUM(quantity) as total_quantity')
-            ->first();
+        $result = DB::table('vouchers')
+            ->join('purchase_order_items', 'vouchers.purchase_order_item_id', '=', 'purchase_order_items.id')
+            ->where('purchase_order_items.digital_product_id', $digitalProductId)
+            ->where('vouchers.status', 'available')
+            ->count();
 
-        return $result->total_quantity ?? 0;
+        return $result;
     }
 }
