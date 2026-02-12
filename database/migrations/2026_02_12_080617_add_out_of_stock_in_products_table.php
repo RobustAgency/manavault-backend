@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            $table->boolean('out_of_stock')->default(false)->after('fulfillment_mode');
+            $table->boolean('is_out_of_stock')->default(false)->after('fulfillment_mode');
         });
     }
 
@@ -22,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            $table->dropColumn('out_of_stock');
+            $table->dropColumn('is_out_of_stock');
         });
     }
 };

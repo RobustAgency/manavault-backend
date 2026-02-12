@@ -40,7 +40,7 @@ class UpdateProductRequest extends FormRequest
             'regions' => ['sometimes', 'nullable', 'array'],
             'regions.*' => ['string'],
             'is_custom_priority' => ['sometimes', 'boolean'],
-            'out_of_stock' => ['sometimes', 'boolean'],
+            'is_out_of_stock' => ['sometimes', 'boolean'],
         ];
     }
 }

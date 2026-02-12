@@ -37,7 +37,7 @@ class ProductResource extends JsonResource
             'status' => $this->status,
             'regions' => $this->regions,
             'is_custom_priority' => $this->fulfillment_mode === FulfillmentMode::MANUAL->value ? true : false,
-            'out_of_stock' => $this->out_of_stock,
+            'is_out_of_stock' => $this->is_out_of_stock,
             'created_at' => $this->created_at->toDateTimeString(),
             'updated_at' => $this->updated_at->toDateTimeString(),
             'digital_products' => DigitalProductResource::collection($this->whenLoaded('digitalProducts')),
