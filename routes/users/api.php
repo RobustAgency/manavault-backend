@@ -29,9 +29,9 @@ Route::middleware(['auth:supabase', 'user.approved'])->group(function () {
         Route::get('', 'index')->middleware('permission:view_user');
         Route::post('', 'store')->middleware('permission:create_user');
         Route::get('/{user}', 'show')->middleware('permission:view_user');
-        Route::post('/{user}/approve', 'approve')->middleware('permission:update_user');
-        Route::post('/{user}/revoke-approval', 'revokeApproval')->middleware('permission:update_user');
-        Route::post('/{user}/assign-roles', 'assignRoles')->middleware('permission:update_user');
+        Route::post('/{user}/approve', 'approve')->middleware('permission:edit_user');
+        Route::post('/{user}/revoke-approval', 'revokeApproval')->middleware('permission:edit_user');
+        Route::post('/{user}/assign-roles', 'assignRoles')->middleware('permission:edit_user');
         Route::delete('/{user}', 'destroy')->middleware('permission:delete_user');
     });
 
@@ -42,7 +42,7 @@ Route::middleware(['auth:supabase', 'user.approved'])->group(function () {
             Route::get('', 'index')->middleware('permission:view_supplier');
             Route::post('', 'store')->middleware('permission:create_supplier');
             Route::get('/{supplier}', 'show')->middleware('permission:view_supplier');
-            Route::post('/{supplier}', 'update')->middleware('permission:update_supplier');
+            Route::post('/{supplier}', 'update')->middleware('permission:edit_supplier');
             Route::delete('/{supplier}', 'destroy')->middleware('permission:delete_supplier');
         });
     });
@@ -51,20 +51,20 @@ Route::middleware(['auth:supabase', 'user.approved'])->group(function () {
         Route::get('', [ProductController::class, 'index'])->middleware('permission:view_product');
         Route::post('', [ProductController::class, 'store'])->middleware('permission:create_product');
         Route::get('/{product}', [ProductController::class, 'show'])->middleware('permission:view_product');
-        Route::post('/{product}', [ProductController::class, 'update'])->middleware('permission:update_product');
+        Route::post('/{product}', [ProductController::class, 'update'])->middleware('permission:edit_product');
         Route::delete('/{product}', [ProductController::class, 'destroy'])->middleware('permission:delete_product');
-        Route::post('/{product}/digital-products/priority', [ProductController::class, 'updateDigitalProductsPriority'])->middleware('permission:update_product');
-        Route::post('/{product}/digital_products', [ProductController::class, 'assignDigitalProducts'])->middleware('permission:update_product');
-        Route::delete('/{product}/digital_products/{digitalProductId}', [ProductController::class, 'removeDigitalProduct'])->middleware('permission:update_product');
+        Route::post('/{product}/digital-products/priority', [ProductController::class, 'updateDigitalProductsPriority'])->middleware('permission:edit_product');
+        Route::post('/{product}/digital_products', [ProductController::class, 'assignDigitalProducts'])->middleware('permission:edit_product');
+        Route::delete('/{product}/digital_products/{digitalProductId}', [ProductController::class, 'removeDigitalProduct'])->middleware('permission:edit_product');
     });
 
     Route::prefix('/digital-products')->controller(DigitalProductController::class)->group(function () {
-        Route::get('', 'index')->middleware('permission:view_digital_product');
-        Route::post('', 'store')->middleware('permission:create_digital_product');
-        Route::post('/batch-import', 'batchImport')->middleware('permission:create_digital_product');
-        Route::get('/{digitalProduct}', 'show')->middleware('permission:view_digital_product');
-        Route::post('/{digitalProduct}', 'update')->middleware('permission:update_digital_product');
-        Route::delete('/{digitalProduct}', 'destroy')->middleware('permission:delete_digital_product');
+        Route::get('', 'index')->middleware('permission:view_digital_stock');
+        Route::post('', 'store')->middleware('permission:create_digital_stock');
+        Route::post('/batch-import', 'batchImport')->middleware('permission:create_digital_stock');
+        Route::get('/{digitalProduct}', 'show')->middleware('permission:view_digital_stock');
+        Route::post('/{digitalProduct}', 'update')->middleware('permission:edit_digital_stock');
+        Route::delete('/{digitalProduct}', 'destroy')->middleware('permission:delete_digital_stock');
     });
 
     Route::prefix('/purchase-orders')->controller(PurchaseOrderController::class)->group(function () {
@@ -88,7 +88,7 @@ Route::middleware(['auth:supabase', 'user.approved'])->group(function () {
         Route::get('', 'index')->middleware('permission:view_brand');
         Route::post('', 'store')->middleware('permission:create_brand');
         Route::get('/{brand}', 'show')->middleware('permission:view_brand');
-        Route::match(['put', 'post'], '/{brand}', 'update')->middleware('permission:update_brand');
+        Route::match(['put', 'post'], '/{brand}', 'update')->middleware('permission:edit_brand');
         Route::delete('/{brand}', 'destroy')->middleware('permission:delete_brand');
     });
 
@@ -105,7 +105,7 @@ Route::middleware(['auth:supabase', 'user.approved'])->group(function () {
         Route::post('', 'store')->middleware('permission:create_price_rule');
         Route::post('/preview', 'preview')->middleware('permission:view_price_rule');
         Route::get('/{priceRule}', 'show')->middleware('permission:view_price_rule');
-        Route::post('/{priceRule}', 'update')->middleware('permission:update_price_rule');
+        Route::post('/{priceRule}', 'update')->middleware('permission:edit_price_rule');
         Route::delete('/{priceRule}', 'destroy')->middleware('permission:delete_price_rule');
     });
 
@@ -118,7 +118,7 @@ Route::middleware(['auth:supabase', 'user.approved'])->group(function () {
         Route::get('', 'index')->middleware('permission:view_role');
         Route::post('', 'store')->middleware('permission:create_role');
         Route::get('/{role}', 'show')->middleware('permission:view_role');
-        Route::post('/{role}', 'update')->middleware('permission:update_role');
+        Route::post('/{role}', 'update')->middleware('permission:edit_role');
         Route::delete('/{role}', 'destroy')->middleware('permission:delete_role');
     });
 
