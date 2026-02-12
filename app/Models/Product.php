@@ -27,12 +27,14 @@ class Product extends Model
         'status',
         'regions',
         'fulfillment_mode',
+        'out_of_stock',
     ];
 
     protected $casts = [
         'tags' => 'array',
         'regions' => 'array',
         'face_value' => 'decimal:2',
+        'out_of_stock' => 'boolean',
     ];
 
     /**
