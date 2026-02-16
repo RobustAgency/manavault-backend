@@ -1,0 +1,32 @@
+name: Production Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Set git safe directory
+        run: git config --global --add safe.directory /app
+
+
+      - name: Require Laravel Envoy
+        uses: php-actions/composer@v6
+        with:
+          command: require
+          args: laravel/envoy --dev --ignore-platform-reqs
+
+      - name: Set up SSH
+        run: |
+          echo "${{ secrets.MANAVAULT_PROD_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "144.126.254.193" >> ~/.ssh/known_hosts
+      - name: Deploy to Staging server
+        run: ./vendor/bin/envoy run deploy
