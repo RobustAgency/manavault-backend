@@ -27,6 +27,6 @@ jobs:
         run: |
           echo "${{ secrets.MANAVAULT_PROD_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "144.126.254.193" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "188.166.211.251" >> ~/.ssh/known_hosts
       - name: Deploy to Production server
         run: ./vendor/bin/envoy run deploy
