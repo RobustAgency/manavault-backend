@@ -2,7 +2,9 @@
 
 namespace App\Services\Voucher;
 
+use App\Models\Voucher;
 use App\DTOs\VoucherDTO;
+use App\Enums\SupplierType;
 use App\Models\PurchaseOrder;
 use Illuminate\Validation\ValidationException;
 
@@ -24,6 +26,7 @@ class VoucherPurchaseOrderValidator
             ]);
         }
 
+        $this->validateNoExistingVouchers($purchaseOrder, $voucherDTOs);
         $this->validateVoucherProductsDTO($purchaseOrder, $voucherDTOs);
         $this->validateVoucherQuantitiesDTO($purchaseOrder, $voucherDTOs);
 
@@ -83,6 +86,45 @@ class VoucherPurchaseOrderValidator
                     'voucher_codes' => "Digital product ID {$digitalProductId} must have exactly {$digitalProductQuantity} voucher codes, {$incomingDigitalProductQuantity} given.",
                 ]);
             }
+        }
+    }
+
+    /**
+     * Validate that no vouchers already exist for the digital products with internal suppliers in this purchase order
+     *
+     * @param  array<int, VoucherDTO>  $voucherDTOs
+     */
+    private function validateNoExistingVouchers(PurchaseOrder $purchaseOrder, array $voucherDTOs): void
+    {
+        // Get unique digital product IDs from the incoming DTOs
+        $incomingProductIds = collect($voucherDTOs)
+            ->pluck('digital_product_id')
+            ->unique()
+            ->toArray();
+
+        // Filter to only include digital products with internal suppliers
+        $internalSupplierProductIds = collect($purchaseOrder->items)
+            ->filter(function ($item) use ($incomingProductIds) {
+                return in_array($item->digital_product_id, $incomingProductIds) &&
+                       $item->digitalProduct->supplier->type === SupplierType::INTERNAL->value;
+            })
+            ->pluck('id')
+            ->toArray();
+
+        // If no internal supplier products, no need to check for duplicates
+        if (empty($internalSupplierProductIds)) {
+            return;
+        }
+
+        // Check if any vouchers already exist for these purchase order items with internal suppliers
+        $existingVouchers = Voucher::where('purchase_order_id', $purchaseOrder->id)
+            ->whereIn('purchase_order_item_id', $internalSupplierProductIds)
+            ->exists();
+
+        if ($existingVouchers) {
+            throw ValidationException::withMessages([
+                'voucher_codes' => 'Vouchers have already been imported for one or more digital products with internal suppliers in this purchase order.',
+            ]);
         }
     }
 }
