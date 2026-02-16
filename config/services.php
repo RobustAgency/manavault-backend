@@ -41,4 +41,27 @@ return [
         'jwt_secret' => env('SUPABASE_JWT_SECRET'),
     ],
 
+    'ez_cards' => [
+        'base_url' => env('EZ_CARDS_BASE_URL', 'https://api.ezcards.io'),
+        'api_key' => env('EZ_CARDS_API_KEY'),
+        'access_token' => env('EZ_CARDS_ACCESS_TOKEN'),
+    ],
+
+    'irewardify' => [
+        'base_url' => env('IREWARDIFY_BASE_URL', 'https://api.irewardify.com'),
+    ],
+
+    'gift2games' => [
+        'base_url' => env('GIFT_2_GAMES_BASE_URL', 'https://gift2games.net/api/'),
+        'access_token' => env('GIFT_2_GAMES_ACCESS_TOKEN'),
+    ],
+
+    'voucher' => [
+        'encryption_key' => env('VOUCHER_ENCRYPTION_KEY', 'CKunc0FMA96tKqFiowsKv1H1VCzQM6G8WLgzVKnyVAo='),
+    ],
+
+    'manastore' => [
+        'api_key' => env('MANASTORE_API_KEY'),
+    ],
+
 ];

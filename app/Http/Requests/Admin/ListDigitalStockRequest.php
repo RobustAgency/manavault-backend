@@ -1,0 +1,34 @@
+<?php
+
+namespace App\Http\Requests\Admin;
+
+use Illuminate\Validation\Rule;
+use App\Enums\DigitalStock\Stock;
+use Illuminate\Foundation\Http\FormRequest;
+
+class ListDigitalStockRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
+    public function rules(): array
+    {
+        return [
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            'supplier_id' => ['sometimes', 'integer', 'exists:suppliers,id'],
+            'name' => ['sometimes', 'string', 'max:255'],
+            'stock' => ['sometimes', Rule::enum(Stock::class)],
+            'brand' => ['sometimes', 'string', 'max:255'],
+        ];
+    }
+}

@@ -23,8 +23,41 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'is_approved' => $this->is_approved,
+            'role' => $this->roles->first()->name ?? null,
+            'modules' => $this->getPermissionsByModule(),
             'created_at' => $this->created_at->toIso8601String(),
             'updated_at' => $this->updated_at->toIso8601String(),
         ];
+    }
+
+    /**
+     * Group permissions by module.
+     *
+     * @return array<int, array{id: int, name: string, slug: string, permissions: array<string>}>
+     */
+    private function getPermissionsByModule(): array
+    {
+        $permissions = $this->getAllPermissions();
+        $grouped = [];
+
+        foreach ($permissions as $permission) {
+            $moduleId = $permission->module_id;
+            $moduleName = $permission->module->name;
+            $moduleSlug = $permission->module->slug;
+            $permissionName = $permission->name;
+
+            if (! isset($grouped[$moduleId])) {
+                $grouped[$moduleId] = [
+                    'id' => $moduleId,
+                    'name' => $moduleName,
+                    'slug' => $moduleSlug,
+                    'permissions' => [],
+                ];
+            }
+
+            $grouped[$moduleId]['permissions'][] = $permissionName;
+        }
+
+        return array_values($grouped);
     }
 }
