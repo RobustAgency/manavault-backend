@@ -2,14 +2,14 @@
 
 @setup
     $repository = 'git@github.com:RobustAgency/manavault-backend.git';
-    $branch = 'staging';
+    $branch = 'main';
     $app_dir = '/var/www/manavault';
     $release = date('Y_m_d_H_i');
     $releases_dir = $app_dir . '/releases';
     $new_release_dir = $releases_dir .'/'. $release;
 @endsetup
 
-@story('deploy', ['on' => 'staging'])
+@story('deploy', ['on' => 'prod'])
     clone_repository
     run_composer
     update_symlinks
