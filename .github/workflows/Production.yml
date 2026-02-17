@@ -22,8 +22,11 @@ jobs:
           command: install
           args: --ignore-platform-reqs
 
-      - name: Install Envoy globally
-        run: composer global require laravel/envoy --dev --ignore-platform-reqs
+      - name: Require Laravel Envoy 
+        uses: php-actions/composer@v6 
+        with: 
+          command: require 
+          args: laravel/envoy --dev --ignore-platform-reqs
 
       - name: Setup SSH
         run: |
