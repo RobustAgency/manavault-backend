@@ -10,23 +10,28 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Check out repository code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set git safe directory
         run: git config --global --add safe.directory /app
 
-
-      - name: Require Laravel Envoy
+      - name: Install PHP & Composer dependencies
         uses: php-actions/composer@v6
         with:
-          command: require
-          args: laravel/envoy --dev --ignore-platform-reqs
+          command: install
+          args: --ignore-platform-reqs
 
-      - name: Set up SSH
+      - name: Install Envoy globally
+        run: composer global require laravel/envoy --dev --ignore-platform-reqs
+
+      - name: Setup SSH
         run: |
           echo "${{ secrets.MANAVAULT_PROD_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/id_rsa
           ssh-keyscan -H 188.166.211.251 >> ~/.ssh/known_hosts
-      - name: Deploy to Production server
-        run: ./vendor/bin/envoy run deploy
+
+      - name: Run Deployment
+        run: envoy run deploy
