@@ -26,12 +26,13 @@ class VoucherPurchaseOrderValidatorTest extends TestCase
     }
 
     /**
-     * Test valid voucher DTOs with single digital product
+     * Test valid voucher DTOs with single digital product (internal supplier)
      */
     public function test_validate_voucher_dtos_with_single_digital_product(): void
     {
         $purchaseOrder = PurchaseOrder::factory()->create();
-        $digitalProduct = DigitalProduct::factory()->create();
+        $internalSupplier = Supplier::factory()->create(); // Default is internal
+        $digitalProduct = DigitalProduct::factory()->forSupplier($internalSupplier)->create();
 
         PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(3)->create([
             'digital_product_id' => $digitalProduct->id,
@@ -50,13 +51,14 @@ class VoucherPurchaseOrderValidatorTest extends TestCase
     }
 
     /**
-     * Test valid voucher DTOs with multiple digital products
+     * Test valid voucher DTOs with multiple digital products (internal suppliers)
      */
     public function test_validate_voucher_dtos_with_multiple_digital_products(): void
     {
         $purchaseOrder = PurchaseOrder::factory()->create();
-        $digitalProduct1 = DigitalProduct::factory()->create();
-        $digitalProduct2 = DigitalProduct::factory()->create();
+        $internalSupplier = Supplier::factory()->create(); // Default is internal
+        $digitalProduct1 = DigitalProduct::factory()->forSupplier($internalSupplier)->create();
+        $digitalProduct2 = DigitalProduct::factory()->forSupplier($internalSupplier)->create();
 
         PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(2)->create([
             'digital_product_id' => $digitalProduct1->id,
@@ -97,13 +99,14 @@ class VoucherPurchaseOrderValidatorTest extends TestCase
     }
 
     /**
-     * Test validation fails when voucher has a digital product not in purchase order
+     * Test validation fails when voucher has a digital product not in purchase order (internal supplier)
      */
     public function test_validate_voucher_dtos_throws_exception_when_digital_product_not_in_purchase_order(): void
     {
         $purchaseOrder = PurchaseOrder::factory()->create();
-        $digitalProduct1 = DigitalProduct::factory()->create();
-        $digitalProduct2 = DigitalProduct::factory()->create(); // Not in PO
+        $internalSupplier = Supplier::factory()->create(); // Default is internal
+        $digitalProduct1 = DigitalProduct::factory()->forSupplier($internalSupplier)->create();
+        $digitalProduct2 = DigitalProduct::factory()->forSupplier($internalSupplier)->create(); // Not in PO
 
         PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(2)->create([
             'digital_product_id' => $digitalProduct1->id,
@@ -119,13 +122,14 @@ class VoucherPurchaseOrderValidatorTest extends TestCase
     }
 
     /**
-     * Test validation fails when not all purchase order items have vouchers
+     * Test validation fails when not all purchase order items with internal suppliers have vouchers
      */
     public function test_validate_voucher_dtos_throws_exception_when_missing_vouchers_for_all_products(): void
     {
         $purchaseOrder = PurchaseOrder::factory()->create();
-        $digitalProduct1 = DigitalProduct::factory()->create();
-        $digitalProduct2 = DigitalProduct::factory()->create();
+        $internalSupplier = Supplier::factory()->create(); // Default is internal
+        $digitalProduct1 = DigitalProduct::factory()->forSupplier($internalSupplier)->create();
+        $digitalProduct2 = DigitalProduct::factory()->forSupplier($internalSupplier)->create();
 
         PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(2)->create([
             'digital_product_id' => $digitalProduct1->id,
@@ -146,12 +150,13 @@ class VoucherPurchaseOrderValidatorTest extends TestCase
     }
 
     /**
-     * Test validation fails when quantity of vouchers does not match purchase order item quantity
+     * Test validation fails when quantity of vouchers does not match purchase order item quantity (internal supplier)
      */
     public function test_validate_voucher_dtos_throws_exception_when_quantity_mismatch(): void
     {
         $purchaseOrder = PurchaseOrder::factory()->create();
-        $digitalProduct = DigitalProduct::factory()->create();
+        $internalSupplier = Supplier::factory()->create(); // Default is internal
+        $digitalProduct = DigitalProduct::factory()->forSupplier($internalSupplier)->create();
 
         PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(3)->create([
             'digital_product_id' => $digitalProduct->id,
@@ -168,12 +173,13 @@ class VoucherPurchaseOrderValidatorTest extends TestCase
     }
 
     /**
-     * Test validation fails when too many vouchers are provided for a product
+     * Test validation fails when too many vouchers are provided for a product (internal supplier)
      */
     public function test_validate_voucher_dtos_throws_exception_when_too_many_vouchers(): void
     {
         $purchaseOrder = PurchaseOrder::factory()->create();
-        $digitalProduct = DigitalProduct::factory()->create();
+        $internalSupplier = Supplier::factory()->create(); // Default is internal
+        $digitalProduct = DigitalProduct::factory()->forSupplier($internalSupplier)->create();
 
         PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(2)->create([
             'digital_product_id' => $digitalProduct->id,
@@ -192,14 +198,15 @@ class VoucherPurchaseOrderValidatorTest extends TestCase
     }
 
     /**
-     * Test validation with multiple products having different quantities
+     * Test validation with multiple products having different quantities (internal suppliers)
      */
     public function test_validate_voucher_dtos_with_varied_quantities(): void
     {
         $purchaseOrder = PurchaseOrder::factory()->create();
-        $digitalProduct1 = DigitalProduct::factory()->create();
-        $digitalProduct2 = DigitalProduct::factory()->create();
-        $digitalProduct3 = DigitalProduct::factory()->create();
+        $internalSupplier = Supplier::factory()->create(); // Default is internal
+        $digitalProduct1 = DigitalProduct::factory()->forSupplier($internalSupplier)->create();
+        $digitalProduct2 = DigitalProduct::factory()->forSupplier($internalSupplier)->create();
+        $digitalProduct3 = DigitalProduct::factory()->forSupplier($internalSupplier)->create();
 
         PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(1)->create([
             'digital_product_id' => $digitalProduct1->id,
@@ -231,13 +238,14 @@ class VoucherPurchaseOrderValidatorTest extends TestCase
     }
 
     /**
-     * Test validation fails when one product has mismatched quantity in multi-product scenario
+     * Test validation fails when one product has mismatched quantity in multi-product scenario (internal suppliers)
      */
     public function test_validate_voucher_dtos_throws_exception_on_partial_quantity_mismatch(): void
     {
         $purchaseOrder = PurchaseOrder::factory()->create();
-        $digitalProduct1 = DigitalProduct::factory()->create();
-        $digitalProduct2 = DigitalProduct::factory()->create();
+        $internalSupplier = Supplier::factory()->create(); // Default is internal
+        $digitalProduct1 = DigitalProduct::factory()->forSupplier($internalSupplier)->create();
+        $digitalProduct2 = DigitalProduct::factory()->forSupplier($internalSupplier)->create();
 
         PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(2)->create([
             'digital_product_id' => $digitalProduct1->id,
@@ -261,12 +269,13 @@ class VoucherPurchaseOrderValidatorTest extends TestCase
     }
 
     /**
-     * Test validation with empty voucher DTOs array
+     * Test validation with empty voucher DTOs array (internal supplier)
      */
     public function test_validate_voucher_dtos_throws_exception_with_empty_array(): void
     {
         $purchaseOrder = PurchaseOrder::factory()->create();
-        $digitalProduct = DigitalProduct::factory()->create();
+        $internalSupplier = Supplier::factory()->create(); // Default is internal
+        $digitalProduct = DigitalProduct::factory()->forSupplier($internalSupplier)->create();
 
         PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(1)->create([
             'digital_product_id' => $digitalProduct->id,
@@ -279,12 +288,13 @@ class VoucherPurchaseOrderValidatorTest extends TestCase
     }
 
     /**
-     * Test validation error message contains digital product ID
+     * Test validation error message contains digital product ID (internal supplier)
      */
     public function test_validate_voucher_dtos_error_message_includes_digital_product_id(): void
     {
         $purchaseOrder = PurchaseOrder::factory()->create();
-        $digitalProduct = DigitalProduct::factory()->create();
+        $internalSupplier = Supplier::factory()->create(); // Default is internal
+        $digitalProduct = DigitalProduct::factory()->forSupplier($internalSupplier)->create();
 
         PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(5)->create([
             'digital_product_id' => $digitalProduct->id,
@@ -300,12 +310,13 @@ class VoucherPurchaseOrderValidatorTest extends TestCase
     }
 
     /**
-     * Test validation with special characters in voucher codes
+     * Test validation with special characters in voucher codes (internal supplier)
      */
     public function test_validate_voucher_dtos_with_special_characters_in_codes(): void
     {
         $purchaseOrder = PurchaseOrder::factory()->create();
-        $digitalProduct = DigitalProduct::factory()->create();
+        $internalSupplier = Supplier::factory()->create(); // Default is internal
+        $digitalProduct = DigitalProduct::factory()->forSupplier($internalSupplier)->create();
 
         PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(3)->create([
             'digital_product_id' => $digitalProduct->id,
@@ -323,12 +334,13 @@ class VoucherPurchaseOrderValidatorTest extends TestCase
     }
 
     /**
-     * Test validation with very long voucher codes
+     * Test validation with very long voucher codes (internal supplier)
      */
     public function test_validate_voucher_dtos_with_long_voucher_codes(): void
     {
         $purchaseOrder = PurchaseOrder::factory()->create();
-        $digitalProduct = DigitalProduct::factory()->create();
+        $internalSupplier = Supplier::factory()->create(); // Default is internal
+        $digitalProduct = DigitalProduct::factory()->forSupplier($internalSupplier)->create();
 
         PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(2)->create([
             'digital_product_id' => $digitalProduct->id,
@@ -348,12 +360,13 @@ class VoucherPurchaseOrderValidatorTest extends TestCase
     }
 
     /**
-     * Test validation returns purchase order with relationships loaded
+     * Test validation returns purchase order with relationships loaded (internal supplier)
      */
     public function test_validate_voucher_dtos_returns_purchase_order_with_items_loaded(): void
     {
         $purchaseOrder = PurchaseOrder::factory()->create();
-        $digitalProduct = DigitalProduct::factory()->create();
+        $internalSupplier = Supplier::factory()->create(); // Default is internal
+        $digitalProduct = DigitalProduct::factory()->forSupplier($internalSupplier)->create();
 
         PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(1)->create([
             'digital_product_id' => $digitalProduct->id,
@@ -450,32 +463,10 @@ class VoucherPurchaseOrderValidatorTest extends TestCase
     }
 
     /**
-     * Test validation passes when no vouchers exist for the digital products
-     */
-    public function test_validate_voucher_dtos_passes_when_no_existing_vouchers(): void
-    {
-        $purchaseOrder = PurchaseOrder::factory()->create();
-        $digitalProduct = DigitalProduct::factory()->create();
-
-        PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(2)->create([
-            'digital_product_id' => $digitalProduct->id,
-        ]);
-
-        $voucherDTOs = [
-            new VoucherDTO(digital_product_id: $digitalProduct->id, code: 'CODE-001'),
-            new VoucherDTO(digital_product_id: $digitalProduct->id, code: 'CODE-002'),
-        ];
-
-        // Should not throw exception
-        $result = $this->validator->validateVoucherDTOs($voucherDTOs, $purchaseOrder->id);
-
-        $this->assertInstanceOf(PurchaseOrder::class, $result);
-        $this->assertEquals($purchaseOrder->id, $result->id);
-    }
-
-    /**
      * Test validation passes when existing vouchers exist for external supplier digital products
      * (Only internal suppliers should prevent duplicate imports)
+    /**
+     * Test validation passes with external supplier existing vouchers (no manual upload needed for external)
      */
     public function test_validate_voucher_dtos_passes_with_external_supplier_existing_vouchers(): void
     {
@@ -493,14 +484,61 @@ class VoucherPurchaseOrderValidatorTest extends TestCase
             'purchase_order_item_id' => $purchaseOrderItem->id,
         ]);
 
-        // Try to import more vouchers for the same product with external supplier
-        // This should NOT throw an exception because the supplier is external
-        $voucherDTOs = [
-            new VoucherDTO(digital_product_id: $digitalProduct->id, code: 'CODE-NEW-001'),
-            new VoucherDTO(digital_product_id: $digitalProduct->id, code: 'CODE-NEW-002'),
-        ];
+        // For external suppliers, no manual voucher upload is provided (they use 3rd party APIs)
+        // This should NOT throw an exception because external suppliers are ignored in validation
+        $voucherDTOs = [];
 
         // Should not throw exception for external supplier
+        $result = $this->validator->validateVoucherDTOs($voucherDTOs, $purchaseOrder->id);
+
+        $this->assertInstanceOf(PurchaseOrder::class, $result);
+        $this->assertEquals($purchaseOrder->id, $result->id);
+    }
+
+    /**
+     * Test validation with 2 internal and 2 external suppliers - only internal suppliers validated
+     */
+    public function test_validate_voucher_dtos_with_multiple_internal_and_external_suppliers(): void
+    {
+        $purchaseOrder = PurchaseOrder::factory()->create();
+        $internalSupplier1 = Supplier::factory()->create(); // Default is internal
+        $internalSupplier2 = Supplier::factory()->create(); // Default is internal
+        $externalSupplier1 = Supplier::factory()->external()->create();
+        $externalSupplier2 = Supplier::factory()->external()->create();
+
+        $internalProduct1 = DigitalProduct::factory()->forSupplier($internalSupplier1)->create();
+        $internalProduct2 = DigitalProduct::factory()->forSupplier($internalSupplier2)->create();
+        $externalProduct1 = DigitalProduct::factory()->forSupplier($externalSupplier1)->create();
+        $externalProduct2 = DigitalProduct::factory()->forSupplier($externalSupplier2)->create();
+
+        PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(2)->create([
+            'digital_product_id' => $internalProduct1->id,
+        ]);
+
+        PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(3)->create([
+            'digital_product_id' => $internalProduct2->id,
+        ]);
+
+        PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(5)->create([
+            'digital_product_id' => $externalProduct1->id,
+        ]);
+
+        PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(4)->create([
+            'digital_product_id' => $externalProduct2->id,
+        ]);
+
+        // Only provide vouchers for the 2 internal products
+        // External products should be ignored - no vouchers needed for them
+        $voucherDTOs = [
+            new VoucherDTO(digital_product_id: $internalProduct1->id, code: 'CODE-INT1-001'),
+            new VoucherDTO(digital_product_id: $internalProduct1->id, code: 'CODE-INT1-002'),
+            new VoucherDTO(digital_product_id: $internalProduct2->id, code: 'CODE-INT2-001'),
+            new VoucherDTO(digital_product_id: $internalProduct2->id, code: 'CODE-INT2-002'),
+            new VoucherDTO(digital_product_id: $internalProduct2->id, code: 'CODE-INT2-003'),
+        ];
+
+        // Should pass because we provided all required vouchers for internal suppliers
+        // External suppliers are completely ignored in validation
         $result = $this->validator->validateVoucherDTOs($voucherDTOs, $purchaseOrder->id);
 
         $this->assertInstanceOf(PurchaseOrder::class, $result);
@@ -549,5 +587,80 @@ class VoucherPurchaseOrderValidatorTest extends TestCase
             $this->assertStringContainsString('already been imported', $e->errors()['voucher_codes'][0]);
             throw $e;
         }
+    }
+
+    /**
+     * Test validation passes when no vouchers exist for the digital products (internal supplier)
+     */
+    public function test_validate_voucher_dtos_passes_when_no_existing_vouchers(): void
+    {
+        $purchaseOrder = PurchaseOrder::factory()->create();
+        $internalSupplier = Supplier::factory()->create(); // Default is internal
+        $digitalProduct = DigitalProduct::factory()->forSupplier($internalSupplier)->create();
+
+        PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(2)->create([
+            'digital_product_id' => $digitalProduct->id,
+        ]);
+
+        $voucherDTOs = [
+            new VoucherDTO(digital_product_id: $digitalProduct->id, code: 'CODE-001'),
+            new VoucherDTO(digital_product_id: $digitalProduct->id, code: 'CODE-002'),
+        ];
+
+        // Should not throw exception
+        $result = $this->validator->validateVoucherDTOs($voucherDTOs, $purchaseOrder->id);
+
+        $this->assertInstanceOf(PurchaseOrder::class, $result);
+        $this->assertEquals($purchaseOrder->id, $result->id);
+    }
+
+    /**
+     * Test validation passes with external supplier purchase order items (they are ignored in validation)
+     */
+    public function test_validate_voucher_dtos_ignores_external_supplier_products(): void
+    {
+        $purchaseOrder = PurchaseOrder::factory()->create();
+        $externalSupplier = Supplier::factory()->external()->create();
+        $digitalProduct = DigitalProduct::factory()->forSupplier($externalSupplier)->create();
+
+        PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(5)->create([
+            'digital_product_id' => $digitalProduct->id,
+        ]);
+
+        // Providing no vouchers for external supplier product should still pass
+        // because external suppliers are not validated (they use 3rd party APIs)
+        $voucherDTOs = [];
+
+        $result = $this->validator->validateVoucherDTOs($voucherDTOs, $purchaseOrder->id);
+
+        $this->assertInstanceOf(PurchaseOrder::class, $result);
+        $this->assertEquals($purchaseOrder->id, $result->id);
+    }
+
+    /**
+     * Test validation passes with only external supplier in purchase order (no vouchers required)
+     */
+    public function test_validate_voucher_dtos_passes_with_only_external_supplier_items(): void
+    {
+        $purchaseOrder = PurchaseOrder::factory()->create();
+        $externalSupplier = Supplier::factory()->external()->create();
+        $externalProduct1 = DigitalProduct::factory()->forSupplier($externalSupplier)->create();
+        $externalProduct2 = DigitalProduct::factory()->forSupplier($externalSupplier)->create();
+
+        PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(3)->create([
+            'digital_product_id' => $externalProduct1->id,
+        ]);
+
+        PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(2)->create([
+            'digital_product_id' => $externalProduct2->id,
+        ]);
+
+        // No vouchers provided - should pass because external suppliers don't require manual uploads
+        $voucherDTOs = [];
+
+        $result = $this->validator->validateVoucherDTOs($voucherDTOs, $purchaseOrder->id);
+
+        $this->assertInstanceOf(PurchaseOrder::class, $result);
+        $this->assertEquals($purchaseOrder->id, $result->id);
     }
 }

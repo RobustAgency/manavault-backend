@@ -35,13 +35,15 @@ class VoucherPurchaseOrderValidator
 
     /**
      * Validate that all voucher digital products exist in the purchase order (DTO version)
-     * AND that all purchase order items have corresponding vouchers provided
+     * AND that all purchase order items with internal suppliers have corresponding vouchers provided
      *
      * @param  array<int, VoucherDTO>  $voucherDTOs
      */
     private function validateVoucherProductsDTO(PurchaseOrder $purchaseOrder, array $voucherDTOs): void
     {
-        $purchaseProductIds = $purchaseOrder->items
+        // Only validate against items with internal suppliers
+        $purchaseProductIds = collect($purchaseOrder->items)
+            ->filter(fn ($item) => $item->digitalProduct->supplier->type === SupplierType::INTERNAL->value)
             ->pluck('digital_product_id')
             ->toArray();
 
@@ -53,16 +55,16 @@ class VoucherPurchaseOrderValidator
 
         if (! empty($invalidVoucherIds)) {
             throw ValidationException::withMessages([
-                'voucher_codes' => 'Some voucher digital products do not exist in the purchase order.',
+                'voucher_codes' => 'Some voucher digital products do not exist in the purchase order with internal suppliers.',
             ]);
         }
 
-        // Validate: all purchase order products have vouchers
+        // Validate: all purchase order items with internal suppliers have vouchers
         $missingVoucherIds = array_diff($purchaseProductIds, $voucherProductIds);
 
         if (! empty($missingVoucherIds)) {
             throw ValidationException::withMessages([
-                'voucher_codes' => 'All digital products in the purchase order must have voucher codes.',
+                'voucher_codes' => 'All digital products with internal suppliers in the purchase order must have voucher codes.',
             ]);
         }
     }
@@ -76,7 +78,11 @@ class VoucherPurchaseOrderValidator
             ->groupBy('digital_product_id')
             ->map(fn ($group) => $group->count());
 
-        foreach ($purchaseOrder->items as $item) {
+        // Only validate quantities for items with internal suppliers
+        $internalSupplierItems = $purchaseOrder->items
+            ->filter(fn ($item) => $item->digitalProduct->supplier->type === SupplierType::INTERNAL->value);
+
+        foreach ($internalSupplierItems as $item) {
             $digitalProductId = $item->digital_product_id;
             $digitalProductQuantity = $item->quantity;
             $incomingDigitalProductQuantity = $countByDigitalProductId->get($digitalProductId, 0);

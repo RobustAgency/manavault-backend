@@ -9,6 +9,8 @@ use App\Models\PurchaseOrder;
 use App\Models\DigitalProduct;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Http\UploadedFile;
+use App\Events\PurchaseOrderFulfill;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Foundation\Testing\WithFaker;
 use App\Services\Voucher\VoucherCipherService;
@@ -35,6 +37,7 @@ class VoucherControllerTest extends TestCase
 
     public function test_admin_can_import_vouchers_with_csv_file(): void
     {
+        Event::fake();
         $this->actingAs($this->admin);
 
         $purchaseOrder = PurchaseOrder::factory()->create();
@@ -53,6 +56,8 @@ class VoucherControllerTest extends TestCase
             'purchase_order_id' => $purchaseOrder->id,
         ]);
 
+        Event::assertDispatched(PurchaseOrderFulfill::class);
+
         $response->assertStatus(200)
             ->assertJson([
                 'error' => false,
@@ -62,6 +67,8 @@ class VoucherControllerTest extends TestCase
 
     public function test_admin_can_import_vouchers_with_voucher_codes_array(): void
     {
+        Event::fake();
+
         $this->actingAs($this->admin);
 
         $purchaseOrder = PurchaseOrder::factory()->create();
@@ -85,6 +92,8 @@ class VoucherControllerTest extends TestCase
                 'error' => false,
                 'message' => 'Vouchers imported successfully.',
             ]);
+
+        Event::assertDispatched(PurchaseOrderFulfill::class);
 
         // Verify vouchers were created and are encrypted
         $vouchers = Voucher::where('purchase_order_id', $purchaseOrder->id)->get();
