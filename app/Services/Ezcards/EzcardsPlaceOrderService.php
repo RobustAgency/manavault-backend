@@ -9,7 +9,7 @@ class EzcardsPlaceOrderService
 {
     public function __construct(private PlaceOrder $ezcardsPlaceOrder) {}
 
-    public function placeOrder(array $orderItems, string $orderNumber): array
+    public function placeOrder(array $orderItems, string $orderNumber, string $currency): array
     {
         $products = [];
         foreach ($orderItems as $item) {
@@ -22,6 +22,7 @@ class EzcardsPlaceOrderService
         $requestData = [
             'clientOrderNumber' => $orderNumber,
             'products' => $products,
+            'payWithCurrency' => strtoupper($currency),
         ];
 
         $response = $this->ezcardsPlaceOrder->execute($requestData);

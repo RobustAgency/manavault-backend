@@ -49,6 +49,8 @@ class Orders extends Client
 
         $validated['products'] = $this->validateProducts($orderData['products']);
 
+        $validated['payWithCurrency'] = $orderData['payWithCurrency'] ?? 'USD';
+
         return $validated;
     }
 
