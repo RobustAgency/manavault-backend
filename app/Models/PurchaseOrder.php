@@ -16,6 +16,7 @@ class PurchaseOrder extends Model
         'total_price',
         'order_number',
         'status',
+        'currency',
     ];
 
     protected $casts = [
