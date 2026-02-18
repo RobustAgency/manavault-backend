@@ -58,6 +58,7 @@ class PurchaseOrderRepository
 
     public function createPurchaseOrder(array $data): PurchaseOrder
     {
+        $currency = $data['currency'] ?? 'usd';
         $data = $this->groupBySupplierIdService->groupBySupplierId($data['items']);
         $orderNumber = $this->generateOrderNumber();
 
@@ -67,6 +68,7 @@ class PurchaseOrderRepository
                 'total_price' => 0,
                 'order_number' => $orderNumber,
                 'status' => PurchaseOrderStatus::PROCESSING->value,
+                'currency' => $currency,
             ]);
 
             foreach ($data as $supplierOrderData) {
@@ -74,7 +76,7 @@ class PurchaseOrderRepository
                 $items = $supplierOrderData['items'];
                 $supplier = Supplier::findOrFail($supplierId);
 
-                $this->processPurchaseOrderItems($purchaseOrder, $supplier, $items, $orderNumber);
+                $this->processPurchaseOrderItems($purchaseOrder, $supplier, $items, $orderNumber, $currency);
             }
 
             // Update the overall purchase order status based on all suppliers
@@ -89,7 +91,7 @@ class PurchaseOrderRepository
         }
     }
 
-    private function processPurchaseOrderItems(PurchaseOrder $purchaseOrder, Supplier $supplier, array $items, string $orderNumber): void
+    private function processPurchaseOrderItems(PurchaseOrder $purchaseOrder, Supplier $supplier, array $items, string $orderNumber, string $currency): void
     {
         $status = PurchaseOrderSupplierStatus::PROCESSING->value;
         $totalPrice = $purchaseOrder->total_price;
@@ -117,7 +119,7 @@ class PurchaseOrderRepository
 
         if ($this->isExternalSupplier($supplier)) {
             try {
-                $externalOrderResponse = $this->placeExternalOrder($supplier, $orderItems, $orderNumber);
+                $externalOrderResponse = $this->placeExternalOrder($supplier, $orderItems, $orderNumber, $currency);
                 $transactionId = $externalOrderResponse['transactionId'] ?? null;
 
                 Log::info('External order placed successfully', [
@@ -189,10 +191,10 @@ class PurchaseOrderRepository
         return $supplier->type === 'external';
     }
 
-    private function placeExternalOrder(Supplier $supplier, array $orderItems, string $orderNumber): array
+    private function placeExternalOrder(Supplier $supplier, array $orderItems, string $orderNumber, string $currency): array
     {
         return match ($supplier->slug) {
-            'ez_cards' => $this->ezcardPlaceOrderService->placeOrder($orderItems, $orderNumber),
+            'ez_cards' => $this->ezcardPlaceOrderService->placeOrder($orderItems, $orderNumber, $currency),
             'gift2games' => $this->gift2GamesPlaceOrderService->placeOrder($orderItems, $orderNumber),
             default => throw new \RuntimeException("Unknown external supplier: {$supplier->slug}"),
         };
