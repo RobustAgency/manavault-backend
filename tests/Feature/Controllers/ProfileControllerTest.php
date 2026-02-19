@@ -60,7 +60,6 @@ class ProfileControllerTest extends TestCase
                     'email',
                     'email_verified_at',
                     'is_approved',
-                    'role',
                     'created_at',
                     'updated_at',
                 ],
