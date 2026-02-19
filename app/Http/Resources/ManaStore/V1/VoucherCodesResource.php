@@ -3,6 +3,7 @@
 namespace App\Http\Resources\ManaStore\V1;
 
 use App\Models\SaleOrder;
+use App\Services\VoucherCipherService;
 
 class VoucherCodesResource
 {
@@ -13,6 +14,7 @@ class VoucherCodesResource
      */
     public static function format(SaleOrder $saleOrder): array
     {
+        $voucherCipherService = app(VoucherCipherService::class);
         $formattedCodes = [];
 
         foreach ($saleOrder->items as $item) {
@@ -20,8 +22,15 @@ class VoucherCodesResource
 
             foreach ($item->digitalProducts as $digitalProduct) {
                 if ($digitalProduct->voucher) {
+                    $code = $digitalProduct->voucher->code;
+
+                    // Decrypt the code if it's encrypted
+                    if ($voucherCipherService->isEncrypted($code)) {
+                        $code = $voucherCipherService->decryptCode($code);
+                    }
+
                     $codes[] = [
-                        'code' => $digitalProduct->voucher->code,
+                        'code' => $code,
                         'serial_number' => $digitalProduct->voucher->serial_number,
                         'pin_code' => $digitalProduct->voucher->pin_code,
                     ];
