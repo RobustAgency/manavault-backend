@@ -507,7 +507,7 @@ class ProductControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson(['error' => false])
-            ->assertJsonPath('data.fulfillment_mode', FulfillmentMode::MANUAL->value);
+            ->assertJsonPath('data.is_custom_priority', true);
 
         $this->assertDatabaseHas('products', [
             'id' => $product->id,
@@ -538,12 +538,154 @@ class ProductControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson(['error' => false])
-            ->assertJsonPath('data.fulfillment_mode', FulfillmentMode::PRICE->value);
+            ->assertJsonPath('data.is_custom_priority', false);
 
         $this->assertDatabaseHas('products', [
             'id' => $product->id,
             'name' => $data['name'],
             'fulfillment_mode' => FulfillmentMode::PRICE->value,
+        ]);
+    }
+
+    public function test_remove_digital_product_from_product(): void
+    {
+        $this->actingAs($this->admin);
+
+        $product = Product::factory()->create();
+        $digitalProduct = DigitalProduct::factory()->create();
+
+        $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
+
+        $response = $this->deleteJson("/api/products/{$product->id}/digital_products/{$digitalProduct->id}");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'error' => false,
+                'message' => 'Digital product removed successfully.',
+            ]);
+
+        $this->assertDatabaseMissing('product_supplier', [
+            'product_id' => $product->id,
+            'digital_product_id' => $digitalProduct->id,
+        ]);
+    }
+
+    public function test_remove_digital_product_removes_only_specified_product(): void
+    {
+        $this->actingAs($this->admin);
+
+        $product = Product::factory()->create();
+        $digitalProduct1 = DigitalProduct::factory()->create();
+        $digitalProduct2 = DigitalProduct::factory()->create();
+
+        $product->digitalProducts()->attach([
+            $digitalProduct1->id => ['priority' => 1],
+            $digitalProduct2->id => ['priority' => 2],
+        ]);
+
+        $response = $this->deleteJson("/api/products/{$product->id}/digital_products/{$digitalProduct1->id}");
+
+        $response->assertStatus(200);
+
+        $this->assertDatabaseMissing('product_supplier', [
+            'product_id' => $product->id,
+            'digital_product_id' => $digitalProduct1->id,
+        ]);
+
+        $this->assertDatabaseHas('product_supplier', [
+            'product_id' => $product->id,
+            'digital_product_id' => $digitalProduct2->id,
+        ]);
+    }
+
+    public function test_remove_digital_product_from_nonexistent_product(): void
+    {
+        $this->actingAs($this->admin);
+
+        $digitalProduct = DigitalProduct::factory()->create();
+
+        $response = $this->deleteJson("/api/products/99999/digital_products/{$digitalProduct->id}");
+
+        $response->assertStatus(404);
+    }
+
+    public function test_remove_nonexistent_digital_product(): void
+    {
+        $this->actingAs($this->admin);
+
+        $product = Product::factory()->create();
+
+        $response = $this->deleteJson("/api/products/{$product->id}/digital_products/99999");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'error' => false,
+                'message' => 'Digital product removed successfully.',
+            ]);
+    }
+
+    public function test_remove_digital_product_requires_authentication(): void
+    {
+        $product = Product::factory()->create();
+        $digitalProduct = DigitalProduct::factory()->create();
+
+        $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
+
+        $response = $this->deleteJson("/api/products/{$product->id}/digital_products/{$digitalProduct->id}");
+
+        $response->assertStatus(401);
+    }
+
+    public function test_remove_digital_product_requires_update_product_permission(): void
+    {
+        $user = User::factory()->create(['role' => 'user']);
+        $this->actingAs($user);
+
+        $product = Product::factory()->create();
+        $digitalProduct = DigitalProduct::factory()->create();
+
+        $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
+
+        $response = $this->deleteJson("/api/products/{$product->id}/digital_products/{$digitalProduct->id}");
+
+        $response->assertStatus(403);
+    }
+
+    public function test_remove_digital_product_with_multiple_removals(): void
+    {
+        $this->actingAs($this->admin);
+
+        $product = Product::factory()->create();
+        $digitalProducts = DigitalProduct::factory()->count(3)->create();
+
+        $product->digitalProducts()->attach([
+            $digitalProducts[0]->id => ['priority' => 1],
+            $digitalProducts[1]->id => ['priority' => 2],
+            $digitalProducts[2]->id => ['priority' => 3],
+        ]);
+
+        // Remove first product
+        $response1 = $this->deleteJson("/api/products/{$product->id}/digital_products/{$digitalProducts[0]->id}");
+        $response1->assertStatus(200);
+
+        // Remove second product
+        $response2 = $this->deleteJson("/api/products/{$product->id}/digital_products/{$digitalProducts[1]->id}");
+        $response2->assertStatus(200);
+
+        // Verify only third product remains
+        $this->assertDatabaseMissing('product_supplier', [
+            'product_id' => $product->id,
+            'digital_product_id' => $digitalProducts[0]->id,
+        ]);
+
+        $this->assertDatabaseMissing('product_supplier', [
+            'product_id' => $product->id,
+            'digital_product_id' => $digitalProducts[1]->id,
+        ]);
+
+        $this->assertDatabaseHas('product_supplier', [
+            'product_id' => $product->id,
+            'digital_product_id' => $digitalProducts[2]->id,
         ]);
     }
 }

@@ -33,13 +33,14 @@ class UpdateProductRequest extends FormRequest
             'tags' => ['sometimes', 'nullable', 'array'],
             'tags.*' => ['string'],
             'image' => ['sometimes', 'nullable', 'file', 'mimes:jpeg,png,jpg', 'max:2048'],
-            'face_value' => ['sometimes', 'numeric', 'min:1'],
-            'selling_price' => ['sometimes', 'numeric', 'min:1'],
+            'face_value' => ['sometimes', 'numeric', 'gt:0'],
+            'selling_price' => ['sometimes', 'numeric', 'gt:0'],
             'currency' => ['sometimes', 'string', Rule::in(array_map(fn ($c) => $c->value, Currency::cases()))],
             'status' => ['sometimes', 'string', Rule::in(array_map(fn ($c) => $c->value, Lifecycle::cases()))],
             'regions' => ['sometimes', 'nullable', 'array'],
             'regions.*' => ['string'],
             'is_custom_priority' => ['sometimes', 'boolean'],
+            'is_out_of_stock' => ['sometimes', 'boolean'],
         ];
     }
 }

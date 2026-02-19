@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
+use App\Events\DigitalProductUpdate;
 use App\Http\Controllers\Controller;
 use App\Enums\Product\FulfillmentMode;
-use App\Events\DigitalProductAssigned;
 use App\Http\Resources\ProductResource;
 use App\Repositories\ProductRepository;
 use App\Http\Requests\Product\ListProductRequest;
@@ -100,11 +100,22 @@ class ProductController extends Controller
 
         $product->digitalProducts()->syncWithoutDetaching($validated['digital_product_ids']);
 
-        event(new DigitalProductAssigned($product));
+        event(new DigitalProductUpdate($product));
 
         return response()->json([
             'error' => false,
             'message' => 'Digital products assigned successfully.',
+        ]);
+    }
+
+    public function removeDigitalProduct(Product $product, int $digitalProductId): JsonResponse
+    {
+        $product->digitalProducts()->detach($digitalProductId);
+        event(new DigitalProductUpdate($product));
+
+        return response()->json([
+            'error' => false,
+            'message' => 'Digital product removed successfully.',
         ]);
     }
 

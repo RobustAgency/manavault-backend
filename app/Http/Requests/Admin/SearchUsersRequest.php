@@ -22,7 +22,8 @@ class SearchUsersRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'term' => ['required', 'string', 'min:2'],
+            'term' => ['sometimes', 'string', 'min:2'],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ];
     }
 }

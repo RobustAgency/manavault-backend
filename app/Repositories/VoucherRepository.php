@@ -3,6 +3,9 @@
 namespace App\Repositories;
 
 use App\Models\Voucher;
+use App\Enums\VoucherCodeStatus;
+use Illuminate\Support\Collection;
+use Illuminate\Database\Eloquent\Builder;
 use App\Services\Voucher\VoucherCipherService;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -46,5 +49,58 @@ class VoucherRepository
 
         // If not encrypted (legacy plain text), return as-is
         return $voucher->code;
+    }
+
+    /**
+     * @return Collection<int, \App\Models\Voucher>
+     */
+    public function getAvailableVouchersForDigitalProduct(int $digitalProductId, int $quantity): Collection
+    {
+        $vouchers = $this->availableVouchersQuery($digitalProductId)
+            ->orderBy('created_at')
+            ->lockForUpdate()
+            ->limit($quantity)
+            ->get();
+
+        if ($vouchers->count() < $quantity) {
+            throw new \RuntimeException(
+                "Insufficient vouchers available for digital product {$digitalProductId}. "
+                ."Requested: {$quantity}, Available: {$vouchers->count()}"
+            );
+        }
+
+        /** @var Collection<int, \App\Models\Voucher> $keyed */
+        $keyed = $vouchers->keyBy('id');
+
+        return $keyed;
+    }
+
+    /**
+     * Get available quantity (count of unallocated vouchers) for a digital product.
+     */
+    public function getAvailableQuantity(int $digitalProductId): int
+    {
+        return $this->availableVouchersQuery($digitalProductId)->count();
+    }
+
+    public function updateVoucherStatus(int $voucherId, string $status): void
+    {
+        $voucher = Voucher::findOrFail($voucherId);
+        $voucher->status = $status;
+        $voucher->save();
+    }
+
+    /**
+     * Get a query builder for available vouchers of a digital product.
+     *
+     * @return Builder<Voucher>
+     */
+    private function availableVouchersQuery(int $digitalProductId): Builder
+    {
+        return Voucher::query()
+            ->where('status', VoucherCodeStatus::AVAILABLE->value)
+            ->whereHas('purchaseOrderItem', function ($q) use ($digitalProductId) {
+                $q->where('digital_product_id', $digitalProductId);
+            });
     }
 }

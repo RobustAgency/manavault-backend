@@ -13,7 +13,18 @@ class PermissionSeeder extends Seeder
      */
     public function run(): void
     {
+        // Step 1: Create all permissions first
+        $this->createPermissions();
 
+        // Step 2: Clean up old Digital Product module (if it exists)
+        $this->cleanupOldDigitalProductModule();
+    }
+
+    /**
+     * Create all module permissions.
+     */
+    private function createPermissions(): void
+    {
         $modules = [
             ['name' => 'User', 'slug' => 'user',
                 'permissions' => [
@@ -40,13 +51,6 @@ class PermissionSeeder extends Seeder
                     'edit',
                     'delete',
                 ]],
-            ['name' => 'Digital Product', 'slug' => 'digital_product',
-                'permissions' => [
-                    'view',
-                    'create',
-                    'edit',
-                    'delete',
-                ]],
             ['name' => 'Purchase Order', 'slug' => 'purchase_order',
                 'permissions' => [
                     'view',
@@ -64,6 +68,9 @@ class PermissionSeeder extends Seeder
             ['name' => 'Digital Stock', 'slug' => 'digital_stock',
                 'permissions' => [
                     'view',
+                    'create',
+                    'edit',
+                    'delete',
                 ]],
             ['name' => 'Brand', 'slug' => 'brand',
                 'permissions' => [
@@ -107,6 +114,20 @@ class PermissionSeeder extends Seeder
                     ]
                 );
             }
+        }
+    }
+
+    /**
+     * Clean up the old Digital Product module and its permissions.
+     * Removes the duplicate digital_product slug used by Digital Stock.
+     */
+    private function cleanupOldDigitalProductModule(): void
+    {
+        $oldModule = Module::where('slug', 'digital_product')->first();
+
+        if ($oldModule) {
+            Permission::where('module_id', $oldModule->id)->delete();
+            $oldModule->delete();
         }
     }
 }

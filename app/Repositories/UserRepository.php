@@ -3,26 +3,29 @@
 namespace App\Repositories;
 
 use App\Models\User;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class UserRepository
 {
     /**
-     * Search users based on the provided search term.
+     * Search and get paginated users.
      *
-     * @return Collection<int, User>
+     * @return \Illuminate\Pagination\LengthAwarePaginator<int, User>
      */
-    public function search(string $term, array $relations = []): Collection
+    public function searchPaginated(array $filters = []): LengthAwarePaginator
     {
-        return User::with($relations)
-            ->where(function ($query) use ($term) {
-                $query->where('name', 'like', "%{$term}%")
+        $query = User::query()
+            ->with(['roles'])
+            ->where('role', '!=', 'super_admin');
+
+        if ($term = $filters['term'] ?? null) {
+            $query->where(function ($q) use ($term) {
+                $q->where('name', 'like', "%{$term}%")
                     ->orWhere('email', 'like', "%{$term}%");
-            })
-            ->latest()
-            ->limit(10)
-            ->get();
+            });
+        }
+
+        return $query->latest()->paginate($filters['per_page'] ?? 10);
     }
 
     /**
@@ -31,15 +34,5 @@ class UserRepository
     public function findById(int $id): ?User
     {
         return User::find($id);
-    }
-
-    /**
-     * Get paginated list of users with specified relations.
-     *
-     * @return \Illuminate\Pagination\LengthAwarePaginator<int, User>
-     */
-    public function getPaginated(int $perPage = 10): LengthAwarePaginator
-    {
-        return User::where('role', '!=', 'super_admin')->latest()->paginate($perPage);
     }
 }

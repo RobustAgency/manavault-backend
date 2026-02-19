@@ -14,11 +14,7 @@ class SaleOrderItemDigitalProduct extends Model
     protected $fillable = [
         'sale_order_item_id',
         'digital_product_id',
-        'quantity_deducted',
-    ];
-
-    protected $casts = [
-        'quantity_deducted' => 'integer',
+        'voucher_id',
     ];
 
     /**
@@ -39,5 +35,15 @@ class SaleOrderItemDigitalProduct extends Model
     public function digitalProduct(): BelongsTo
     {
         return $this->belongsTo(DigitalProduct::class);
+    }
+
+    /**
+     * Get the voucher allocated to this digital product in the order.
+     *
+     * @return BelongsTo<Voucher, $this>
+     */
+    public function voucher(): BelongsTo
+    {
+        return $this->belongsTo(Voucher::class);
     }
 }
