@@ -3,7 +3,7 @@
 namespace App\Http\Resources\ManaStore\V1;
 
 use App\Models\SaleOrder;
-use App\Services\VoucherCipherService;
+use App\Services\Voucher\VoucherCipherService;
 
 class VoucherCodesResource
 {

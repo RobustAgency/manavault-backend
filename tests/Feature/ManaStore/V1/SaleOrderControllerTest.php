@@ -11,9 +11,9 @@ use App\Models\SaleOrderItem;
 use App\Models\DigitalProduct;
 use App\Enums\VoucherCodeStatus;
 use App\Models\PurchaseOrderItem;
-use App\Services\VoucherCipherService;
 use App\Models\SaleOrderItemDigitalProduct;
 use Illuminate\Foundation\Testing\WithFaker;
+use App\Services\Voucher\VoucherCipherService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class SaleOrderControllerTest extends TestCase
