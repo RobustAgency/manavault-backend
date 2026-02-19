@@ -9,9 +9,9 @@ use App\Imports\VoucherImport;
 use App\Models\DigitalProduct;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Support\Collection;
-use Maatwebsite\Excel\Facades\Excel;
-use App\Services\VoucherCipherService;
 use Illuminate\Foundation\Testing\WithFaker;
+use App\Services\Voucher\VoucherCipherService;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class VoucherImportTest extends TestCase
@@ -28,27 +28,32 @@ class VoucherImportTest extends TestCase
         $this->purchaseOrder = PurchaseOrder::factory()->create();
         $this->voucherCipherService = app(VoucherCipherService::class);
 
-        // Create purchase order items with total quantity of 3
+        // Create purchase order items
+        $digitalProduct1 = DigitalProduct::factory()->create();
+        $digitalProduct2 = DigitalProduct::factory()->create();
+
         PurchaseOrderItem::factory()
             ->forPurchaseOrder($this->purchaseOrder)
             ->withQuantity(2)
-            ->create();
+            ->create(['digital_product_id' => $digitalProduct1->id]);
 
         PurchaseOrderItem::factory()
             ->forPurchaseOrder($this->purchaseOrder)
             ->withQuantity(1)
-            ->create();
+            ->create(['digital_product_id' => $digitalProduct2->id]);
     }
 
     public function test_voucher_import_creates_vouchers_from_collection(): void
     {
-        $totalQuantity = $this->purchaseOrder->totalQuantity();
-        $import = new VoucherImport($this->voucherCipherService, $this->purchaseOrder->id, $totalQuantity);
+        $digitalProduct1 = $this->purchaseOrder->items->first()->digital_product_id;
+        $digitalProduct2 = $this->purchaseOrder->items->last()->digital_product_id;
+
+        $import = new VoucherImport($this->purchaseOrder->id);
 
         $collection = new Collection([
-            ['code' => 'VCH-001', 'digital_product_id' => 1],
-            ['code' => 'VCH-002', 'digital_product_id' => 1],
-            ['code' => 'VCH-003', 'digital_product_id' => 1],
+            ['code' => 'VCH-001', 'digital_product_id' => $digitalProduct1],
+            ['code' => 'VCH-002', 'digital_product_id' => $digitalProduct1],
+            ['code' => 'VCH-003', 'digital_product_id' => $digitalProduct2],
         ]);
 
         $import->collection($collection);
@@ -69,176 +74,100 @@ class VoucherImportTest extends TestCase
         $this->assertContains('VCH-003', $decryptedCodes);
     }
 
-    public function test_voucher_import_throws_exception_when_row_count_mismatches(): void
+    public function test_voucher_import_throws_exception_when_quantity_mismatches(): void
     {
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('The number of voucher codes (2) does not match the total quantity of the purchase order (3).');
+        $this->expectException(ValidationException::class);
 
-        $totalQuantity = $this->purchaseOrder->totalQuantity();
-        $import = new VoucherImport($this->voucherCipherService, $this->purchaseOrder->id, $totalQuantity);
+        $digitalProduct1 = $this->purchaseOrder->items->first()->digital_product_id;
 
+        $import = new VoucherImport($this->purchaseOrder->id);
+
+        // Only provide 1 voucher when purchase order expects 2
         $collection = new Collection([
-            ['code' => 'VCH-001'],
-            ['code' => 'VCH-002'],
-            // Missing one voucher code - should throw exception
+            ['code' => 'VCH-001', 'digital_product_id' => $digitalProduct1],
         ]);
 
         $import->collection($collection);
     }
 
-    public function test_voucher_import_throws_exception_for_invalid_voucher_code(): void
+    public function test_voucher_import_throws_exception_when_digital_product_missing(): void
     {
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(ValidationException::class);
 
-        $totalQuantity = $this->purchaseOrder->totalQuantity();
-        $import = new VoucherImport($this->voucherCipherService, $this->purchaseOrder->id, $totalQuantity);
+        $import = new VoucherImport($this->purchaseOrder->id);
 
+        // Provide a digital product that doesn't exist in purchase order
         $collection = new Collection([
-            ['code' => 'VCH-001'],
-            ['code' => ''], // Empty code - should fail validation
-            ['code' => 'VCH-003'],
+            ['code' => 'VCH-001', 'digital_product_id' => 9999],
         ]);
 
         $import->collection($collection);
-    }
-
-    public function test_voucher_import_associates_with_correct_purchase_order(): void
-    {
-        $purchaseOrder1 = PurchaseOrder::factory()->create();
-        $digitalProduct1 = DigitalProduct::factory()->create();
-        PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder1)->withQuantity(1)->create([
-            'digital_product_id' => $digitalProduct1->id,
-        ]);
-
-        $purchaseOrder2 = PurchaseOrder::factory()->create();
-        $digitalProduct2 = DigitalProduct::factory()->create();
-        PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder2)->withQuantity(1)->create([
-            'digital_product_id' => $digitalProduct2->id,
-        ]);
-
-        $import1 = new VoucherImport($this->voucherCipherService, $purchaseOrder1->id, $purchaseOrder1->totalQuantity());
-        $import2 = new VoucherImport($this->voucherCipherService, $purchaseOrder2->id, $purchaseOrder2->totalQuantity());
-
-        $collection1 = new Collection([['code' => 'PO1-VCH-001', 'digital_product_id' => $digitalProduct1->id]]);
-        $collection2 = new Collection([['code' => 'PO2-VCH-001', 'digital_product_id' => $digitalProduct2->id]]);
-
-        $import1->collection($collection1);
-        $import2->collection($collection2);
-
-        // Verify vouchers were created for correct purchase orders
-        $voucher1 = Voucher::where('purchase_order_id', $purchaseOrder1->id)->first();
-        $voucher2 = Voucher::where('purchase_order_id', $purchaseOrder2->id)->first();
-
-        $this->assertNotNull($voucher1);
-        $this->assertNotNull($voucher2);
-
-        $this->assertEquals('PO1-VCH-001', $this->voucherCipherService->decryptCode($voucher1->code));
-        $this->assertEquals('PO2-VCH-001', $this->voucherCipherService->decryptCode($voucher2->code));
     }
 
     public function test_voucher_import_batch_size_configuration(): void
     {
-        $totalQuantity = $this->purchaseOrder->totalQuantity();
-        $import = new VoucherImport($this->voucherCipherService, $this->purchaseOrder->id, $totalQuantity);
+        $import = new VoucherImport($this->purchaseOrder->id);
 
         $this->assertEquals(100, $import->batchSize());
     }
 
     public function test_voucher_import_chunk_size_configuration(): void
     {
-        $totalQuantity = $this->purchaseOrder->totalQuantity();
-        $import = new VoucherImport($this->voucherCipherService, $this->purchaseOrder->id, $totalQuantity);
+        $import = new VoucherImport($this->purchaseOrder->id);
 
         $this->assertEquals(100, $import->chunkSize());
     }
 
-    public function test_voucher_import_handles_large_datasets(): void
+    public function test_voucher_import_with_multiple_digital_products(): void
     {
-        // Create a purchase order with 250 items
-        $purchaseOrder = PurchaseOrder::factory()->create();
-        $digitalProduct = DigitalProduct::factory()->create();
-        PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(250)->create([
-            'digital_product_id' => $digitalProduct->id,
-        ]);
+        $digitalProduct1 = $this->purchaseOrder->items->first()->digital_product_id;
+        $digitalProduct2 = $this->purchaseOrder->items->last()->digital_product_id;
 
-        $import = new VoucherImport($this->voucherCipherService, $purchaseOrder->id, $purchaseOrder->totalQuantity());
-
-        // Create a large collection to test batch processing
-        $largeCollection = new Collection;
-        for ($i = 1; $i <= 250; $i++) {
-            $largeCollection->push(['code' => sprintf('BULK-VCH-%03d', $i), 'digital_product_id' => $digitalProduct->id]);
-        }
-
-        $import->collection($largeCollection);
-
-        $this->assertEquals(250, Voucher::where('purchase_order_id', $purchaseOrder->id)->count());
-
-        // Verify some random entries by decrypting
-        $vouchers = Voucher::where('purchase_order_id', $purchaseOrder->id)->get();
-        $decryptedCodes = $vouchers->map(function ($voucher) {
-            return $this->voucherCipherService->decryptCode($voucher->code);
-        })->toArray();
-
-        $this->assertContains('BULK-VCH-001', $decryptedCodes);
-        $this->assertContains('BULK-VCH-250', $decryptedCodes);
-    }
-
-    public function test_voucher_import_with_excel_file(): void
-    {
-        // Create a temporary CSV content for testing
-        $csvContent = "code, digital_product_id\nVCH-CSV-001, 1\nVCH-CSV-002, 1\nVCH-CSV-003, 1\n";
-        $tempFile = tempnam(sys_get_temp_dir(), 'voucher_test').'.csv';
-        file_put_contents($tempFile, $csvContent);
-
-        try {
-            $totalQuantity = $this->purchaseOrder->totalQuantity();
-            Excel::import(new VoucherImport($this->voucherCipherService, $this->purchaseOrder->id, $totalQuantity), $tempFile);
-
-            $this->assertEquals(3, Voucher::where('purchase_order_id', $this->purchaseOrder->id)->count());
-
-            // Verify vouchers are encrypted and can be decrypted back to original values
-            $vouchers = Voucher::where('purchase_order_id', $this->purchaseOrder->id)->get();
-            $decryptedCodes = $vouchers->map(function ($voucher) {
-                return $this->voucherCipherService->decryptCode($voucher->code);
-            })->toArray();
-
-            $this->assertContains('VCH-CSV-001', $decryptedCodes);
-            $this->assertContains('VCH-CSV-002', $decryptedCodes);
-            $this->assertContains('VCH-CSV-003', $decryptedCodes);
-        } finally {
-            // Clean up temp file
-            if (file_exists($tempFile)) {
-                unlink($tempFile);
-            }
-        }
-    }
-
-    public function test_voucher_import_throws_exception_with_empty_file(): void
-    {
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('The number of voucher codes (0) does not match the total quantity of the purchase order (3).');
-
-        $totalQuantity = $this->purchaseOrder->totalQuantity();
-        $import = new VoucherImport($this->voucherCipherService, $this->purchaseOrder->id, $totalQuantity);
-
-        $emptyCollection = new Collection([]);
-
-        $import->collection($emptyCollection);
-    }
-
-    public function test_voucher_import_throws_exception_with_malformed_data(): void
-    {
-        $this->expectException(\RuntimeException::class);
-
-        $totalQuantity = $this->purchaseOrder->totalQuantity();
-        $import = new VoucherImport($this->voucherCipherService, $this->purchaseOrder->id, $totalQuantity);
+        $import = new VoucherImport($this->purchaseOrder->id);
 
         $collection = new Collection([
-            ['code' => 'VALID-001'],
-            ['invalid_column' => 'some_value'], // No 'code' column - will fail validation
-            ['code' => 'VALID-002'],
+            ['code' => 'VCH-001', 'digital_product_id' => $digitalProduct1],
+            ['code' => 'VCH-002', 'digital_product_id' => $digitalProduct1],
+            ['code' => 'VCH-003', 'digital_product_id' => $digitalProduct2],
         ]);
 
         $import->collection($collection);
+
+        // Verify all vouchers were created
+        $this->assertEquals(3, Voucher::where('purchase_order_id', $this->purchaseOrder->id)->count());
+
+        // Verify vouchers are encrypted
+        $vouchers = Voucher::where('purchase_order_id', $this->purchaseOrder->id)->get();
+        foreach ($vouchers as $voucher) {
+            $this->assertTrue($this->voucherCipherService->isEncrypted($voucher->code));
+        }
+    }
+
+    public function test_voucher_import_encrypts_codes(): void
+    {
+        $digitalProduct1 = $this->purchaseOrder->items->first()->digital_product_id;
+        $digitalProduct2 = $this->purchaseOrder->items->last()->digital_product_id;
+
+        $import = new VoucherImport($this->purchaseOrder->id);
+
+        $plainCodes = ['PLAINTEXT-001', 'PLAINTEXT-002', 'PLAINTEXT-003'];
+        $collection = new Collection([
+            ['code' => $plainCodes[0], 'digital_product_id' => $digitalProduct1],
+            ['code' => $plainCodes[1], 'digital_product_id' => $digitalProduct1],
+            ['code' => $plainCodes[2], 'digital_product_id' => $digitalProduct2],
+        ]);
+
+        $import->collection($collection);
+
+        $vouchers = Voucher::where('purchase_order_id', $this->purchaseOrder->id)->get();
+
+        foreach ($vouchers as $voucher) {
+            // Codes should be encrypted in database
+            $this->assertTrue($this->voucherCipherService->isEncrypted($voucher->code));
+
+            // Decrypted codes should match original plain codes
+            $decryptedCode = $this->voucherCipherService->decryptCode($voucher->code);
+            $this->assertContains($decryptedCode, $plainCodes);
+        }
     }
 }

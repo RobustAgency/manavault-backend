@@ -115,7 +115,7 @@ class RolePermissionRouteAccessTest extends TestCase
 
     public function test_admin_with_permission_can_update_product(): void
     {
-        $this->createAndAssignPermission('update_product', $this->productModule, $this->adminRole);
+        $this->createAndAssignPermission('edit_product', $this->productModule, $this->adminRole);
         $product = Product::factory()->create();
 
         $response = $this->actingAs($this->adminWithPermissions)->postJson("/api/products/{$product->id}", [
@@ -170,7 +170,7 @@ class RolePermissionRouteAccessTest extends TestCase
 
     public function test_admin_with_permission_can_update_supplier(): void
     {
-        $this->createAndAssignPermission('update_supplier', $this->supplierModule, $this->adminRole);
+        $this->createAndAssignPermission('edit_supplier', $this->supplierModule, $this->adminRole);
         $supplier = Supplier::factory()->create();
 
         $response = $this->actingAs($this->adminWithPermissions)->postJson("/api/suppliers/{$supplier->id}", [
@@ -222,7 +222,7 @@ class RolePermissionRouteAccessTest extends TestCase
 
     public function test_admin_with_permission_can_update_brand(): void
     {
-        $this->createAndAssignPermission('update_brand', $this->brandModule, $this->adminRole);
+        $this->createAndAssignPermission('edit_brand', $this->brandModule, $this->adminRole);
         $brand = Brand::factory()->create();
 
         $response = $this->actingAs($this->adminWithPermissions)->putJson("/api/brands/{$brand->id}", [

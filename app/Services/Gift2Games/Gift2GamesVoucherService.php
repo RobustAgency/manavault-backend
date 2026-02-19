@@ -5,7 +5,7 @@ namespace App\Services\Gift2Games;
 use App\Models\Voucher;
 use App\Models\PurchaseOrder;
 use Illuminate\Support\Facades\Log;
-use App\Services\VoucherCipherService;
+use App\Services\Voucher\VoucherCipherService;
 use App\Services\PurchaseOrder\PurchaseOrderStatusService;
 
 class Gift2GamesVoucherService
