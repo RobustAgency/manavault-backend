@@ -21,7 +21,6 @@ class SaleOrderItemDigitalProductFactory extends Factory
         return [
             'sale_order_item_id' => SaleOrderItem::factory(),
             'digital_product_id' => DigitalProduct::factory(),
-            'quantity_deducted' => $this->faker->numberBetween(1, 10),
         ];
     }
 
@@ -42,16 +41,6 @@ class SaleOrderItemDigitalProductFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'digital_product_id' => $digitalProduct instanceof DigitalProduct ? $digitalProduct->id : $digitalProduct,
-        ]);
-    }
-
-    /**
-     * Set a specific quantity deducted.
-     */
-    public function withQuantityDeducted(int $quantityDeducted): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'quantity_deducted' => $quantityDeducted,
         ]);
     }
 }
