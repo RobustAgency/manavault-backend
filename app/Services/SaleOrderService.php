@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\SaleOrder;
 use App\Models\SaleOrderItem;
 use App\Enums\SaleOrder\Status;
+use App\Events\SaleOrderCompleted;
 use Illuminate\Support\Facades\DB;
 use App\Enums\Product\FulfillmentMode;
 use App\Repositories\ProductRepository;
@@ -60,6 +61,9 @@ class SaleOrderService
             ]);
 
             DB::commit();
+
+            // Dispatch event to sync stock for all products sharing the affected digital products
+            event(new SaleOrderCompleted($saleOrder));
 
             return $saleOrder->load(['items.digitalProducts']);
 
