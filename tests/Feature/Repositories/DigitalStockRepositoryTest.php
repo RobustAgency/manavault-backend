@@ -3,6 +3,7 @@
 namespace Tests\Feature\Repositories;
 
 use Tests\TestCase;
+use App\Models\Voucher;
 use App\Models\Supplier;
 use App\Models\PurchaseOrder;
 use App\Models\DigitalProduct;
@@ -54,10 +55,17 @@ class DigitalStockRepositoryTest extends TestCase
 
         // Create purchase order for only one product
         $purchaseOrder = PurchaseOrder::factory()->create();
-        PurchaseOrderItem::factory()->create([
+        $item = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $purchaseOrder->id,
             'digital_product_id' => $productWithStock->id,
             'quantity' => 5,
+        ]);
+
+        // Create 5 available vouchers
+        Voucher::factory()->count(5)->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_item_id' => $item->id,
+            'status' => 'available',
         ]);
 
         $result = $this->repository->getFilteredDigitalStocks();
@@ -76,17 +84,29 @@ class DigitalStockRepositoryTest extends TestCase
 
         // Create multiple purchase orders
         $purchaseOrder1 = PurchaseOrder::factory()->create();
-        PurchaseOrderItem::factory()->create([
+        $item1 = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $purchaseOrder1->id,
             'digital_product_id' => $product->id,
             'quantity' => 10,
         ]);
 
+        Voucher::factory()->count(10)->create([
+            'purchase_order_id' => $purchaseOrder1->id,
+            'purchase_order_item_id' => $item1->id,
+            'status' => 'available',
+        ]);
+
         $purchaseOrder2 = PurchaseOrder::factory()->create();
-        PurchaseOrderItem::factory()->create([
+        $item2 = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $purchaseOrder2->id,
             'digital_product_id' => $product->id,
             'quantity' => 15,
+        ]);
+
+        Voucher::factory()->count(15)->create([
+            'purchase_order_id' => $purchaseOrder2->id,
+            'purchase_order_item_id' => $item2->id,
+            'status' => 'available',
         ]);
 
         $result = $this->repository->getFilteredDigitalStocks();
@@ -150,10 +170,16 @@ class DigitalStockRepositoryTest extends TestCase
 
         // Add stock to one external product
         $purchaseOrder = PurchaseOrder::factory()->create();
-        PurchaseOrderItem::factory()->create([
+        $item = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $purchaseOrder->id,
             'digital_product_id' => $externalProductWithStock->id,
             'quantity' => 7,
+        ]);
+
+        Voucher::factory()->count(7)->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_item_id' => $item->id,
+            'status' => 'available',
         ]);
 
         $result = $this->repository->getFilteredDigitalStocks(['per_page' => 100]);
@@ -202,23 +228,38 @@ class DigitalStockRepositoryTest extends TestCase
         $purchaseOrder = PurchaseOrder::factory()->create();
 
         // Low stock products (< threshold)
-        PurchaseOrderItem::factory()->create([
+        $item1 = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $purchaseOrder->id,
             'digital_product_id' => $lowStockProduct1->id,
             'quantity' => 2,
         ]);
+        Voucher::factory()->count(2)->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_item_id' => $item1->id,
+            'status' => 'available',
+        ]);
 
-        PurchaseOrderItem::factory()->create([
+        $item2 = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $purchaseOrder->id,
             'digital_product_id' => $lowStockProduct2->id,
             'quantity' => 4,
         ]);
+        Voucher::factory()->count(4)->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_item_id' => $item2->id,
+            'status' => 'available',
+        ]);
 
         // High stock product (>= threshold)
-        PurchaseOrderItem::factory()->create([
+        $item3 = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $purchaseOrder->id,
             'digital_product_id' => $highStockProduct->id,
             'quantity' => 10,
+        ]);
+        Voucher::factory()->count(10)->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_item_id' => $item3->id,
+            'status' => 'available',
         ]);
 
         $result = $this->repository->getFilteredDigitalStocks(['stock' => 'low']);
@@ -264,10 +305,16 @@ class DigitalStockRepositoryTest extends TestCase
         $productWithLowStock = DigitalProduct::factory()->create(['supplier_id' => $externalSupplier->id]);
 
         $purchaseOrder = PurchaseOrder::factory()->create();
-        PurchaseOrderItem::factory()->create([
+        $item = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $purchaseOrder->id,
             'digital_product_id' => $productWithLowStock->id,
             'quantity' => 2,
+        ]);
+
+        Voucher::factory()->count(2)->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_item_id' => $item->id,
+            'status' => 'available',
         ]);
 
         $result = $this->repository->getFilteredDigitalStocks(['stock' => 'low']);
@@ -289,22 +336,37 @@ class DigitalStockRepositoryTest extends TestCase
 
         $purchaseOrder = PurchaseOrder::factory()->create();
 
-        PurchaseOrderItem::factory()->create([
+        $item1 = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $purchaseOrder->id,
             'digital_product_id' => $lowStockProduct->id,
             'quantity' => 3,
         ]);
+        Voucher::factory()->count(3)->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_item_id' => $item1->id,
+            'status' => 'available',
+        ]);
 
-        PurchaseOrderItem::factory()->create([
+        $item2 = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $purchaseOrder->id,
             'digital_product_id' => $atThresholdProduct->id,
             'quantity' => DigitalProduct::LOW_QUANTITY_THRESHOLD,
         ]);
+        Voucher::factory()->count(DigitalProduct::LOW_QUANTITY_THRESHOLD)->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_item_id' => $item2->id,
+            'status' => 'available',
+        ]);
 
-        PurchaseOrderItem::factory()->create([
+        $item3 = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $purchaseOrder->id,
             'digital_product_id' => $highStockProduct->id,
             'quantity' => 8,
+        ]);
+        Voucher::factory()->count(8)->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_item_id' => $item3->id,
+            'status' => 'available',
         ]);
 
         $result = $this->repository->getFilteredDigitalStocks(['stock' => 'low']);
@@ -332,28 +394,48 @@ class DigitalStockRepositoryTest extends TestCase
 
         $purchaseOrder = PurchaseOrder::factory()->create();
 
-        PurchaseOrderItem::factory()->create([
+        $item1 = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $purchaseOrder->id,
             'digital_product_id' => $internalLow1->id,
             'quantity' => 1,
         ]);
+        Voucher::factory()->count(1)->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_item_id' => $item1->id,
+            'status' => 'available',
+        ]);
 
-        PurchaseOrderItem::factory()->create([
+        $item2 = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $purchaseOrder->id,
             'digital_product_id' => $internalHigh->id,
             'quantity' => 20,
         ]);
+        Voucher::factory()->count(20)->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_item_id' => $item2->id,
+            'status' => 'available',
+        ]);
 
-        PurchaseOrderItem::factory()->create([
+        $item3 = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $purchaseOrder->id,
             'digital_product_id' => $externalLow->id,
             'quantity' => 4,
         ]);
+        Voucher::factory()->count(4)->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_item_id' => $item3->id,
+            'status' => 'available',
+        ]);
 
-        PurchaseOrderItem::factory()->create([
+        $item4 = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $purchaseOrder->id,
             'digital_product_id' => $externalHigh->id,
             'quantity' => 15,
+        ]);
+        Voucher::factory()->count(15)->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_item_id' => $item4->id,
+            'status' => 'available',
         ]);
 
         $result = $this->repository->getFilteredDigitalStocks(['stock' => 'low', 'per_page' => 100]);
@@ -456,10 +538,16 @@ class DigitalStockRepositoryTest extends TestCase
         $product = DigitalProduct::factory()->create(['supplier_id' => $supplier->id]);
 
         $purchaseOrder = PurchaseOrder::factory()->create();
-        PurchaseOrderItem::factory()->create([
+        $item = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $purchaseOrder->id,
             'digital_product_id' => $product->id,
             'quantity' => 2,
+        ]);
+
+        Voucher::factory()->count(2)->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_item_id' => $item->id,
+            'status' => 'available',
         ]);
 
         $result = $this->repository->getFilteredDigitalStocks(['stock' => 'low']);
@@ -746,10 +834,16 @@ class DigitalStockRepositoryTest extends TestCase
         $internalProduct = DigitalProduct::factory()->create(['supplier_id' => $internalSupplier->id]);
 
         $purchaseOrder = PurchaseOrder::factory()->create();
-        PurchaseOrderItem::factory()->create([
+        $item = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $purchaseOrder->id,
             'digital_product_id' => $externalProduct->id,
             'quantity' => 3,
+        ]);
+
+        Voucher::factory()->count(3)->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_item_id' => $item->id,
+            'status' => 'available',
         ]);
 
         $result = $this->repository->getFilteredDigitalStocks(['stock' => 'low', 'supplier_id' => $externalSupplier->id]);
@@ -780,10 +874,16 @@ class DigitalStockRepositoryTest extends TestCase
         ]);
 
         $purchaseOrder = PurchaseOrder::factory()->create();
-        PurchaseOrderItem::factory()->create([
+        $item = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $purchaseOrder->id,
             'digital_product_id' => $externalProduct->id,
             'quantity' => 2,
+        ]);
+
+        Voucher::factory()->count(2)->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_item_id' => $item->id,
+            'status' => 'available',
         ]);
 
         $result = $this->repository->getFilteredDigitalStocks(['stock' => 'low', 'brand' => 'Sony', 'per_page' => 100]);
@@ -798,10 +898,16 @@ class DigitalStockRepositoryTest extends TestCase
         $product = DigitalProduct::factory()->create(['supplier_id' => $supplier->id]);
 
         $purchaseOrder = PurchaseOrder::factory()->create();
-        PurchaseOrderItem::factory()->create([
+        $item = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $purchaseOrder->id,
             'digital_product_id' => $product->id,
             'quantity' => 50,
+        ]);
+
+        Voucher::factory()->count(50)->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_item_id' => $item->id,
+            'status' => 'available',
         ]);
 
         $quantity = $this->repository->getDigitalProductQuantity($product->id);
@@ -815,17 +921,29 @@ class DigitalStockRepositoryTest extends TestCase
         $product = DigitalProduct::factory()->create(['supplier_id' => $supplier->id]);
 
         $purchaseOrder1 = PurchaseOrder::factory()->create();
-        PurchaseOrderItem::factory()->create([
+        $item1 = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $purchaseOrder1->id,
             'digital_product_id' => $product->id,
             'quantity' => 30,
         ]);
 
+        Voucher::factory()->count(30)->create([
+            'purchase_order_id' => $purchaseOrder1->id,
+            'purchase_order_item_id' => $item1->id,
+            'status' => 'available',
+        ]);
+
         $purchaseOrder2 = PurchaseOrder::factory()->create();
-        PurchaseOrderItem::factory()->create([
+        $item2 = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $purchaseOrder2->id,
             'digital_product_id' => $product->id,
             'quantity' => 20,
+        ]);
+
+        Voucher::factory()->count(20)->create([
+            'purchase_order_id' => $purchaseOrder2->id,
+            'purchase_order_item_id' => $item2->id,
+            'status' => 'available',
         ]);
 
         $quantity = $this->repository->getDigitalProductQuantity($product->id);

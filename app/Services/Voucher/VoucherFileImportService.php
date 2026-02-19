@@ -1,26 +1,22 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Voucher;
 
 use ZipArchive;
 use App\Models\Voucher;
 use App\Imports\VoucherImport;
 use Maatwebsite\Excel\Facades\Excel;
 
-class VoucherImportService
+class VoucherFileImportService
 {
-    public function __construct(
-        private VoucherCipherService $voucherCipherService
-    ) {}
-
-    private function importVoucherFromSpreadsheet(string $filePath, int $purchaseOrderID, int $purchaseOrderTotalQuantity): bool
+    private function importVoucherFromSpreadsheet(string $filePath, int $purchaseOrderID): bool
     {
-        Excel::import(new VoucherImport($this->voucherCipherService, $purchaseOrderID, $purchaseOrderTotalQuantity), $filePath);
+        Excel::import(new VoucherImport($purchaseOrderID), $filePath);
 
         return true;
     }
 
-    private function extractFilesFromZipAndImportVouchers(string $zipPath, int $purchaseOrderID, int $purchaseOrderTotalQuantity): bool
+    private function extractFilesFromZipAndImportVouchers(string $zipPath, int $purchaseOrderID): bool
     {
         $zip = new ZipArchive;
 
@@ -47,7 +43,7 @@ class VoucherImportService
 
             // Extract and process
             if (copy("zip://{$zipPath}#{$entryName}", $tempPath)) {
-                if ($this->importVoucherFromSpreadsheet($tempPath, $purchaseOrderID, $purchaseOrderTotalQuantity)) {
+                if ($this->importVoucherFromSpreadsheet($tempPath, $purchaseOrderID)) {
                     $hasProcessedFiles = true;
                 }
                 unlink($tempPath);
@@ -59,7 +55,7 @@ class VoucherImportService
         return $hasProcessedFiles;
     }
 
-    public function processFile(array $data, int $purchaseOrderTotalQuantity): bool
+    public function processFile(array $data): bool
     {
         $file = $data['file'];
         $purchaseOrderID = $data['purchase_order_id'];
@@ -72,13 +68,13 @@ class VoucherImportService
         $file->move(sys_get_temp_dir(), basename($tempPath));
 
         if ($extension === 'zip') {
-            $result = $this->extractFilesFromZipAndImportVouchers($tempPath, $purchaseOrderID, $purchaseOrderTotalQuantity);
+            $result = $this->extractFilesFromZipAndImportVouchers($tempPath, $purchaseOrderID);
             unlink($tempPath);
 
             return $result;
         }
 
-        $result = $this->importVoucherFromSpreadsheet($tempPath, $purchaseOrderID, $purchaseOrderTotalQuantity);
+        $result = $this->importVoucherFromSpreadsheet($tempPath, $purchaseOrderID);
         unlink($tempPath);
 
         return $result;

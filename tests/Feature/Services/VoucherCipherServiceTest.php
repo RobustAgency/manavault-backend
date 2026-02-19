@@ -3,7 +3,7 @@
 namespace Tests\Feature\Services;
 
 use Tests\TestCase;
-use App\Services\VoucherCipherService;
+use App\Services\Voucher\VoucherCipherService;
 use Illuminate\Contracts\Encryption\DecryptException;
 
 class VoucherCipherServiceTest extends TestCase
