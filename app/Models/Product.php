@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -55,5 +56,15 @@ class Product extends Model
     public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class);
+    }
+
+    /**
+     * Get the price rule applications for this product.
+     *
+     * @return HasMany<PriceRuleProduct, $this>
+     */
+    public function priceRuleProducts(): HasMany
+    {
+        return $this->hasMany(PriceRuleProduct::class);
     }
 }
