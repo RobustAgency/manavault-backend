@@ -147,10 +147,15 @@ class PurchaseOrderRepository
 
         // Create purchase order items
         foreach ($orderItems as $orderItem) {
+            /** @var DigitalProduct $digitalProduct */
+            $digitalProduct = $orderItem['digital_product'];
             PurchaseOrderItem::create([
                 'purchase_order_id' => $purchaseOrder->id,
                 'supplier_id' => $supplier->id,
                 'digital_product_id' => $orderItem['digital_product_id'],
+                'product_name' => $digitalProduct->name,
+                'product_sku' => $digitalProduct->sku,
+                'product_brand' => $digitalProduct->brand,
                 'quantity' => $orderItem['quantity'],
                 'unit_cost' => $orderItem['unit_cost'],
                 'subtotal' => $orderItem['subtotal'],
