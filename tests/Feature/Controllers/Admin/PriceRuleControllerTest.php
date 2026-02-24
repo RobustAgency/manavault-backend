@@ -8,6 +8,7 @@ use App\Models\Brand;
 use App\Models\Product;
 use App\Models\PriceRule;
 use App\Enums\PriceRule\Status;
+use App\Models\PriceRuleProduct;
 use App\Enums\PriceRule\ActionMode;
 use App\Enums\PriceRule\ActionOperator;
 use App\Enums\PriceRuleCondition\Operator;
@@ -687,5 +688,145 @@ class PriceRuleControllerTest extends TestCase
         $response = $this->actingAs($this->user)->deleteJson('/api/price-rules/999');
 
         $response->assertStatus(404);
+    }
+
+    public function test_post_view_product_returns_products_for_price_rule(): void
+    {
+        $priceRule = PriceRule::factory()->create();
+        $product1 = Product::factory()->create(['brand_id' => $this->brand->id]);
+        $product2 = Product::factory()->create(['brand_id' => $this->brand->id]);
+
+        PriceRuleProduct::factory()->create([
+            'price_rule_id' => $priceRule->id,
+            'product_id' => $product1->id,
+            'final_selling_price' => 90.00,
+        ]);
+        PriceRuleProduct::factory()->create([
+            'price_rule_id' => $priceRule->id,
+            'product_id' => $product2->id,
+            'final_selling_price' => 135.00,
+        ]);
+
+        $response = $this->actingAs($this->user)->getJson("/api/price-rules/{$priceRule->id}/products");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'error' => false,
+                'message' => 'Price rule products retrieved successfully.',
+            ]);
+
+        $this->assertCount(2, $response['data']['data']);
+    }
+
+    public function test_post_view_product_returns_correct_structure(): void
+    {
+        $priceRule = PriceRule::factory()->create();
+        $product = Product::factory()->create(['brand_id' => $this->brand->id]);
+
+        PriceRuleProduct::factory()->create([
+            'price_rule_id' => $priceRule->id,
+            'product_id' => $product->id,
+            'original_selling_price' => 100.00,
+            'base_value' => 100.00,
+            'action_mode' => 'percentage',
+            'action_operator' => 'subtract',
+            'action_value' => 10.00,
+            'calculated_price' => 90.00,
+            'final_selling_price' => 90.00,
+        ]);
+
+        $response = $this->actingAs($this->user)->getJson("/api/price-rules/{$priceRule->id}/products");
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'error',
+                'data' => [
+                    'current_page',
+                    'data' => [
+                        '*' => [
+                            'id',
+                            'product_id',
+                            'price_rule_id',
+                            'original_selling_price',
+                            'base_value',
+                            'action_mode',
+                            'action_operator',
+                            'action_value',
+                            'calculated_price',
+                            'final_selling_price',
+                            'applied_at',
+                            'product',
+                        ],
+                    ],
+                    'last_page',
+                    'total',
+                ],
+                'message',
+            ]);
+
+        $item = $response['data']['data'][0];
+        $this->assertEquals($priceRule->id, $item['price_rule_id']);
+        $this->assertEquals($product->id, $item['product_id']);
+        $this->assertEquals('90.00', $item['final_selling_price']);
+    }
+
+    public function test_post_view_product_returns_empty_for_rule_with_no_applications(): void
+    {
+        $priceRule = PriceRule::factory()->create();
+
+        $response = $this->actingAs($this->user)->getJson("/api/price-rules/{$priceRule->id}/products");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'error' => false,
+                'message' => 'Price rule products retrieved successfully.',
+            ]);
+
+        $this->assertCount(0, $response['data']['data']);
+    }
+
+    public function test_post_view_product_does_not_return_other_rules_products(): void
+    {
+        $priceRule1 = PriceRule::factory()->create();
+        $priceRule2 = PriceRule::factory()->create();
+        $product = Product::factory()->create(['brand_id' => $this->brand->id]);
+
+        PriceRuleProduct::factory()->create([
+            'price_rule_id' => $priceRule1->id,
+            'product_id' => $product->id,
+        ]);
+        PriceRuleProduct::factory()->create([
+            'price_rule_id' => $priceRule2->id,
+            'product_id' => $product->id,
+        ]);
+
+        $response = $this->actingAs($this->user)->getJson("/api/price-rules/{$priceRule1->id}/products");
+
+        $response->assertStatus(200);
+        $this->assertCount(1, $response['data']['data']);
+        $this->assertEquals($priceRule1->id, $response['data']['data'][0]['price_rule_id']);
+    }
+
+    public function test_post_view_product_returns_404_for_nonexistent_rule(): void
+    {
+        $response = $this->actingAs($this->user)->getJson('/api/price-rules/999/products');
+
+        $response->assertStatus(404);
+    }
+
+    public function test_post_view_product_returns_paginated_results(): void
+    {
+        $priceRule = PriceRule::factory()->create();
+
+        PriceRuleProduct::factory()->count(20)->create([
+            'price_rule_id' => $priceRule->id,
+        ]);
+
+        $response = $this->actingAs($this->user)->getJson("/api/price-rules/{$priceRule->id}/products");
+
+        $response->assertStatus(200);
+        $this->assertEquals(15, $response['data']['per_page']);
+        $this->assertEquals(20, $response['data']['total']);
+        $this->assertCount(15, $response['data']['data']);
     }
 }

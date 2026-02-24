@@ -68,7 +68,10 @@ class PricingRuleServiceTest extends TestCase
 
         $product->refresh();
         // Price should be reduced by 10%: 100 - (100 * 0.10) = 90
-        $this->assertEquals(90.00, $product->selling_price);
+        $this->assertDatabaseHas('price_rule_product', [
+            'product_id' => $product->id,
+            'final_selling_price' => 90.00,
+        ]);
     }
 
     public function test_create_price_rule_with_percentage_addition(): void
@@ -100,7 +103,10 @@ class PricingRuleServiceTest extends TestCase
 
         $product->refresh();
         // Price should be increased by 20%: 100 + (100 * 0.20) = 120
-        $this->assertEquals(120.00, $product->selling_price);
+        $this->assertDatabaseHas('price_rule_product', [
+            'product_id' => $product->id,
+            'final_selling_price' => 120.00,
+        ]);
     }
 
     public function test_create_price_rule_with_absolute_value(): void
@@ -132,7 +138,10 @@ class PricingRuleServiceTest extends TestCase
 
         $product->refresh();
         // Price should be reduced by fixed amount: 100 - 15 = 85
-        $this->assertEquals(85.00, $product->selling_price);
+        $this->assertDatabaseHas('price_rule_product', [
+            'product_id' => $product->id,
+            'final_selling_price' => 85.00,
+        ]);
     }
 
     public function test_create_price_rule_with_multiple_conditions_all(): void
@@ -183,9 +192,12 @@ class PricingRuleServiceTest extends TestCase
         $product3->refresh();
 
         // Only product2 should be discounted (brand matches AND price >= 100)
-        $this->assertEquals(50.00, $product1->selling_price); // Not changed
-        $this->assertEquals(135.00, $product2->selling_price); // 150 - (150 * 0.10) = 135
-        $this->assertEquals(150.00, $product3->selling_price); // Not changed (different brand)
+        $this->assertDatabaseMissing('price_rule_product', ['product_id' => $product1->id]); // Not changed
+        $this->assertDatabaseHas('price_rule_product', [
+            'product_id' => $product2->id,
+            'final_selling_price' => 135.00, // 150 - (150 * 0.10) = 135
+        ]);
+        $this->assertDatabaseMissing('price_rule_product', ['product_id' => $product3->id]); // Not changed (different brand)
     }
 
     public function test_create_price_rule_with_multiple_conditions_any(): void
@@ -236,9 +248,15 @@ class PricingRuleServiceTest extends TestCase
         $product3->refresh();
 
         // product1 matches brand condition, product3 matches price condition
-        $this->assertEquals(47.50, $product1->selling_price); // 50 - (50 * 0.05) = 47.5
-        $this->assertEquals(50.00, $product2->selling_price); // Not changed
-        $this->assertEquals(142.50, $product3->selling_price); // 150 - (150 * 0.05) = 142.5
+        $this->assertDatabaseHas('price_rule_product', [
+            'product_id' => $product1->id,
+            'final_selling_price' => 47.50, // 50 - (50 * 0.05) = 47.5
+        ]);
+        $this->assertDatabaseMissing('price_rule_product', ['product_id' => $product2->id]); // Not changed
+        $this->assertDatabaseHas('price_rule_product', [
+            'product_id' => $product3->id,
+            'final_selling_price' => 142.50, // 150 - (150 * 0.05) = 142.5
+        ]);
     }
 
     public function test_update_price_rule_with_conditions(): void
@@ -280,7 +298,11 @@ class PricingRuleServiceTest extends TestCase
 
         $product->refresh();
         // Price should be reduced by 15%: 100 - (100 * 0.15) = 85
-        $this->assertEquals(85.00, $product->selling_price);
+        $this->assertDatabaseHas('price_rule_product', [
+            'product_id' => $product->id,
+            'price_rule_id' => $priceRule->id,
+            'final_selling_price' => 85.00,
+        ]);
     }
 
     public function test_update_price_rule_replaces_conditions(): void
@@ -376,7 +398,10 @@ class PricingRuleServiceTest extends TestCase
 
         $product->refresh();
         // Price should be 0 minimum, not negative
-        $this->assertEquals(0, $product->selling_price);
+        $this->assertDatabaseHas('price_rule_product', [
+            'product_id' => $product->id,
+            'final_selling_price' => 0.00,
+        ]);
     }
 
     public function test_create_rule_with_no_matching_products(): void
