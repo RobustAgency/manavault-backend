@@ -36,7 +36,7 @@ class SyncDigitalProducts
                 'brand' => $item['brand'] ?? null,
                 'description' => $item['description'] ?? null,
                 'cost_price' => $item['price'] ?? null,
-                'currency' => strtolower($item['currency']),
+                'currency' => strtolower($item['originalCurrency'] ?? 'usd'),
                 'metadata' => $item,
                 'source' => 'api',
                 'last_synced_at' => now(),

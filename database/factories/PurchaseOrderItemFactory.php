@@ -25,6 +25,9 @@ class PurchaseOrderItemFactory extends Factory
         return [
             'purchase_order_id' => PurchaseOrder::factory(),
             'digital_product_id' => DigitalProduct::factory(),
+            'digital_product_name' => $this->faker->words(3, true),
+            'digital_product_sku' => $this->faker->unique()->regexify('[A-Z]{3}-[0-9]{5}'),
+            'digital_product_brand' => $this->faker->company(),
             'quantity' => $quantity,
             'unit_cost' => $unitCost,
             'subtotal' => $subtotal,
