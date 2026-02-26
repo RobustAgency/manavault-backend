@@ -4,10 +4,15 @@ namespace App\Repositories;
 
 use App\Models\DigitalProduct;
 use Illuminate\Support\Collection;
+use App\Services\ImageUploadService;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class DigitalProductRepository
 {
+    public function __construct(
+        private ImageUploadService $imageUploadService,
+    ) {}
+
     /**
      * Get paginated digital products filtered by the provided criteria.
      *
@@ -35,6 +40,8 @@ class DigitalProductRepository
 
         $per_page = $filters['per_page'] ?? 10;
 
+        $query->orderBy('created_at', 'desc');
+
         return $query->paginate($per_page);
     }
 
@@ -44,6 +51,17 @@ class DigitalProductRepository
     public function createDigitalProduct(array $data): DigitalProduct
     {
         $data['last_synced_at'] = now();
+
+        if (! empty($data['image'])) {
+            $uploadedImage = $this->imageUploadService->upload($data['image'], 'uploads/digital-products');
+            if (is_string($uploadedImage)) {
+                $appUrl = config('app.url');
+                $data['image_url'] = rtrim($appUrl, '/').'/storage/'.ltrim($uploadedImage, '/');
+            }
+
+            unset($data['image']);
+
+        }
 
         return DigitalProduct::create($data);
     }
@@ -70,6 +88,23 @@ class DigitalProductRepository
      */
     public function updateDigitalProduct(DigitalProduct $digitalProduct, array $data): DigitalProduct
     {
+        if (! empty($data['image'])) {
+
+            $oldImage = $digitalProduct->image_url;
+            if (! empty($oldImage)) {
+                $oldImage = str_replace(config('app.url').'/storage/', '', $oldImage);
+            }
+
+            $replacedImage = $this->imageUploadService->replace($data['image'], 'uploads/digital-products', $oldImage);
+
+            if (is_string($replacedImage)) {
+                $appUrl = config('app.url');
+                $data['image_url'] = rtrim($appUrl, '/').'/storage/'.ltrim($replacedImage, '/');
+            }
+
+            unset($data['image']);
+
+        }
         $digitalProduct->update($data);
 
         return $digitalProduct->fresh();
