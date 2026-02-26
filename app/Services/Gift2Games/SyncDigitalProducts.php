@@ -9,6 +9,12 @@ use App\Repositories\DigitalProductRepository;
 
 class SyncDigitalProducts
 {
+    private const G2G_SUPPLIER_SLUGS = [
+        'gift2games',
+        'gift-2-games-eur',
+        'gift-2-games-gbp',
+    ];
+
     public function __construct(
         private GetProducts $getProducts,
         private DigitalProductRepository $digitalProductRepository,
@@ -16,10 +22,25 @@ class SyncDigitalProducts
 
     public function processSyncAllProducts(): void
     {
-        $supplier = Supplier::where('slug', 'gift2games')->first();
-        $products = $this->getProducts->execute();
+        foreach (self::G2G_SUPPLIER_SLUGS as $slug) {
+            $this->syncForSupplier($slug);
+        }
+    }
+
+    private function syncForSupplier(string $supplierSlug): void
+    {
+        $supplier = Supplier::where('slug', $supplierSlug)->first();
+
+        if (! $supplier) {
+            Log::warning("Gift2Games sync: supplier not found for slug: {$supplierSlug}");
+
+            return;
+        }
+
+        $products = $this->getProducts->execute($supplierSlug);
+
         if ($products['status'] == 0) {
-            Log::error('Failed to sync Gift2Games products');
+            Log::error("Failed to sync Gift2Games products for supplier: {$supplierSlug}");
 
             return;
         }
@@ -42,6 +63,5 @@ class SyncDigitalProducts
                 'last_synced_at' => now(),
             ]);
         }
-
     }
 }

@@ -162,7 +162,7 @@ class PurchaseOrderRepository
             ]);
         }
 
-        if ($supplier->slug === 'gift2games') {
+        if ($this->isGift2GamesSupplier($supplier)) {
             // For Gift2Games, vouchers are returned immediately in the order response
             // Use the Gift2GamesVoucherService to process and store them
             $this->gift2GamesVoucherService->storeVouchers($purchaseOrder, $externalOrderResponse);
@@ -196,13 +196,23 @@ class PurchaseOrderRepository
         return $supplier->type === 'external';
     }
 
+    private function isGift2GamesSupplier(Supplier $supplier): bool
+    {
+        return str_starts_with($supplier->slug, 'gift2games')
+            || str_starts_with($supplier->slug, 'gift-2-games');
+    }
+
     private function placeExternalOrder(Supplier $supplier, array $orderItems, string $orderNumber, string $currency): array
     {
-        return match ($supplier->slug) {
-            'ez_cards' => $this->ezcardPlaceOrderService->placeOrder($orderItems, $orderNumber, $currency),
-            'gift2games' => $this->gift2GamesPlaceOrderService->placeOrder($orderItems, $orderNumber),
-            default => throw new \RuntimeException("Unknown external supplier: {$supplier->slug}"),
-        };
+        if ($supplier->slug === 'ez_cards') {
+            return $this->ezcardPlaceOrderService->placeOrder($orderItems, $orderNumber, $currency);
+        }
+
+        if ($this->isGift2GamesSupplier($supplier)) {
+            return $this->gift2GamesPlaceOrderService->placeOrder($orderItems, $orderNumber, $supplier->slug);
+        }
+
+        throw new \RuntimeException("Unknown external supplier: {$supplier->slug}");
     }
 
     public function getPurchaseOrderByID(int $purchaseOrderID): PurchaseOrder
