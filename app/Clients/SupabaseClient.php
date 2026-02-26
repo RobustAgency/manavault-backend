@@ -301,7 +301,6 @@ class SupabaseClient
      */
     public function syncUser(array $userData): ?User
     {
-        Log::info('Syncing user from Supabase', ['supabase' => $userData]);
         // Try to find the user by Supabase ID
         // FIXME: This needs to have test, case is we might have a user but supabase does not have that user or deleted from there.
         $user = User::where('supabase_id', $userData['supabase_id'])->orWhere('email', $userData['email'])->first();
