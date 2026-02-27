@@ -2,14 +2,16 @@
 
 namespace App\Actions\Gift2Games;
 
-use App\Clients\Gift2Games\Products;
+use App\Factory\G2GClient\ClientFactory;
 
 class GetProducts
 {
-    public function __construct(private Products $productsClient) {}
+    public function __construct(private ClientFactory $clientFactory) {}
 
-    public function execute(): array
+    public function execute(string $supplierSlug = 'gift2games'): array
     {
-        return $this->productsClient->fetchList();
+        $productsClient = $this->clientFactory->makeProductsClient($supplierSlug);
+
+        return $productsClient->fetchList();
     }
 }
