@@ -9,7 +9,7 @@ class Gift2GamesPlaceOrderService
 {
     public function __construct(private CreateOrder $gift2GamesPlaceOrder) {}
 
-    public function placeOrder(array $orderItems, string $orderNumber): array
+    public function placeOrder(array $orderItems, string $orderNumber, string $supplierSlug = 'gift2games'): array
     {
         $vouchers = [];
         foreach ($orderItems as $item) {
@@ -19,7 +19,7 @@ class Gift2GamesPlaceOrderService
                     'referenceNumber' => $orderNumber,
                 ];
                 try {
-                    $response = $this->gift2GamesPlaceOrder->execute($data);
+                    $response = $this->gift2GamesPlaceOrder->execute($data, $supplierSlug);
                 } catch (\Exception $e) {
                     Log::error('Gift2Games Place Order Error: '.$e->getMessage());
 
