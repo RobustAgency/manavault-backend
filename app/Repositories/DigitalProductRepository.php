@@ -89,6 +89,7 @@ class DigitalProductRepository
     public function updateDigitalProduct(DigitalProduct $digitalProduct, array $data): DigitalProduct
     {
         $oldImage = $digitalProduct->image_url;
+        // TODO: Implement DELETE /api/images/{id} to remove file from storage and set image_url to null in db
         // Handle image deletion when image key is explicitly set to null
         if (array_key_exists('image', $data) && $data['image'] === null) {
             // Delete the old image from storage if it exists
