@@ -45,7 +45,7 @@ class DigitalProductController extends Controller
 
         return response()->json([
             'error' => false,
-            'data' => $digitalProducts,
+            'data' => DigitalProductResource::collection($digitalProducts),
             'message' => 'Digital products created successfully.',
         ], 201);
     }

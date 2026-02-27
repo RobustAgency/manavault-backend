@@ -108,7 +108,7 @@ class DigitalStockRepository
             $query->where('digital_products.brand', 'like', '%'.$filters['brand'].'%');
         }
 
-        $query->orderBy('digital_products.id');
+        $query->orderBy('digital_products.created_at', 'desc');
 
         return $query;
     }

@@ -35,6 +35,7 @@ class UpdateDigitalProductRequest extends FormRequest
             'currency' => ['sometimes', 'string', Rule::in(array_map(fn ($c) => $c->value, Currency::cases()))],
             'status' => ['sometimes', 'string', 'in:active,inactive'],
             'metadata' => ['sometimes', 'nullable', 'array'],
+            'image' => ['sometimes', 'nullable', 'file', 'image', 'max:2048'],
         ];
     }
 }
