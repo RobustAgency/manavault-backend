@@ -88,9 +88,19 @@ class DigitalProductRepository
      */
     public function updateDigitalProduct(DigitalProduct $digitalProduct, array $data): DigitalProduct
     {
-        if (! empty($data['image'])) {
+        $oldImage = $digitalProduct->image_url;
+        // Handle image deletion when image key is explicitly set to null
+        if (array_key_exists('image', $data) && $data['image'] === null) {
+            // Delete the old image from storage if it exists
+            if (! empty($oldImage)) {
+                $oldImage = str_replace(config('app.url').'/storage/', '', $oldImage);
+                $this->imageUploadService->delete($oldImage);
+            }
 
-            $oldImage = $digitalProduct->image_url;
+            $data['image_url'] = null;
+            unset($data['image']);
+        } elseif (! empty($data['image'])) {
+            // Handle image replacement with a new file
             if (! empty($oldImage)) {
                 $oldImage = str_replace(config('app.url').'/storage/', '', $oldImage);
             }
@@ -103,8 +113,8 @@ class DigitalProductRepository
             }
 
             unset($data['image']);
-
         }
+
         $digitalProduct->update($data);
 
         return $digitalProduct->fresh();
