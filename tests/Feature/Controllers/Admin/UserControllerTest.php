@@ -17,9 +17,9 @@ class UserControllerTest extends TestCase
     public function test_super_admin_can_view_all_users_with_pagination(): void
     {
         Notification::fake();
-        $admin = User::factory()->create(['role' => UserRole::SUPER_ADMIN]);
+        $admin = User::factory()->create(['role' => UserRole::SUPER_ADMIN->value]);
 
-        $users = User::factory()->count(5)->create(['role' => UserRole::USER]);
+        $users = User::factory()->count(5)->create(['role' => UserRole::USER->value]);
         $role = Role::create(['name' => 'user']);
         foreach ($users as $user) {
             $user->assignRole($role);
@@ -40,8 +40,8 @@ class UserControllerTest extends TestCase
     public function test_super_admin_can_view_user(): void
     {
         Notification::fake();
-        $admin = User::factory()->create(['role' => UserRole::SUPER_ADMIN]);
-        $user = User::factory()->create(['role' => UserRole::USER]);
+        $admin = User::factory()->create(['role' => UserRole::SUPER_ADMIN->value]);
+        $user = User::factory()->create(['role' => UserRole::USER->value]);
 
         $response = $this->actingAs($admin)->getJson("/api/users/{$user->id}");
         $response->assertOk();
