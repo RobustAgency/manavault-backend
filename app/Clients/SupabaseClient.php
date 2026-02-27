@@ -106,7 +106,7 @@ class SupabaseClient
             'email' => $userData['email'],
             'password' => $userData['password'] ?? Str::random(12),
             'email_confirm' => $userData['email_verified'] ?? true,
-            'role' => $userData['role'] ?? UserRole::USER,
+            'role' => $userData['role'] ?? UserRole::USER->value,
             'user_metadata' => [
                 'name' => $userData['name'],
             ],
@@ -285,7 +285,7 @@ class SupabaseClient
             $userData['name'] = $payload->user_metadata->name ?? '';
             $userData['email'] = $payload->user_metadata->email ?? $payload->email;
             $userData['email_verified'] = $payload->user_metadata->email_verified ?? false;
-            $userData['role'] = $payload->role ?? UserRole::USER;
+            $userData['role'] = $payload->role ?? UserRole::USER->value;
         }
 
         return $userData;

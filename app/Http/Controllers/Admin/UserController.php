@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Models\Role;
 use App\Models\User;
 use App\Enums\UserRole;
 use App\Clients\SupabaseClient;
@@ -98,10 +99,12 @@ class UserController extends Controller
     {
         $validated = $request->validated();
 
+        $role = Role::find($validated['role_id']);
+
         $supabaseData = [
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'role' => UserRole::USER->value,
+            'role' => $role->name ?? UserRole::USER->value,
             'password' => $validated['password'],
         ];
 
@@ -112,7 +115,10 @@ class UserController extends Controller
             'email' => $validated['email'],
             'supabase_id' => $supabaseClient['id'],
             'password' => bcrypt($validated['password']),
+            'role' => $role->name ?? UserRole::USER->value,
         ]);
+
+        $user->assignRole($role);
 
         return response()->json([
             'error' => false,

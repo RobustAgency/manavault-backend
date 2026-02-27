@@ -58,7 +58,7 @@ class CreateSuperAdminCommand extends Command
             'name' => $name,
             'email' => $email,
             'password' => \bcrypt($password),
-            'role' => UserRole::SUPER_ADMIN,
+            'role' => UserRole::SUPER_ADMIN->value,
             'supabase_id' => $supabaseId,
             'is_approved' => true,
         ]);

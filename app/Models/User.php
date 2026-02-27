@@ -4,7 +4,6 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 
-use App\Enums\UserRole;
 use App\Events\UserCreated;
 use App\Events\UserApproved;
 use Laravel\Cashier\Billable;
@@ -61,7 +60,6 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'is_approved' => 'boolean',
             'password' => 'hashed',
-            'role' => UserRole::class,
         ];
     }
 
@@ -78,7 +76,7 @@ class User extends Authenticatable
             'email' => $attributes['email'],
             'supabase_id' => $attributes['supabase_id'],
             'is_approved' => true,
-            'role' => UserRole::tryFrom(strtolower($attributes['role'] ?? '')) ?? UserRole::USER,
+            'role' => $attributes['role'],
         ];
 
         $user = self::create($data);

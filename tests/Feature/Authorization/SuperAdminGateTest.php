@@ -119,9 +119,7 @@ class SuperAdminGateTest extends TestCase
     {
         $superAdmin = User::factory()->create(['role' => UserRole::SUPER_ADMIN->value]);
 
-        // The role is cast to the enum by the User model
-        $this->assertEquals(UserRole::SUPER_ADMIN, $superAdmin->role);
-        $this->assertInstanceOf(UserRole::class, $superAdmin->role);
+        $this->assertEquals(UserRole::SUPER_ADMIN->value, $superAdmin->role);
     }
 
     /**
