@@ -30,7 +30,7 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
-            'role' => UserRole::USER,
+            'role' => UserRole::USER->value,
             'is_approved' => true,
             'supabase_id' => Str::uuid(),
             'created_at' => now(),

@@ -16,7 +16,7 @@ class SendNewAccountNotification implements ShouldQueue
     public function handle(UserCreated $event): void
     {
         // Can be changed according to the requirements
-        $admins = User::where('role', UserRole::ADMIN)->get();
+        $admins = User::where('role', UserRole::ADMIN->value)->get();
 
         foreach ($admins as $admin) {
             $admin->notify(new NewAccountNotification($event->user));
