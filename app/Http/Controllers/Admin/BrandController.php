@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Models\Brand;
+use App\Events\BrandUpdated;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\BrandResource;
@@ -64,6 +65,7 @@ class BrandController extends Controller
     {
         $validated = $request->validated();
         $brand = $this->brandRepository->updateBrand($brand, $validated);
+        event(new BrandUpdated($brand));
 
         return response()->json([
             'error' => false,
