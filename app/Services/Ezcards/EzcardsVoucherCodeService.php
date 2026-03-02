@@ -90,6 +90,18 @@ class EzcardsVoucherCodeService
     }
 
     /**
+     * Process a purchase order by its ID to fetch and store voucher codes.
+     *
+     * @return array Processing result
+     */
+    public function processPurchaseOrderById(PurchaseOrder $purchaseOrder): array
+    {
+        $purchaseOrder->load(['vouchers', 'items.digitalProduct']);
+
+        return $this->processPurchaseOrder($purchaseOrder);
+    }
+
+    /**
      * Process a single purchase order to fetch and store voucher codes.
      *
      * @return array Processing result
