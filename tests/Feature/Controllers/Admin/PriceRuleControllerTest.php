@@ -599,6 +599,101 @@ class PriceRuleControllerTest extends TestCase
         ]);
     }
 
+    public function test_update_does_not_stack_price_rule_product_records(): void
+    {
+        $product = Product::factory()->create(['brand_id' => $this->brand->id, 'face_value' => 100.00, 'selling_price' => 100.00]);
+
+        $priceRule = PriceRule::factory()->create([
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 10,
+            'status' => Status::ACTIVE->value,
+        ]);
+
+        $data = [
+            'name' => $priceRule->name,
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 20,
+            'status' => Status::ACTIVE->value,
+            'conditions' => [
+                [
+                    'field' => 'brand_id',
+                    'operator' => Operator::EQUAL->value,
+                    'value' => (string) $this->brand->id,
+                ],
+            ],
+        ];
+
+        // Call update twice to simulate multiple saves
+        $this->actingAs($this->user)->postJson("/api/price-rules/{$priceRule->id}", $data);
+        $this->actingAs($this->user)->postJson("/api/price-rules/{$priceRule->id}", $data)->assertStatus(200);
+
+        // Exactly 1 record per product — no stacking
+        $count = PriceRuleProduct::where('price_rule_id', $priceRule->id)
+            ->where('product_id', $product->id)
+            ->count();
+
+        $this->assertEquals(1, $count);
+
+        // Price reflects the latest update: 100 - 20% = 80
+        $this->assertDatabaseHas('price_rule_product', [
+            'product_id' => $product->id,
+            'price_rule_id' => $priceRule->id,
+            'final_selling_price' => 80.00,
+        ]);
+    }
+
+    public function test_update_clears_stale_products_when_conditions_change(): void
+    {
+        $brand2 = Brand::factory()->create();
+        $product1 = Product::factory()->create(['brand_id' => $this->brand->id, 'face_value' => 100.00, 'selling_price' => 100.00]);
+        $product2 = Product::factory()->create(['brand_id' => $brand2->id, 'face_value' => 100.00, 'selling_price' => 100.00]);
+
+        $priceRule = PriceRule::factory()->create([
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 10,
+            'status' => Status::ACTIVE->value,
+        ]);
+
+        // First update — targets brand 1
+        $this->actingAs($this->user)->postJson("/api/price-rules/{$priceRule->id}", [
+            'name' => $priceRule->name,
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 10,
+            'status' => Status::ACTIVE->value,
+            'conditions' => [
+                ['field' => 'brand_id', 'operator' => Operator::EQUAL->value, 'value' => (string) $this->brand->id],
+            ],
+        ])->assertStatus(200);
+
+        $this->assertDatabaseHas('price_rule_product', ['product_id' => $product1->id, 'price_rule_id' => $priceRule->id]);
+        $this->assertDatabaseMissing('price_rule_product', ['product_id' => $product2->id, 'price_rule_id' => $priceRule->id]);
+
+        // Second update — conditions now target brand 2 instead
+        $this->actingAs($this->user)->postJson("/api/price-rules/{$priceRule->id}", [
+            'name' => $priceRule->name,
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 10,
+            'status' => Status::ACTIVE->value,
+            'conditions' => [
+                ['field' => 'brand_id', 'operator' => Operator::EQUAL->value, 'value' => (string) $brand2->id],
+            ],
+        ])->assertStatus(200);
+
+        // product1's old record must be gone; product2's fresh record must exist
+        $this->assertDatabaseMissing('price_rule_product', ['product_id' => $product1->id, 'price_rule_id' => $priceRule->id]);
+        $this->assertDatabaseHas('price_rule_product', ['product_id' => $product2->id, 'price_rule_id' => $priceRule->id]);
+    }
+
     public function test_update_validates_operator_for_name_field(): void
     {
         $priceRule = PriceRule::factory()->create();
