@@ -25,7 +25,7 @@ jobs:
 
       - name: Set up SSH
         run: |
-          echo "${{ secrets.DEV_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          echo "${{ secrets.ROBUST_LARAVEL_APPS }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H "144.126.254.193" >> ~/.ssh/known_hosts
 
