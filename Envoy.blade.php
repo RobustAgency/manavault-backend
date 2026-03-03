@@ -1,9 +1,9 @@
-@servers(['prod' => 'app-user@146.190.193.138']);
+@servers(['prod' => 'dev@146.190.193.138']);
 
 @setup
     $repository = 'git@github.com:RobustAgency/manavault-backend.git';
     $branch = 'main';
-    $app_dir = '/var/www/app';
+    $app_dir = '/var/www/manavault';
     $release = date('Y_m_d_H_i');
     $releases_dir = $app_dir . '/releases';
     $new_release_dir = $releases_dir .'/'. $release;
