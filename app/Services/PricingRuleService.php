@@ -72,6 +72,7 @@ class PricingRuleService
         }
 
         // Reapply actions to products
+        $this->priceRuleProductRepository->deleteByPriceRuleId($priceRule->id);
         $products = $this->productRepository->getProductsByConditions($data['conditions'], $updatedPriceRule->match_type);
         foreach ($products as $product) {
             $this->applyAction($product, $updatedPriceRule);

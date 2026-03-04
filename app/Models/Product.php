@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PriceRule\Status;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -35,6 +36,7 @@ class Product extends Model
         'tags' => 'array',
         'regions' => 'array',
         'face_value' => 'decimal:2',
+        'selling_price' => 'decimal:2',
         'is_out_of_stock' => 'boolean',
     ];
 
@@ -66,5 +68,27 @@ class Product extends Model
     public function priceRuleProducts(): HasMany
     {
         return $this->hasMany(PriceRuleProduct::class);
+    }
+
+    /**
+     * Get the selling price of the product, considering any active price rules.
+     *
+     * @param  float  $value  The original selling price from the database.
+     * @return float The final selling price after applying active price rules.
+     */
+    public function getSellingPriceAttribute($value): float
+    {
+        $latestPriceRuleProduct = $this->priceRuleProducts()
+            ->whereHas('priceRule', function ($query) {
+                $query->where('status', Status::ACTIVE->value);
+            })
+            ->latest('updated_at')
+            ->first();
+
+        if ($latestPriceRuleProduct && $latestPriceRuleProduct->final_selling_price) {
+            return (float) $latestPriceRuleProduct->final_selling_price;
+        }
+
+        return (float) $value;
     }
 }

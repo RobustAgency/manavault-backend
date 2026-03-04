@@ -283,4 +283,40 @@ class PriceRuleProductRepositoryTest extends TestCase
         $this->assertInstanceOf(Product::class, $found->product);
         $this->assertInstanceOf(PriceRule::class, $found->priceRule);
     }
+
+    public function test_delete_by_price_rule_id_removes_only_matching_records(): void
+    {
+        $priceRule = PriceRule::factory()->create();
+        $otherRule = PriceRule::factory()->create();
+
+        PriceRuleProduct::factory()->count(3)->create(['price_rule_id' => $priceRule->id]);
+        PriceRuleProduct::factory()->count(2)->create(['price_rule_id' => $otherRule->id]);
+
+        $this->repository->deleteByPriceRuleId($priceRule->id);
+
+        $this->assertDatabaseMissing('price_rule_product', ['price_rule_id' => $priceRule->id]);
+        $this->assertEquals(2, PriceRuleProduct::where('price_rule_id', $otherRule->id)->count());
+    }
+
+    public function test_delete_by_price_rule_id_with_no_records_does_not_throw(): void
+    {
+        $priceRule = PriceRule::factory()->create();
+
+        // Should not throw when there are no records to delete
+        $this->repository->deleteByPriceRuleId($priceRule->id);
+
+        $this->assertDatabaseCount('price_rule_product', 0);
+    }
+
+    public function test_delete_by_price_rule_id_removes_all_records_for_rule(): void
+    {
+        $priceRule = PriceRule::factory()->create();
+        PriceRuleProduct::factory()->count(5)->create(['price_rule_id' => $priceRule->id]);
+
+        $this->assertEquals(5, PriceRuleProduct::where('price_rule_id', $priceRule->id)->count());
+
+        $this->repository->deleteByPriceRuleId($priceRule->id);
+
+        $this->assertEquals(0, PriceRuleProduct::where('price_rule_id', $priceRule->id)->count());
+    }
 }
