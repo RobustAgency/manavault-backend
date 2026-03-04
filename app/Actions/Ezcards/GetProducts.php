@@ -2,11 +2,11 @@
 
 namespace App\Actions\Ezcards;
 
-use App\Clients\Ezcards\Products;
+use App\Clients\EzcardsClient;
 
 class GetProducts
 {
-    public function __construct(private Products $ezcardsProducts) {}
+    public function __construct(private EzcardsClient $client) {}
 
     public function execute(int $limit, int $page): array
     {
@@ -15,6 +15,6 @@ class GetProducts
             'page' => $page,
         ];
 
-        return $this->ezcardsProducts->fetchList($queryParams);
+        return $this->client->getProducts($queryParams);
     }
 }

@@ -2,14 +2,14 @@
 
 namespace App\Actions\Ezcards;
 
-use App\Clients\Ezcards\Vouchers;
+use App\Clients\EzcardsClient;
 
 class GetVoucherCodes
 {
-    public function __construct(private Vouchers $vouchers) {}
+    public function __construct(private EzcardsClient $client) {}
 
     public function execute(int $transactionID): array
     {
-        return $this->vouchers->getCodes($transactionID);
+        return $this->client->getVoucherCodes($transactionID);
     }
 }

@@ -1,10 +1,8 @@
 <?php
 
-namespace App\Clients\Gift2Games;
+namespace App\Clients;
 
-use App\Clients\BaseApiClient;
-
-class Client extends BaseApiClient
+class Gift2GamesClient extends BaseApiClient
 {
     private string $configPrefixOverride;
 
@@ -44,5 +42,28 @@ class Client extends BaseApiClient
     protected function getRetryDelay(): int
     {
         return 0;
+    }
+
+    public function createOrder(array $orderData): array
+    {
+        $response = $this->getFormClient()->post('/create_order', $orderData);
+
+        $response = $this->handleResponse($response);
+
+        if (! $response['status']) {
+            throw new \RuntimeException('Order creation failed: '.$response['error']['message']);
+        }
+
+        return $response;
+    }
+
+    /**
+     * Fetch a list of products from the Gift2Games API.
+     */
+    public function getProducts(): array
+    {
+        $response = $this->getClient()->get('products');
+
+        return $this->handleResponse($response);
     }
 }

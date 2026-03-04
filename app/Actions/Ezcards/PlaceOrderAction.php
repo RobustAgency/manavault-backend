@@ -2,12 +2,12 @@
 
 namespace App\Actions\Ezcards;
 
-use App\Clients\Ezcards\Orders;
+use App\Clients\EzcardsClient;
 
-class PlaceOrder
+class PlaceOrderAction
 {
     public function __construct(
-        private Orders $ezcardsOrders
+        private EzcardsClient $client
     ) {}
 
     /**
@@ -21,9 +21,7 @@ class PlaceOrder
     public function execute(array $orderData): array
     {
         try {
-            $orderResponse = $this->ezcardsOrders->placeOrder($orderData);
-
-            return $orderResponse;
+            return $this->client->createOrder($orderData);
         } catch (\RuntimeException $e) {
             throw new \RuntimeException($e->getMessage());
         }

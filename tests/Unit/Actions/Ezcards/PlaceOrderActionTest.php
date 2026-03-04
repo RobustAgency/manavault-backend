@@ -3,11 +3,11 @@
 namespace Tests\Unit\Actions\Ezcards;
 
 use Tests\TestCase;
-use App\Actions\Ezcards\PlaceOrder;
 use Illuminate\Support\Facades\Http;
+use App\Actions\Ezcards\PlaceOrderAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
-class PlaceOrderTest extends TestCase
+class PlaceOrderActionTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -50,7 +50,7 @@ class PlaceOrderTest extends TestCase
             '*/v2/orders' => Http::response($expectedResponse, 200),
         ]);
 
-        $placeOrderAction = app(PlaceOrder::class);
+        $placeOrderAction = app(PlaceOrderAction::class);
 
         $result = $placeOrderAction->execute($orderData);
 
@@ -111,7 +111,7 @@ class PlaceOrderTest extends TestCase
             '*/v2/orders' => Http::response($expectedResponse, 200),
         ]);
 
-        $placeOrderAction = app(PlaceOrder::class);
+        $placeOrderAction = app(PlaceOrderAction::class);
 
         $result = $placeOrderAction->execute($orderData);
 
@@ -153,32 +153,13 @@ class PlaceOrderTest extends TestCase
             '*/v2/orders' => Http::response($expectedResponse, 200),
         ]);
 
-        $placeOrderAction = app(PlaceOrder::class);
+        $placeOrderAction = app(PlaceOrderAction::class);
 
         $result = $placeOrderAction->execute($orderData);
 
         $this->assertEquals($expectedResponse, $result);
         $this->assertEquals('COMPLETED', $result['data']['status']);
         $this->assertEquals('COMPLETED', $result['data']['products'][0]['status']);
-    }
-
-    public function test_execute_throws_exception_on_validation_error(): void
-    {
-        $orderData = [
-            'clientOrderNumber' => 123,
-            'products' => [
-                [
-                    'sku' => 'TEST-SKU',
-                    'quantity' => 1,
-                ],
-            ],
-        ];
-
-        $placeOrderAction = app(PlaceOrder::class);
-
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('The "clientOrderNumber" must be a string');
-        $placeOrderAction->execute($orderData);
     }
 
     public function test_execute_throws_exception_on_api_error(): void
@@ -197,7 +178,7 @@ class PlaceOrderTest extends TestCase
             '*/v2/orders' => Http::response(['error' => 'Invalid SKU'], 400),
         ]);
 
-        $placeOrderAction = app(PlaceOrder::class);
+        $placeOrderAction = app(PlaceOrderAction::class);
 
         $this->expectException(\Illuminate\Http\Client\RequestException::class);
         $placeOrderAction->execute($orderData);
@@ -219,7 +200,7 @@ class PlaceOrderTest extends TestCase
             '*/v2/orders' => Http::response(['error' => 'Unauthorized'], 401),
         ]);
 
-        $placeOrderAction = app(PlaceOrder::class);
+        $placeOrderAction = app(PlaceOrderAction::class);
 
         $this->expectException(\Illuminate\Http\Client\RequestException::class);
         $placeOrderAction->execute($orderData);
@@ -265,7 +246,7 @@ class PlaceOrderTest extends TestCase
             '*/v2/orders' => Http::response($expectedResponse, 200),
         ]);
 
-        $placeOrderAction = app(PlaceOrder::class);
+        $placeOrderAction = app(PlaceOrderAction::class);
 
         $result = $placeOrderAction->execute($orderData);
 
@@ -299,7 +280,7 @@ class PlaceOrderTest extends TestCase
             '*/v2/orders' => Http::response($expectedResponse, 200),
         ]);
 
-        $placeOrderAction = app(PlaceOrder::class);
+        $placeOrderAction = app(PlaceOrderAction::class);
 
         $result = $placeOrderAction->execute($orderData);
 

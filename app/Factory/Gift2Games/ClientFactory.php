@@ -1,9 +1,8 @@
 <?php
 
-namespace App\Factory\G2GClient;
+namespace App\Factory\Gift2Games;
 
-use App\Clients\Gift2Games\Order;
-use App\Clients\Gift2Games\Products;
+use App\Clients\Gift2GamesClient;
 
 class ClientFactory
 {
@@ -19,13 +18,8 @@ class ClientFactory
             ?? throw new \InvalidArgumentException("Unknown Gift2Games supplier slug: {$supplierSlug}");
     }
 
-    public function makeProductsClient(string $supplierSlug): Products
+    public function makeClient(string $supplierSlug): Gift2GamesClient
     {
-        return new Products($this->getConfigPrefix($supplierSlug));
-    }
-
-    public function makeOrderClient(string $supplierSlug): Order
-    {
-        return new Order($this->getConfigPrefix($supplierSlug));
+        return new Gift2GamesClient($this->getConfigPrefix($supplierSlug));
     }
 }

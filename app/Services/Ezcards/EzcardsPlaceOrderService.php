@@ -2,12 +2,12 @@
 
 namespace App\Services\Ezcards;
 
-use App\Actions\Ezcards\PlaceOrder;
 use Illuminate\Support\Facades\Log;
+use App\Actions\Ezcards\PlaceOrderAction;
 
 class EzcardsPlaceOrderService
 {
-    public function __construct(private PlaceOrder $ezcardsPlaceOrder) {}
+    public function __construct(private PlaceOrderAction $ezcardsPlaceOrder) {}
 
     public function placeOrder(array $orderItems, string $orderNumber, string $currency): array
     {
