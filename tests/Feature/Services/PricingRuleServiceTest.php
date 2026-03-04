@@ -305,6 +305,127 @@ class PricingRuleServiceTest extends TestCase
         ]);
     }
 
+    public function test_update_does_not_stack_price_rule_product_records(): void
+    {
+        $priceRule = PriceRule::factory()->create([
+            'name' => 'Rule',
+            'match_type' => 'all',
+            'action_value' => 10,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'status' => Status::ACTIVE->value,
+        ]);
+
+        $product = Product::factory()->create([
+            'brand_id' => $this->brand->id,
+            'face_value' => 100.00,
+            'selling_price' => 100.00,
+        ]);
+
+        $updateData = [
+            'name' => 'Rule',
+            'match_type' => 'all',
+            'action_value' => 20,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'status' => Status::ACTIVE->value,
+            'conditions' => [
+                [
+                    'field' => 'brand_id',
+                    'operator' => Operator::EQUAL->value,
+                    'value' => (string) $this->brand->id,
+                ],
+            ],
+        ];
+
+        // Call update twice to simulate multiple saves
+        $this->service->updatePriceRuleWithConditions($priceRule, $updateData);
+        $this->service->updatePriceRuleWithConditions($priceRule, $updateData);
+
+        // There must be exactly 1 record per product, not stacked duplicates
+        $count = \App\Models\PriceRuleProduct::where('price_rule_id', $priceRule->id)
+            ->where('product_id', $product->id)
+            ->count();
+
+        $this->assertEquals(1, $count);
+
+        // And the price should reflect the latest update: 100 - 20% = 80
+        $this->assertDatabaseHas('price_rule_product', [
+            'product_id' => $product->id,
+            'price_rule_id' => $priceRule->id,
+            'final_selling_price' => 80.00,
+        ]);
+    }
+
+    public function test_update_clears_stale_products_when_conditions_change(): void
+    {
+        $brand2 = Brand::factory()->create();
+
+        $product1 = Product::factory()->create([
+            'brand_id' => $this->brand->id,
+            'face_value' => 100.00,
+            'selling_price' => 100.00,
+        ]);
+        $product2 = Product::factory()->create([
+            'brand_id' => $brand2->id,
+            'face_value' => 100.00,
+            'selling_price' => 100.00,
+        ]);
+
+        $initialData = [
+            'name' => 'Rule',
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 10,
+            'status' => Status::ACTIVE->value,
+            'conditions' => [
+                [
+                    'field' => 'brand_id',
+                    'operator' => Operator::EQUAL->value,
+                    'value' => (string) $this->brand->id,
+                ],
+            ],
+        ];
+
+        $priceRule = \App\Models\PriceRule::factory()->create([
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 10,
+            'status' => Status::ACTIVE->value,
+        ]);
+
+        $this->service->updatePriceRuleWithConditions($priceRule, $initialData);
+
+        // product1 should be in price_rule_product, product2 should not
+        $this->assertDatabaseHas('price_rule_product', ['product_id' => $product1->id, 'price_rule_id' => $priceRule->id]);
+        $this->assertDatabaseMissing('price_rule_product', ['product_id' => $product2->id, 'price_rule_id' => $priceRule->id]);
+
+        // Now update to target brand2 instead
+        $updatedData = [
+            'name' => 'Rule',
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 10,
+            'status' => Status::ACTIVE->value,
+            'conditions' => [
+                [
+                    'field' => 'brand_id',
+                    'operator' => Operator::EQUAL->value,
+                    'value' => (string) $brand2->id,
+                ],
+            ],
+        ];
+
+        $this->service->updatePriceRuleWithConditions($priceRule, $updatedData);
+
+        // product1's old record must be gone, product2's new record must exist
+        $this->assertDatabaseMissing('price_rule_product', ['product_id' => $product1->id, 'price_rule_id' => $priceRule->id]);
+        $this->assertDatabaseHas('price_rule_product', ['product_id' => $product2->id, 'price_rule_id' => $priceRule->id]);
+    }
+
     public function test_update_price_rule_replaces_conditions(): void
     {
         $priceRule = PriceRule::factory()->create();
@@ -436,5 +557,187 @@ class PricingRuleServiceTest extends TestCase
         $this->assertDatabaseHas('price_rules', [
             'name' => 'No Match Rule',
         ]);
+    }
+
+    // -------------------------------------------------------------------------
+    // Product::getSellingPriceAttribute – automation applied tests
+    // -------------------------------------------------------------------------
+
+    public function test_selling_price_accessor_returns_final_selling_price_from_active_rule(): void
+    {
+        $product = Product::factory()->create([
+            'brand_id' => $this->brand->id,
+            'face_value' => 100.00,
+            'selling_price' => 100.00,
+        ]);
+
+        $data = [
+            'name' => 'Accessor Test Rule',
+            'description' => 'Test accessor returns discounted price',
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 10,
+            'status' => Status::ACTIVE->value,
+            'conditions' => [
+                [
+                    'field' => 'brand_id',
+                    'operator' => Operator::EQUAL->value,
+                    'value' => (string) $this->brand->id,
+                ],
+            ],
+        ];
+
+        $this->service->createPriceRuleWithConditions($data);
+
+        $product->refresh();
+
+        // Accessor must return 90.00 (100 - 10%), not the raw 100.00
+        $this->assertEquals(90.00, $product->selling_price);
+    }
+
+    public function test_selling_price_accessor_returns_original_when_no_active_rule(): void
+    {
+        $product = Product::factory()->create([
+            'brand_id' => $this->brand->id,
+            'face_value' => 100.00,
+            'selling_price' => 75.00,
+        ]);
+
+        // No PriceRuleProduct records exist for this product
+        $this->assertEquals(75.00, $product->selling_price);
+    }
+
+    public function test_selling_price_accessor_returns_original_when_rule_is_inactive(): void
+    {
+        $product = Product::factory()->create([
+            'brand_id' => $this->brand->id,
+            'face_value' => 100.00,
+            'selling_price' => 100.00,
+        ]);
+
+        $inactiveRule = PriceRule::factory()->create([
+            'status' => Status::INACTIVE->value,
+        ]);
+
+        \App\Models\PriceRuleProduct::factory()->create([
+            'product_id' => $product->id,
+            'price_rule_id' => $inactiveRule->id,
+            'final_selling_price' => 50.00,
+        ]);
+
+        $product->refresh();
+
+        // Inactive rule must be ignored; original price returned
+        $this->assertEquals(100.00, $product->selling_price);
+    }
+
+    public function test_selling_price_accessor_returns_latest_when_multiple_active_rules_applied(): void
+    {
+        $product = Product::factory()->create([
+            'brand_id' => $this->brand->id,
+            'face_value' => 100.00,
+            'selling_price' => 100.00,
+        ]);
+
+        $activeRule = PriceRule::factory()->create(['status' => Status::ACTIVE->value]);
+
+        // Older record
+        \App\Models\PriceRuleProduct::factory()->create([
+            'product_id' => $product->id,
+            'price_rule_id' => $activeRule->id,
+            'final_selling_price' => 80.00,
+            'updated_at' => now()->subMinutes(10),
+        ]);
+
+        // Latest record
+        \App\Models\PriceRuleProduct::factory()->create([
+            'product_id' => $product->id,
+            'price_rule_id' => $activeRule->id,
+            'final_selling_price' => 90.00,
+            'updated_at' => now(),
+        ]);
+
+        $product->refresh();
+
+        // Must return the latest record's final_selling_price
+        $this->assertEquals(90.00, $product->selling_price);
+    }
+
+    public function test_selling_price_accessor_returns_correct_price_after_rule_update(): void
+    {
+        $product = Product::factory()->create([
+            'brand_id' => $this->brand->id,
+            'face_value' => 100.00,
+            'selling_price' => 100.00,
+        ]);
+
+        $priceRule = PriceRule::factory()->create([
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 10,
+            'status' => Status::ACTIVE->value,
+        ]);
+
+        $updateData = [
+            'name' => 'Updated Rule',
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 10,
+            'status' => Status::ACTIVE->value,
+            'conditions' => [
+                [
+                    'field' => 'brand_id',
+                    'operator' => Operator::EQUAL->value,
+                    'value' => (string) $this->brand->id,
+                ],
+            ],
+        ];
+
+        // Apply initial rule: 100 - 10% = 90
+        $this->service->updatePriceRuleWithConditions($priceRule, $updateData);
+        $product->refresh();
+        $this->assertEquals(90.00, $product->selling_price);
+
+        // Update rule to 20% discount: 100 - 20% = 80
+        $updateData['action_value'] = 20;
+        $this->service->updatePriceRuleWithConditions($priceRule, $updateData);
+        $product->refresh();
+        $this->assertEquals(80.00, $product->selling_price);
+    }
+
+    public function test_selling_price_accessor_with_absolute_addition_rule(): void
+    {
+        $product = Product::factory()->create([
+            'brand_id' => $this->brand->id,
+            'face_value' => 100.00,
+            'selling_price' => 100.00,
+        ]);
+
+        $data = [
+            'name' => 'Absolute Add Rule',
+            'description' => 'Add fixed amount to price',
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::ADDITION->value,
+            'action_mode' => ActionMode::ABSOLUTE->value,
+            'action_value' => 25,
+            'status' => Status::ACTIVE->value,
+            'conditions' => [
+                [
+                    'field' => 'brand_id',
+                    'operator' => Operator::EQUAL->value,
+                    'value' => (string) $this->brand->id,
+                ],
+            ],
+        ];
+
+        $this->service->createPriceRuleWithConditions($data);
+
+        $product->refresh();
+
+        // 100 + 25 = 125
+        $this->assertEquals(125.00, $product->selling_price);
     }
 }

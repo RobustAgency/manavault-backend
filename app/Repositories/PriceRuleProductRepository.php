@@ -16,6 +16,14 @@ class PriceRuleProductRepository
     }
 
     /**
+     * Delete all product application records for a specific price rule.
+     */
+    public function deleteByPriceRuleId(int $priceRuleId): void
+    {
+        PriceRuleProduct::where('price_rule_id', $priceRuleId)->delete();
+    }
+
+    /**
      * Get all applications for a specific price rule with pagination.
      *
      * @return LengthAwarePaginator<int, PriceRuleProduct>

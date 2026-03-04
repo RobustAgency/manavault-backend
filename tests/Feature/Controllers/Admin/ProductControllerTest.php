@@ -6,11 +6,18 @@ use Tests\TestCase;
 use App\Models\User;
 use App\Models\Brand;
 use App\Models\Product;
+use App\Models\PriceRule;
 use App\Models\DigitalProduct;
+use App\Models\PriceRuleProduct;
 use Illuminate\Http\UploadedFile;
+use App\Enums\PriceRule\ActionMode;
+use App\Services\PricingRuleService;
 use App\Enums\Product\FulfillmentMode;
+use App\Enums\PriceRule\ActionOperator;
 use Illuminate\Support\Facades\Storage;
+use App\Enums\PriceRuleCondition\Operator;
 use Illuminate\Foundation\Testing\WithFaker;
+use App\Enums\PriceRule\Status as PriceRuleStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class ProductControllerTest extends TestCase
@@ -687,5 +694,234 @@ class ProductControllerTest extends TestCase
             'product_id' => $product->id,
             'digital_product_id' => $digitalProducts[2]->id,
         ]);
+    }
+
+    public function test_show_product_returns_discounted_selling_price_when_active_price_rule_applied(): void
+    {
+        $this->actingAs($this->admin);
+
+        $brand = Brand::factory()->create();
+        $product = Product::factory()->create([
+            'brand_id' => $brand->id,
+            'face_value' => 100.00,
+            'selling_price' => 100.00,
+        ]);
+
+        $data = [
+            'name' => 'Discount Rule',
+            'description' => '10% discount',
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 10,
+            'status' => PriceRuleStatus::ACTIVE->value,
+            'conditions' => [
+                ['field' => 'brand_id', 'operator' => Operator::EQUAL->value, 'value' => (string) $brand->id],
+            ],
+        ];
+
+        app(PricingRuleService::class)->createPriceRuleWithConditions($data);
+
+        $response = $this->getJson("/api/products/{$product->id}");
+
+        $response->assertStatus(200);
+        $this->assertEquals(90.00, $response->json('data.selling_price')); // 100 - 10% = 90
+    }
+
+    public function test_show_product_returns_marked_up_selling_price_when_active_price_rule_applied(): void
+    {
+        $this->actingAs($this->admin);
+
+        $brand = Brand::factory()->create();
+        $product = Product::factory()->create([
+            'brand_id' => $brand->id,
+            'face_value' => 100.00,
+            'selling_price' => 100.00,
+        ]);
+
+        $data = [
+            'name' => 'Markup Rule',
+            'description' => 'Fixed $25 markup',
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::ADDITION->value,
+            'action_mode' => ActionMode::ABSOLUTE->value,
+            'action_value' => 25,
+            'status' => PriceRuleStatus::ACTIVE->value,
+            'conditions' => [
+                ['field' => 'brand_id', 'operator' => Operator::EQUAL->value, 'value' => (string) $brand->id],
+            ],
+        ];
+
+        app(PricingRuleService::class)->createPriceRuleWithConditions($data);
+
+        $response = $this->getJson("/api/products/{$product->id}");
+
+        $response->assertStatus(200);
+        $this->assertEquals(125.00, $response->json('data.selling_price')); // 100 + 25 = 125
+    }
+
+    public function test_show_product_returns_original_selling_price_when_no_price_rule_applied(): void
+    {
+        $this->actingAs($this->admin);
+
+        $product = Product::factory()->create([
+            'face_value' => 100.00,
+            'selling_price' => 79.99,
+        ]);
+
+        // No PriceRuleProduct records exist
+        $response = $this->getJson("/api/products/{$product->id}");
+
+        $response->assertStatus(200);
+        $this->assertEquals(79.99, $response->json('data.selling_price'));
+    }
+
+    public function test_show_product_ignores_inactive_price_rule(): void
+    {
+        $this->actingAs($this->admin);
+
+        $product = Product::factory()->create([
+            'face_value' => 100.00,
+            'selling_price' => 100.00,
+        ]);
+
+        $inactiveRule = PriceRule::factory()->create(['status' => PriceRuleStatus::INACTIVE->value]);
+
+        PriceRuleProduct::factory()->create([
+            'product_id' => $product->id,
+            'price_rule_id' => $inactiveRule->id,
+            'final_selling_price' => 50.00,
+        ]);
+
+        $response = $this->getJson("/api/products/{$product->id}");
+
+        $response->assertStatus(200);
+        $this->assertEquals(100.00, $response->json('data.selling_price')); // inactive rule must be ignored
+    }
+
+    public function test_show_product_returns_latest_rule_price_when_multiple_applied(): void
+    {
+        $this->actingAs($this->admin);
+
+        $product = Product::factory()->create([
+            'face_value' => 100.00,
+            'selling_price' => 100.00,
+        ]);
+
+        $activeRule = PriceRule::factory()->create(['status' => PriceRuleStatus::ACTIVE->value]);
+
+        // Older rule application
+        PriceRuleProduct::factory()->create([
+            'product_id' => $product->id,
+            'price_rule_id' => $activeRule->id,
+            'final_selling_price' => 80.00,
+            'updated_at' => now()->subMinutes(10),
+        ]);
+
+        // Latest rule application
+        PriceRuleProduct::factory()->create([
+            'product_id' => $product->id,
+            'price_rule_id' => $activeRule->id,
+            'final_selling_price' => 90.00,
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->getJson("/api/products/{$product->id}");
+
+        $response->assertStatus(200);
+        $this->assertEquals(90.00, $response->json('data.selling_price')); // latest record wins
+    }
+
+    public function test_list_products_returns_discounted_selling_price_in_each_item(): void
+    {
+        $this->actingAs($this->admin);
+
+        $brand = Brand::factory()->create();
+        $product = Product::factory()->create([
+            'brand_id' => $brand->id,
+            'face_value' => 200.00,
+            'selling_price' => 200.00,
+        ]);
+
+        $data = [
+            'name' => 'List Test Rule',
+            'description' => '5% discount',
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 5,
+            'status' => PriceRuleStatus::ACTIVE->value,
+            'conditions' => [
+                ['field' => 'brand_id', 'operator' => Operator::EQUAL->value, 'value' => (string) $brand->id],
+            ],
+        ];
+
+        app(PricingRuleService::class)->createPriceRuleWithConditions($data);
+
+        $response = $this->getJson('/api/products');
+
+        $response->assertStatus(200);
+
+        $items = $response->json('data.data');
+        $item = collect($items)->firstWhere('id', $product->id);
+
+        $this->assertNotNull($item);
+        $this->assertEquals(190.00, $item['selling_price']); // 200 - 5% = 190
+    }
+
+    public function test_selling_price_updates_correctly_after_rule_is_updated(): void
+    {
+        $this->actingAs($this->admin);
+
+        $brand = Brand::factory()->create();
+        $product = Product::factory()->create([
+            'brand_id' => $brand->id,
+            'face_value' => 100.00,
+            'selling_price' => 100.00,
+        ]);
+
+        $priceRule = PriceRule::factory()->create([
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 10,
+            'status' => PriceRuleStatus::ACTIVE->value,
+        ]);
+
+        $service = app(PricingRuleService::class);
+
+        // Apply initial rule: 100 - 10% = 90
+        $service->updatePriceRuleWithConditions($priceRule, [
+            'name' => 'Rule',
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 10,
+            'status' => PriceRuleStatus::ACTIVE->value,
+            'conditions' => [
+                ['field' => 'brand_id', 'operator' => Operator::EQUAL->value, 'value' => (string) $brand->id],
+            ],
+        ]);
+
+        $response = $this->getJson("/api/products/{$product->id}");
+        $response->assertStatus(200);
+        $this->assertEquals(90.00, $response->json('data.selling_price'));
+
+        // Update rule to 20% discount: 100 - 20% = 80
+        $service->updatePriceRuleWithConditions($priceRule, [
+            'name' => 'Rule Updated',
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 20,
+            'status' => PriceRuleStatus::ACTIVE->value,
+            'conditions' => [
+                ['field' => 'brand_id', 'operator' => Operator::EQUAL->value, 'value' => (string) $brand->id],
+            ],
+        ]);
+
+        $response = $this->getJson("/api/products/{$product->id}");
+        $response->assertStatus(200);
+        $this->assertEquals(80.00, $response->json('data.selling_price'));
     }
 }
