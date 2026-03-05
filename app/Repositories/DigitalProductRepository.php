@@ -22,6 +22,8 @@ class DigitalProductRepository
     {
         $query = DigitalProduct::query()->with('supplier');
 
+        $query->where('in_stock', true)->where('is_active', true);
+
         if (isset($filters['name'])) {
             $query->where('name', 'like', '%'.$filters['name'].'%');
         }
@@ -152,5 +154,19 @@ class DigitalProductRepository
     public function createOrUpdate(array $attributes, array $values): DigitalProduct
     {
         return DigitalProduct::updateOrCreate($attributes, $values);
+    }
+
+    /**
+     * Deactivate all digital products for a supplier whose SKU is not in the provided list.
+     * Called after a sync to mark products removed by the supplier as inactive.
+     *
+     * @param  array<int, string>  $activeSKUs
+     */
+    public function deactivateStaleBySupplierId(int $supplierId, array $activeSKUs): int
+    {
+        return DigitalProduct::where('supplier_id', $supplierId)
+            ->whereNotIn('sku', $activeSKUs)
+            ->where('is_active', true)
+            ->update(['is_active' => false]);
     }
 }
