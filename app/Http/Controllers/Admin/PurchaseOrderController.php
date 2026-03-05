@@ -34,7 +34,7 @@ class PurchaseOrderController extends Controller
         $validated = $request->validated();
         try {
             $purchaseOrder = $this->repository->createPurchaseOrder($validated);
-        } catch (\RuntimeException $e) {
+        } catch (\Exception $e) {
             return response()->json([
                 'error' => true,
                 'message' => $e->getMessage(),
