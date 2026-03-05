@@ -3,18 +3,23 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Models\Brand;
+use App\Events\BrandDeleted;
 use App\Events\BrandUpdated;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\BrandResource;
 use App\Repositories\BrandRepository;
+use App\Repositories\ProductRepository;
 use App\Http\Requests\Brand\ListBrandsRequest;
 use App\Http\Requests\Brand\StoreBrandRequest;
 use App\Http\Requests\Brand\UpdateBrandRequest;
 
 class BrandController extends Controller
 {
-    public function __construct(private BrandRepository $brandRepository) {}
+    public function __construct(
+        private BrandRepository $brandRepository,
+        private ProductRepository $productRepository
+    ) {}
 
     /**
      * Display a listing of brands.
@@ -79,7 +84,17 @@ class BrandController extends Controller
      */
     public function destroy(Brand $brand): JsonResponse
     {
-        $this->brandRepository->deleteBrand($brand);
+        $products = $this->productRepository->getProductsByBrandId($brand->id);
+
+        $deleted = $this->brandRepository->deleteBrand($brand);
+
+        if ($deleted) {
+            $productIds = $products->pluck('id')->all();
+
+            if (! empty($productIds)) {
+                event(new BrandDeleted($productIds));
+            }
+        }
 
         return response()->json([
             'error' => false,
