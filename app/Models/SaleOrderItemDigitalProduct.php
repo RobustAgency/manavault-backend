@@ -14,6 +14,9 @@ class SaleOrderItemDigitalProduct extends Model
     protected $fillable = [
         'sale_order_item_id',
         'digital_product_id',
+        'digital_product_name',
+        'digital_product_sku',
+        'digital_product_brand',
         'voucher_id',
     ];
 

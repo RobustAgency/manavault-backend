@@ -12,11 +12,17 @@ class SaleOrderItemDigitalProductRepository
     public function allocateVoucher(
         int $saleOrderItemId,
         int $digitalProductId,
-        int $voucherId
+        int $voucherId,
+        string $digitalProductName,
+        ?string $digitalProductSku,
+        ?string $digitalProductBrand,
     ): SaleOrderItemDigitalProduct {
         return SaleOrderItemDigitalProduct::create([
             'sale_order_item_id' => $saleOrderItemId,
             'digital_product_id' => $digitalProductId,
+            'digital_product_name' => $digitalProductName,
+            'digital_product_sku' => $digitalProductSku,
+            'digital_product_brand' => $digitalProductBrand,
             'voucher_id' => $voucherId,
         ]);
     }
