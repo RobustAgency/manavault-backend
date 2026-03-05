@@ -46,6 +46,8 @@ class SyncDigitalProducts
         }
 
         $items = $products['data'] ?? [];
+        $syncedSkus = [];
+
         foreach ($items as $item) {
             $this->digitalProductRepository->createOrUpdate([
                 'sku' => $item['id'],
@@ -61,7 +63,17 @@ class SyncDigitalProducts
                 'metadata' => $item,
                 'source' => 'api',
                 'last_synced_at' => now(),
+                'is_active' => true,
+                'in_stock' => $item['inStock'] ?? false,
             ]);
+
+            $syncedSkus[] = (string) $item['id'];
+        }
+
+        $deactivated = $this->digitalProductRepository->deactivateStaleBySupplierId($supplier->id, $syncedSkus);
+
+        if ($deactivated > 0) {
+            Log::info("Gift2Games sync: deactivated {$deactivated} removed product(s) for supplier: {$supplierSlug}");
         }
     }
 }

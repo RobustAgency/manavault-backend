@@ -31,6 +31,8 @@ class DigitalProduct extends Model
         'metadata',
         'source',
         'last_synced_at',
+        'is_active',
+        'in_stock',
     ];
 
     protected $casts = [
@@ -38,6 +40,8 @@ class DigitalProduct extends Model
         'metadata' => 'array',
         'cost_price' => 'decimal:2',
         'last_synced_at' => 'datetime',
+        'is_active' => 'boolean',
+        'in_stock' => 'boolean',
     ];
 
     /**

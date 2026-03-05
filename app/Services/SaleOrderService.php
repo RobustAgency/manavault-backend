@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Product;
 use App\Models\SaleOrder;
 use App\Models\SaleOrderItem;
+use App\Models\DigitalProduct;
 use App\Enums\SaleOrder\Status;
 use App\Events\SaleOrderCompleted;
 use Illuminate\Support\Facades\DB;
@@ -122,6 +123,7 @@ class SaleOrderService
     {
         $query = $product->digitalProducts();
 
+        /** @var \Illuminate\Database\Eloquent\Collection<int, DigitalProduct> $digitalProducts */
         $digitalProducts = $product->fulfillment_mode === FulfillmentMode::PRICE->value
             ? $query->orderBy('cost_price', 'asc')->get()
             : $query->orderByPivot('priority', 'asc')->get();
@@ -146,7 +148,7 @@ class SaleOrderService
                 foreach ($vouchers as $voucher) {
                     $this->voucherAllocationService->allocateVoucher(
                         $item->id,
-                        $digitalProduct->id,
+                        $digitalProduct,
                         $voucher
                     );
 
