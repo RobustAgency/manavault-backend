@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\PurchaseOrderSupplier;
 use App\Actions\Ezcards\GetVoucherCodes;
-use App\Enums\PurchaseOrderSupplierStatus;
 use App\Services\Voucher\VoucherCipherService;
 use App\Services\PurchaseOrder\PurchaseOrderStatusService;
 
@@ -125,9 +124,9 @@ class EzcardsVoucherCodeService
         $vouchersAdded = $this->storeVoucherCodes($purchaseOrder, $voucherCodesResponse);
         $result['vouchers_added'] = $vouchersAdded;
 
+        // updateStatus will promote the supplier to "completed" if vouchers match
+        // the expected quantity, then derive the overall order status.
         $this->purchaseOrderStatusService->updateStatus($purchaseOrder);
-
-        $purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
 
         return $result;
     }

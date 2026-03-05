@@ -7,5 +7,6 @@ enum PurchaseOrderStatus: string
     case PENDING = 'pending';
     case COMPLETED = 'completed';
     case PROCESSING = 'processing';
-    case CANCELLED = 'cancelled';
+    case PARTIALLY_COMPLETED = 'partially_completed';
+    case FAILED = 'failed';
 }

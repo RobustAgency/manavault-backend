@@ -6,13 +6,11 @@ use App\Models\Voucher;
 use App\Models\PurchaseOrder;
 use Illuminate\Support\Facades\Log;
 use App\Services\Voucher\VoucherCipherService;
-use App\Services\PurchaseOrder\PurchaseOrderStatusService;
 
 class Gift2GamesVoucherService
 {
     public function __construct(
         private VoucherCipherService $voucherCipherService,
-        private PurchaseOrderStatusService $purchaseOrderStatusService
     ) {}
 
     /**
@@ -100,7 +98,6 @@ class Gift2GamesVoucherService
 
                 $vouchersAdded++;
             }
-            $this->purchaseOrderStatusService->updateStatus($purchaseOrder);
 
             $result['vouchers_added'] = $vouchersAdded;
         } catch (\Exception $e) {

@@ -59,7 +59,7 @@ class PurchaseOrderRepository
     public function createPurchaseOrder(array $data): PurchaseOrder
     {
         $currency = $data['currency'] ?? 'usd';
-        $data = $this->groupBySupplierIdService->groupBySupplierId($data['items']);
+        $groupedData = $this->groupBySupplierIdService->groupBySupplierId($data['items']);
         $orderNumber = $this->generateOrderNumber();
 
         DB::beginTransaction();
@@ -71,20 +71,50 @@ class PurchaseOrderRepository
                 'currency' => $currency,
             ]);
 
-            foreach ($data as $supplierOrderData) {
+            foreach ($groupedData as $supplierOrderData) {
                 $supplierId = (int) $supplierOrderData['supplier_id'];
                 $items = $supplierOrderData['items'];
                 $supplier = Supplier::findOrFail($supplierId);
+                $isInternal = ! $this->isExternalSupplier($supplier);
 
-                $this->processPurchaseOrderItems($purchaseOrder, $supplier, $items, $orderNumber, $currency);
+                try {
+                    $this->processPurchaseOrderItems($purchaseOrder, $supplier, $items, $orderNumber, $currency);
+                } catch (\Exception $e) {
+                    // Internal suppliers are never marked as failed — they are handled manually.
+                    // For external suppliers, record the failure and continue with the remaining suppliers.
+                    if ($isInternal) {
+                        Log::warning('Internal supplier processing failed, skipping failure status', [
+                            'supplier_id' => $supplier->id,
+                            'supplier_name' => $supplier->name,
+                            'purchase_order_id' => $purchaseOrder->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    } else {
+                        Log::error('External supplier processing failed', [
+                            'supplier_id' => $supplier->id,
+                            'supplier_name' => $supplier->name,
+                            'purchase_order_id' => $purchaseOrder->id,
+                            'error' => $e->getMessage(),
+                        ]);
+
+                        // Create (or update) the PurchaseOrderSupplier record with a failed status
+                        PurchaseOrderSupplier::updateOrCreate(
+                            [
+                                'purchase_order_id' => $purchaseOrder->id,
+                                'supplier_id' => $supplier->id,
+                            ],
+                            ['status' => PurchaseOrderSupplierStatus::FAILED->value]
+                        );
+                    }
+                }
             }
 
-            // Update the overall purchase order status based on all suppliers
+            // Update the overall purchase order status based on all supplier statuses
             $this->purchaseOrderStatusService->updateStatus($purchaseOrder);
 
             DB::commit();
 
-            return $purchaseOrder;
+            return $purchaseOrder->fresh();
         } catch (\Exception $e) {
             DB::rollBack();
             throw new \RuntimeException('Failed to create purchase order: '.$e->getMessage());
@@ -93,7 +123,6 @@ class PurchaseOrderRepository
 
     private function processPurchaseOrderItems(PurchaseOrder $purchaseOrder, Supplier $supplier, array $items, string $orderNumber, string $currency): void
     {
-        $status = PurchaseOrderSupplierStatus::PROCESSING->value;
         $totalPrice = $purchaseOrder->total_price;
         $orderItems = [];
         $transactionId = null;
@@ -142,7 +171,7 @@ class PurchaseOrderRepository
             'purchase_order_id' => $purchaseOrder->id,
             'supplier_id' => $supplier->id,
             'transaction_id' => $transactionId,
-            'status' => $status,
+            'status' => PurchaseOrderSupplierStatus::PROCESSING->value,
         ]);
 
         // Create purchase order items
@@ -163,13 +192,10 @@ class PurchaseOrderRepository
         }
 
         if ($this->isGift2GamesSupplier($supplier)) {
-            // For Gift2Games, vouchers are returned immediately in the order response
-            // Use the Gift2GamesVoucherService to process and store them
+            // For Gift2Games, vouchers are returned immediately in the order response.
+            // Store them now; updateStatus (called after all suppliers are processed) will
+            // promote this supplier to "completed" once the voucher count matches.
             $this->gift2GamesVoucherService->storeVouchers($purchaseOrder, $externalOrderResponse);
-            $status = PurchaseOrderSupplierStatus::COMPLETED->value;
-
-            // Update the supplier status to completed after vouchers are stored
-            $purchaseOrderSupplier->update(['status' => $status]);
         } elseif ($supplier->slug === 'ez_cards') {
             // For EzCards, vouchers are NOT returned immediately
             // They will be fetched later using EzcardsVoucherCodeService with the transaction_id
