@@ -31,6 +31,7 @@ class StoreDigitalProductRequest extends FormRequest
             'products.*.brand' => ['nullable', 'string', 'max:255'],
             'products.*.description' => ['nullable', 'string'],
             'products.*.cost_price' => ['required', 'numeric', 'min:0'],
+            'products.*.selling_price' => ['required', 'numeric', 'min:0'],
             'products.*.currency' => ['required', 'string', Rule::in(array_map(fn ($c) => $c->value, Currency::cases()))],
             'products.*.metadata' => ['nullable', 'array'],
             'products.*.tags' => ['nullable', 'array'],
