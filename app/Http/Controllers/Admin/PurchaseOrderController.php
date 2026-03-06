@@ -34,7 +34,7 @@ class PurchaseOrderController extends Controller
         $validated = $request->validated();
         try {
             $purchaseOrder = $this->repository->createPurchaseOrder($validated);
-        } catch (\RuntimeException $e) {
+        } catch (\Exception $e) {
             return response()->json([
                 'error' => true,
                 'message' => $e->getMessage(),
@@ -50,7 +50,11 @@ class PurchaseOrderController extends Controller
 
     public function show(PurchaseOrder $purchaseOrder): JsonResponse
     {
-        $purchaseOrder->load(['items.digitalProduct.supplier', 'suppliers', 'vouchers']);
+        $purchaseOrder->load([
+            'purchaseOrderSuppliers.supplier',
+            'items',
+            'vouchers',
+        ]);
 
         return response()->json([
             'error' => false,
