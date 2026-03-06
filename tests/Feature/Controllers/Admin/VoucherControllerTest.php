@@ -10,6 +10,7 @@ use App\Models\DigitalProduct;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Http\UploadedFile;
 use App\Events\PurchaseOrderFulfill;
+use App\Models\PurchaseOrderSupplier;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Foundation\Testing\WithFaker;
@@ -47,6 +48,11 @@ class VoucherControllerTest extends TestCase
             'digital_product_id' => $digitalProduct->id,
         ]);
 
+        PurchaseOrderSupplier::factory()->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'status' => 'processing',
+        ]);
+
         // Create a real CSV file with 3 voucher codes to match purchase order quantity
         $csvContent = "code,digital_product_id\nVCH-001,{$digitalProduct->id}\nVCH-002,{$digitalProduct->id}\nVCH-003,{$digitalProduct->id}";
         $file = UploadedFile::fake()->createWithContent('vouchers.csv', $csvContent);
@@ -76,6 +82,11 @@ class VoucherControllerTest extends TestCase
 
         PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(3)->create([
             'digital_product_id' => $digitalProduct->id,
+        ]);
+
+        PurchaseOrderSupplier::factory()->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'status' => 'processing',
         ]);
 
         $response = $this->postJson('/api/vouchers/store', [

@@ -36,7 +36,7 @@ class VoucherCreateService
 
         /** @var PurchaseOrder $purchaseOrder */
         $purchaseOrder = PurchaseOrder::findOrFail($purchaseOrderID);
-        $this->purchaseOrderStatusService->updateStatus($purchaseOrder);
+        $this->purchaseOrderStatusService->updateInternalSuppliersStatusToCompleted($purchaseOrder);
     }
 
     /**

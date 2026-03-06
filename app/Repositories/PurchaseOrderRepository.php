@@ -117,6 +117,13 @@ class PurchaseOrderRepository
             ];
         }
 
+        $purchaseOrderSupplier = PurchaseOrderSupplier::create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'supplier_id' => $supplier->id,
+            'transaction_id' => $transactionId,
+            'status' => $status,
+        ]);
+
         if ($this->isExternalSupplier($supplier)) {
             try {
                 $externalOrderResponse = $this->placeExternalOrder($supplier, $orderItems, $orderNumber, $currency);
@@ -133,16 +140,13 @@ class PurchaseOrderRepository
                     'supplier_id' => $supplier->id,
                     'error' => $e->getMessage(),
                 ]);
-                throw $e;
+
+                // Update supplier status to failed if external order placement fails
+                $purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::FAILED->value]);
+
+                return;
             }
         }
-
-        $purchaseOrderSupplier = PurchaseOrderSupplier::create([
-            'purchase_order_id' => $purchaseOrder->id,
-            'supplier_id' => $supplier->id,
-            'transaction_id' => $transactionId,
-            'status' => $status,
-        ]);
 
         // Create purchase order items
         foreach ($orderItems as $orderItem) {
@@ -152,9 +156,9 @@ class PurchaseOrderRepository
                 'purchase_order_id' => $purchaseOrder->id,
                 'supplier_id' => $supplier->id,
                 'digital_product_id' => $orderItem['digital_product_id'],
-                'product_name' => $digitalProduct->name,
-                'product_sku' => $digitalProduct->sku,
-                'product_brand' => $digitalProduct->brand,
+                'digital_product_name' => $digitalProduct->name,
+                'digital_product_sku' => $digitalProduct->sku,
+                'digital_product_brand' => $digitalProduct->brand,
                 'quantity' => $orderItem['quantity'],
                 'unit_cost' => $orderItem['unit_cost'],
                 'subtotal' => $orderItem['subtotal'],
