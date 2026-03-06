@@ -3,6 +3,7 @@
 namespace App\Factory\G2GClient;
 
 use App\Clients\Gift2Games\Order;
+use App\Clients\Gift2Games\Balance;
 use App\Clients\Gift2Games\Products;
 
 class ClientFactory
@@ -27,5 +28,10 @@ class ClientFactory
     public function makeOrderClient(string $supplierSlug): Order
     {
         return new Order($this->getConfigPrefix($supplierSlug));
+    }
+
+    public function makeBalanceClient(string $supplierSlug): Balance
+    {
+        return new Balance($this->getConfigPrefix($supplierSlug));
     }
 }

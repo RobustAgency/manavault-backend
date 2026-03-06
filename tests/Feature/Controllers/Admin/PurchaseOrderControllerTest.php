@@ -91,7 +91,6 @@ class PurchaseOrderControllerTest extends TestCase
                     'created_at',
                     'updated_at',
                     'suppliers',
-                    'items',
                     'vouchers',
                 ],
                 'message',

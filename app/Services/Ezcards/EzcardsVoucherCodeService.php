@@ -125,9 +125,9 @@ class EzcardsVoucherCodeService
         $vouchersAdded = $this->storeVoucherCodes($purchaseOrder, $voucherCodesResponse);
         $result['vouchers_added'] = $vouchersAdded;
 
-        $this->purchaseOrderStatusService->updateStatus($purchaseOrder);
-
         $purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
+
+        $this->purchaseOrderStatusService->updateStatus($purchaseOrder);
 
         return $result;
     }
