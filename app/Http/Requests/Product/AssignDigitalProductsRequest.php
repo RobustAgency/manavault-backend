@@ -86,6 +86,12 @@ class AssignDigitalProductsRequest extends FormRequest
                             "The digital product currency must match the product currency ({$productCurrency})."
                         );
                     }
+                    if (is_null($digitalProduct->selling_price)) {
+                        $validator->errors()->add(
+                            "digital_product_ids.{$index}",
+                            'The digital product must have a selling price set before it can be assigned.'
+                        );
+                    }
                 } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
                     $validator->errors()->add(
                         "digital_product_ids.{$index}",

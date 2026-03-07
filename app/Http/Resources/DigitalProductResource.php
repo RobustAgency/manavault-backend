@@ -32,6 +32,7 @@ class DigitalProductResource extends JsonResource
             'region' => $this->region,
             'image_url' => $this->image_url,
             'cost_price' => $this->cost_price,
+            'selling_price' => $this->selling_price,
             'currency' => $this->currency,
             'source' => $this->source,
             'metadata' => $this->metadata,
