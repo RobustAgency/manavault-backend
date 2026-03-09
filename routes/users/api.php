@@ -71,6 +71,7 @@ Route::middleware(['auth:supabase', 'user.approved'])->group(function () {
         Route::get('', 'index')->middleware('permission:view_purchase_order');
         Route::post('', 'store')->middleware('permission:create_purchase_order');
         Route::get('/{purchaseOrder}', 'show')->middleware('permission:view_purchase_order');
+        Route::post('/{purchaseOrder}/vouchers', 'purchaseOrderVouchers')->middleware('permission:edit_purchase_order');
     });
 
     Route::prefix('/vouchers')->controller(VoucherController::class)->group(function () {
