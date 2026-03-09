@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Enums\PriceRule\Status;
+use App\Enums\Product\FulfillmentMode;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -24,7 +24,6 @@ class Product extends Model
         'tags',
         'image',
         'face_value',
-        'selling_price',
         'currency',
         'status',
         'regions',
@@ -36,8 +35,11 @@ class Product extends Model
         'tags' => 'array',
         'regions' => 'array',
         'face_value' => 'decimal:2',
-        'selling_price' => 'decimal:2',
         'is_out_of_stock' => 'boolean',
+    ];
+
+    protected $appends = [
+        'selling_price',
     ];
 
     /**
@@ -73,24 +75,19 @@ class Product extends Model
     }
 
     /**
-     * Get the selling price of the product, considering any active price rules.
+     * Get the selling price of the product, considering digital product associations and its priority.
+
      *
-     * @param  float  $value  The original selling price from the database.
      * @return float The final selling price after applying active price rules.
      */
-    public function getSellingPriceAttribute($value): float
+    public function getSellingPriceAttribute(): float
     {
-        $latestPriceRuleProduct = $this->priceRuleProducts()
-            ->whereHas('priceRule', function ($query) {
-                $query->where('status', Status::ACTIVE->value);
-            })
-            ->latest('updated_at')
-            ->first();
+        $query = $this->digitalProducts();
 
-        if ($latestPriceRuleProduct && $latestPriceRuleProduct->final_selling_price) {
-            return (float) $latestPriceRuleProduct->final_selling_price;
-        }
+        $digitalProduct = $this->fulfillment_mode === FulfillmentMode::MANUAL->value
+            ? $query->orderByPivot('priority')->first()
+            : $query->orderBy('digital_products.cost_price')->first();
 
-        return (float) $value;
+        return $digitalProduct ? (float) $digitalProduct->selling_price : 0.0;
     }
 }

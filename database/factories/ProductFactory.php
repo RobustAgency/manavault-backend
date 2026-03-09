@@ -30,7 +30,6 @@ class ProductFactory extends Factory
             'tags' => $this->faker->randomElements(['gaming', 'entertainment', 'gift card', 'digital', 'popular'], $this->faker->numberBetween(1, 3)),
             'image' => $this->faker->imageUrl(640, 480, 'products', true),
             'face_value' => $this->faker->randomFloat(2, 5, $sellingPrice),
-            'selling_price' => $sellingPrice,
             'currency' => 'usd',
             'status' => $this->faker->randomElement(array_map(fn ($c) => $c->value, Lifecycle::cases())),
             'regions' => $this->faker->randomElements(['US', 'CA', 'UK', 'EU', 'AU'], $this->faker->numberBetween(1, 3)),

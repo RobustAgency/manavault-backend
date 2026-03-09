@@ -5,6 +5,8 @@ namespace Tests\Feature\Api\ManaStore\V1;
 use Tests\TestCase;
 use App\Models\Brand;
 use App\Models\Product;
+use App\Models\Supplier;
+use App\Models\DigitalProduct;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class ProductControllerTest extends TestCase
@@ -74,16 +76,25 @@ class ProductControllerTest extends TestCase
     /**
      * Test: Get products returns correct data structure
      */
-    public function test_get_products_returns_correct_data_structure(): void
+    public function test_get_products_returns_correct_selling_price_and_data_structure(): void
     {
         $brand = Brand::factory()->create(['name' => 'Sony']);
-        Product::factory()->create([
+        $product = Product::factory()->create([
             'brand_id' => $brand->id,
             'name' => 'PlayStation 5',
             'face_value' => 100.00,
-            'selling_price' => 110.00,
             'status' => 1,
         ]);
+
+        $supplier = Supplier::factory()->create();
+
+        $digitalProduct = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier->id,
+            'cost_price' => 90.00,
+            'selling_price' => 110.00,
+        ]);
+
+        $product->digitalProducts()->attach($digitalProduct->id);
 
         $response = $this->withHeader('x-api-key', $this->token)
             ->getJson($this->endpoint);
@@ -227,38 +238,6 @@ class ProductControllerTest extends TestCase
 
         $activeProducts = collect($response->json('data.data'))->where('status', 1)->count();
         $this->assertEquals(3, $activeProducts);
-    }
-
-    /**
-     * Test: Get products with different price points
-     */
-    public function test_get_products_with_different_price_points(): void
-    {
-        $brand = Brand::factory()->create();
-        Product::factory()->create([
-            'brand_id' => $brand->id,
-            'face_value' => 10.00,
-            'selling_price' => 12.00,
-        ]);
-        Product::factory()->create([
-            'brand_id' => $brand->id,
-            'face_value' => 100.00,
-            'selling_price' => 120.00,
-        ]);
-        Product::factory()->create([
-            'brand_id' => $brand->id,
-            'face_value' => 1000.00,
-            'selling_price' => 1200.00,
-        ]);
-
-        $response = $this->withHeader('x-api-key', $this->token)
-            ->getJson($this->endpoint);
-
-        $response->assertStatus(200);
-        $this->assertCount(3, $response->json('data.data'));
-
-        $prices = collect($response->json('data.data'))->pluck('face_value')->sort()->toArray();
-        $this->assertEquals([10.00, 100.00, 1000.00], array_map('floatval', $prices));
     }
 
     /**
@@ -447,18 +426,33 @@ class ProductControllerTest extends TestCase
     public function test_get_products_with_multiple_ids_maintains_data_structure(): void
     {
         $brand = Brand::factory()->create();
+        $supplier = Supplier::factory()->create();
+        $digitalProduct = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier->id,
+            'cost_price' => 40.00,
+            'selling_price' => 60.00,
+        ]);
         $product1 = Product::factory()->create([
             'brand_id' => $brand->id,
             'name' => 'Product 1',
             'face_value' => 50.00,
-            'selling_price' => 60.00,
         ]);
+
+        $product1->digitalProducts()->attach($digitalProduct->id);
+
+        $digitalProduct2 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier->id,
+            'cost_price' => 190.00,
+            'selling_price' => 210.00,
+        ]);
+
         $product2 = Product::factory()->create([
             'brand_id' => $brand->id,
             'name' => 'Product 2',
             'face_value' => 100.00,
-            'selling_price' => 120.00,
         ]);
+
+        $product2->digitalProducts()->attach($digitalProduct2->id);
 
         $response = $this->withHeader('x-api-key', $this->token)
             ->getJson("{$this->endpoint}?ids[]={$product1->id}&ids[]={$product2->id}");

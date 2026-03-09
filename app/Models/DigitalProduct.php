@@ -27,6 +27,7 @@ class DigitalProduct extends Model
         'region',
         'image_url',
         'cost_price',
+        'selling_price',
         'currency',
         'metadata',
         'source',
