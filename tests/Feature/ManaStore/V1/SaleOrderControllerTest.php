@@ -69,11 +69,12 @@ class SaleOrderControllerTest extends TestCase
     {
         // Create product with digital product and available vouchers
         $product = Product::factory()->active()->create([
-            'selling_price' => 50.00,
             'fulfillment_mode' => 'price',
         ]);
 
-        $digitalProduct = DigitalProduct::factory()->create();
+        $digitalProduct = DigitalProduct::factory()->create([
+            'selling_price' => 50.00,
+        ]);
         $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
 
         $purchaseOrder = PurchaseOrder::factory()->completed()->create();
