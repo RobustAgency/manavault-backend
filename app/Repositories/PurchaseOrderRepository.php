@@ -120,7 +120,6 @@ class PurchaseOrderRepository
         $purchaseOrderSupplier = PurchaseOrderSupplier::create([
             'purchase_order_id' => $purchaseOrder->id,
             'supplier_id' => $supplier->id,
-            'transaction_id' => $transactionId,
             'status' => $status,
         ]);
 
@@ -128,6 +127,8 @@ class PurchaseOrderRepository
             try {
                 $externalOrderResponse = $this->placeExternalOrder($supplier, $orderItems, $orderNumber, $currency);
                 $transactionId = $externalOrderResponse['transactionId'] ?? null;
+
+                $purchaseOrderSupplier->update(['transaction_id' => $transactionId]);
 
                 Log::info('External order placed successfully', [
                     'supplier_slug' => $supplier->slug,
