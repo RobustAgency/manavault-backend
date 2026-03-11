@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Product\Lifecycle;
 use App\Enums\Product\FulfillmentMode;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -80,7 +81,7 @@ class Product extends Model
      *
      * @return float The final selling price after applying active price rules.
      */
-    public function getSellingPriceAttribute(): float
+    public function getSellingPriceAttribute(): ?float
     {
         $query = $this->digitalProducts();
 
@@ -88,6 +89,15 @@ class Product extends Model
             ? $query->orderByPivot('priority')->first()
             : $query->orderBy('digital_products.cost_price')->first();
 
-        return $digitalProduct ? (float) $digitalProduct->selling_price : 0.0;
+        return $digitalProduct ? (float) $digitalProduct->selling_price : null;
+    }
+
+    public function getStatusAttribute(?string $value): string
+    {
+        if (is_null($this->selling_price) || $this->selling_price <= 0) {
+            return Lifecycle::IN_ACTIVE->value;
+        }
+
+        return $value;
     }
 }
