@@ -16,6 +16,7 @@ class DigitalProductObserver
 
     public function updated(DigitalProduct $digitalProduct): void
     {
+        logger()->info("DigitalProductObserver: Detected update to DigitalProduct ID {$digitalProduct->id}");
         $productIds = $this->repository->getProductIdsByDigitalProductIds([$digitalProduct->id]);
 
         if (! empty($productIds)) {
