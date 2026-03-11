@@ -14,6 +14,12 @@ class ProductObserver
         private DispatchProductSyncWebhook $dispatchProductSyncWebhook
     ) {}
 
+    public function created(Product $product): void
+    {
+        $this->activityLogRepository->createActivityLog($product, $product->id, ActivityEvents::PRODUCT_CREATED);
+        $this->dispatchProductSyncWebhook->execute(ActivityEvents::PRODUCT_CREATED, [$product->id]);
+    }
+
     /**
      * Handle the Product "updated" event.
      */
