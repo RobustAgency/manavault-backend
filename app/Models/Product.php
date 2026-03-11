@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Product\Lifecycle;
 use App\Enums\Product\FulfillmentMode;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -89,5 +90,14 @@ class Product extends Model
             : $query->orderBy('digital_products.cost_price')->first();
 
         return $digitalProduct ? (float) $digitalProduct->selling_price : 0.0;
+    }
+
+    public function getStatusAttribute(?string $value): string
+    {
+        if ($this->selling_price <= 0.0) {
+            return Lifecycle::IN_ACTIVE->value;
+        }
+
+        return $value;
     }
 }

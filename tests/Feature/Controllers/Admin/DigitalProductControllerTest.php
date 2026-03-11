@@ -163,6 +163,34 @@ class DigitalProductControllerTest extends TestCase
             ]);
     }
 
+    public function test_admin_create_digital_product_fails_when_selling_price_is_zero(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create();
+
+        $data = [
+            'products' => [
+                [
+                    'supplier_id' => $supplier->id,
+                    'name' => 'Zero Price Product',
+                    'sku' => 'SKU-ZERO-001',
+                    'brand' => 'Test Brand',
+                    'cost_price' => 10.00,
+                    'selling_price' => 0,
+                    'currency' => 'usd',
+                ],
+            ],
+        ];
+
+        $response = $this->postJson('/api/digital-products', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['products.0.selling_price']);
+
+        $this->assertDatabaseMissing('digital_products', ['sku' => 'SKU-ZERO-001']);
+    }
+
     public function test_admin_update_digital_product(): void
     {
         $this->actingAs($this->admin);
