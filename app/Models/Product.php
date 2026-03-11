@@ -81,7 +81,7 @@ class Product extends Model
      *
      * @return float The final selling price after applying active price rules.
      */
-    public function getSellingPriceAttribute(): ?float
+    public function getSellingPriceAttribute(): float
     {
         $query = $this->digitalProducts();
 
@@ -89,12 +89,12 @@ class Product extends Model
             ? $query->orderByPivot('priority')->first()
             : $query->orderBy('digital_products.cost_price')->first();
 
-        return $digitalProduct ? (float) $digitalProduct->selling_price : null;
+        return $digitalProduct ? (float) $digitalProduct->selling_price : 0.0;
     }
 
     public function getStatusAttribute(?string $value): string
     {
-        if (is_null($this->selling_price) || $this->selling_price <= 0) {
+        if ($this->selling_price <= 0.0) {
             return Lifecycle::IN_ACTIVE->value;
         }
 
