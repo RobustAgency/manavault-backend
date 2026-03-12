@@ -10,18 +10,15 @@ use App\Enums\PurchaseOrderStatus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Enums\PurchaseOrderSupplierStatus;
+use App\Jobs\PlaceExternalPurchaseOrderJob;
 use App\Repositories\PurchaseOrderRepository;
-use App\Services\Gift2Games\Gift2GamesVoucherService;
 use App\Services\PurchaseOrder\GroupBySupplierIdService;
 use App\Services\PurchaseOrder\PurchaseOrderStatusService;
-use App\Services\PurchaseOrder\PurchaseOrderPlacementService;
 
 class PurchaseOrderService
 {
     public function __construct(
         private GroupBySupplierIdService $groupBySupplierIdService,
-        private PurchaseOrderPlacementService $purchaseOrderPlacementService,
-        private Gift2GamesVoucherService $gift2GamesVoucherService,
         private PurchaseOrderStatusService $purchaseOrderStatusService,
         private PurchaseOrderRepository $purchaseOrderRepository,
     ) {}
@@ -67,7 +64,7 @@ class PurchaseOrderService
         string $orderNumber,
         string $currency,
     ): void {
-        $totalPrice = $purchaseOrder->total_price;
+        $totalPrice = (float) $purchaseOrder->total_price;
         $orderItems = [];
         $transactionId = null;
         $externalOrderResponse = [];
@@ -96,36 +93,6 @@ class PurchaseOrderService
             'status' => PurchaseOrderSupplierStatus::PROCESSING->value,
         ]);
 
-        if ($supplier->type === SupplierType::EXTERNAL->value) {
-            try {
-                $externalOrderResponse = $this->purchaseOrderPlacementService->placeOrder(
-                    $supplier,
-                    $orderItems,
-                    $orderNumber,
-                    $currency
-                );
-                $transactionId = $externalOrderResponse['transactionId'] ?? null;
-
-                $purchaseOrderSupplier->update(['transaction_id' => $transactionId]);
-
-                Log::info('External order placed successfully', [
-                    'supplier_slug' => $supplier->slug,
-                    'supplier_id' => $supplier->id,
-                    'transaction_id' => $transactionId,
-                ]);
-            } catch (\Exception $e) {
-                Log::error('Failed to place external order', [
-                    'supplier_slug' => $supplier->slug,
-                    'supplier_id' => $supplier->id,
-                    'error' => $e->getMessage(),
-                ]);
-
-                $purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::FAILED->value]);
-
-                return;
-            }
-        }
-
         foreach ($orderItems as $orderItem) {
             /** @var DigitalProduct $digitalProduct */
             $digitalProduct = $orderItem['digital_product'];
@@ -142,23 +109,24 @@ class PurchaseOrderService
             ]);
         }
 
-        if ($this->isGift2GamesSupplier($supplier)) {
-            $this->gift2GamesVoucherService->storeVouchers($purchaseOrder, $externalOrderResponse);
-            $purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
-        } elseif ($supplier->slug === 'ez_cards') {
-            Log::info('EzCards order created, vouchers will be fetched separately', [
+        $purchaseOrder->update(['total_price' => $totalPrice]);
+
+        if ($supplier->type === SupplierType::EXTERNAL->value) {
+            PlaceExternalPurchaseOrderJob::dispatch(
+                $purchaseOrder,
+                $supplier,
+                $purchaseOrderSupplier,
+                $orderItems,
+                $orderNumber,
+                $currency,
+            );
+
+            Log::info('External purchase order job dispatched', [
                 'purchase_order_id' => $purchaseOrder->id,
-                'transaction_id' => $transactionId,
+                'supplier_slug' => $supplier->slug,
+                'supplier_id' => $supplier->id,
             ]);
         }
-
-        $purchaseOrder->update(['total_price' => $totalPrice]);
-    }
-
-    private function isGift2GamesSupplier(Supplier $supplier): bool
-    {
-        return str_starts_with($supplier->slug, 'gift2games')
-            || str_starts_with($supplier->slug, 'gift-2-games');
     }
 
     private function generateOrderNumber(): string
