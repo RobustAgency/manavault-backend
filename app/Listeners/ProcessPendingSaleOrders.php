@@ -12,7 +12,7 @@ use App\Repositories\SaleOrderRepository;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Services\DigitalProductAllocationService;
 
-class FulfillPendingSaleOrders implements ShouldQueue
+class ProcessPendingSaleOrders implements ShouldQueue
 {
     public function __construct(
         private DigitalProductAllocationService $digitalProductAllocationService,
@@ -21,14 +21,18 @@ class FulfillPendingSaleOrders implements ShouldQueue
 
     public function handle(NewVouchersAvailable $event): void
     {
+        $digitalProductIds = $event->digitalProductIds;
+        Log::info('FulfillPendingSaleOrders: triggered with new vouchers for digital products', [
+            'digital_product_ids' => $digitalProductIds,
+        ]);
         $pendingOrders = $this->saleOrderRepository->getPendingSaleOrders();
 
         foreach ($pendingOrders as $saleOrder) {
-            $this->fulfillSaleOrder($saleOrder);
+            $this->processSaleOrder($saleOrder);
         }
     }
 
-    private function fulfillSaleOrder(SaleOrder $saleOrder): void
+    private function processSaleOrder(SaleOrder $saleOrder): void
     {
         DB::beginTransaction();
         try {

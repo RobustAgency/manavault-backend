@@ -6,13 +6,10 @@ use App\Enums\UserRole;
 use App\Models\Product;
 use App\Clients\SupabaseClient;
 use App\Observers\ProductObserver;
-use App\Events\NewVouchersAvailable;
 use App\Services\Auth\SupabaseGuard;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
-use App\Listeners\FulfillPendingSaleOrders;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -43,9 +40,6 @@ class AppServiceProvider extends ServiceProvider
 
         // Register product model observer
         Product::observe(ProductObserver::class);
-
-        // Fulfill pending sale orders whenever new vouchers are available
-        Event::listen(NewVouchersAvailable::class, FulfillPendingSaleOrders::class);
 
         // Register gate for role-based access control
         Gate::before(function ($user, $ability) {

@@ -20,6 +20,7 @@ class AutoPurchaseOrderService
      */
     public function handleShortfall(DigitalProduct $digitalProduct, int $shortfall): bool
     {
+        logger()->info("Handling shortfall for DigitalProduct ID: {$digitalProduct->id}, Shortfall: {$shortfall}");
         $digitalProduct->load('supplier');
         $supplier = $digitalProduct->supplier;
 
@@ -28,6 +29,8 @@ class AutoPurchaseOrderService
         }
 
         $this->purchaseOrderService->createPurchaseOrderForDigitalProduct($digitalProduct, $shortfall);
+
+        logger()->info("Created purchase order for DigitalProduct ID: {$digitalProduct->id}, Quantity: {$shortfall}");
 
         return true;
 

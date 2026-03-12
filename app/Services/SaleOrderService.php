@@ -28,6 +28,8 @@ class SaleOrderService
             'status' => Status::PENDING->value,
         ]);
 
+        logger()->info("Creating sale order with ID: {$saleOrder->id} and order number: {$saleOrder->order_number}");
+
         try {
             $this->validateProductsAndDigitalStock($data['items']);
 
@@ -36,6 +38,9 @@ class SaleOrderService
             $totalPrice = 0;
             $fullyAllocated = true;
 
+            $saleOrder->update(['status' => Status::PROCESSING->value]);
+
+            logger()->info("Processing sale order ID: {$saleOrder->id} with status set to PROCESSING");
             foreach ($data['items'] as $itemData) {
                 $product = $this->productRepository->getProductById($itemData['product_id']);
                 $quantity = $itemData['quantity'];
@@ -50,8 +55,6 @@ class SaleOrderService
                     'subtotal' => $subtotal,
                 ]);
 
-                $saleOrder->update(['status' => Status::PROCESSING->value]);
-
                 $allocated = $this->digitalProductAllocationService->allocate($item, $product, $quantity);
 
                 if ($allocated < $quantity) {
@@ -62,7 +65,6 @@ class SaleOrderService
             }
 
             $finalStatus = $fullyAllocated ? Status::COMPLETED->value : Status::PROCESSING->value;
-
             $saleOrder->update([
                 'status' => $finalStatus,
                 'total_price' => $totalPrice,
