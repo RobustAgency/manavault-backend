@@ -1,4 +1,4 @@
-@servers(['prod' => 'dev@146.190.193.138']);
+@servers(['prod' => 'dev@68.183.187.79']);
 
 @setup
     $repository = 'git@github.com:RobustAgency/manavault-backend.git';
