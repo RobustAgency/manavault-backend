@@ -106,7 +106,7 @@ class SupabaseClient
             'email' => $userData['email'],
             'password' => $userData['password'] ?? Str::random(12),
             'email_confirm' => $userData['email_verified'] ?? true,
-            'role' => $userData['role'] ?? UserRole::USER,
+            'role' => $userData['role'] ?? UserRole::USER->value,
             'user_metadata' => [
                 'name' => $userData['name'],
             ],
@@ -282,10 +282,10 @@ class SupabaseClient
         ];
         // Extract user metadata if available
         if (isset($payload->user_metadata)) {
-            $userData['name'] = $payload->user_metadata->full_name ?? '';
+            $userData['name'] = $payload->user_metadata->name ?? '';
             $userData['email'] = $payload->user_metadata->email ?? $payload->email;
             $userData['email_verified'] = $payload->user_metadata->email_verified ?? false;
-            $userData['role'] = $payload->user_metadata->role ?? UserRole::USER;
+            $userData['role'] = $payload->role ?? UserRole::USER->value;
         }
 
         return $userData;
@@ -301,7 +301,6 @@ class SupabaseClient
      */
     public function syncUser(array $userData): ?User
     {
-        Log::info('Syncing user from Supabase', ['supabase' => $userData]);
         // Try to find the user by Supabase ID
         // FIXME: This needs to have test, case is we might have a user but supabase does not have that user or deleted from there.
         $user = User::where('supabase_id', $userData['supabase_id'])->orWhere('email', $userData['email'])->first();

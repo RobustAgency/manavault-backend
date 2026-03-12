@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Voucher;
+use App\Models\DigitalProduct;
 use App\Enums\VoucherCodeStatus;
 use Illuminate\Support\Collection;
 use App\Repositories\VoucherRepository;
@@ -34,12 +35,15 @@ class VoucherAllocationService
         return $this->voucherRepository->getAvailableQuantity($digitalProductId);
     }
 
-    public function allocateVoucher(int $saleOrderItemId, int $digitalProductId, Voucher $voucher): void
+    public function allocateVoucher(int $saleOrderItemId, DigitalProduct $digitalProduct, Voucher $voucher): void
     {
         $this->saleOrderItemDigitalProductRepository->allocateVoucher(
             $saleOrderItemId,
-            $digitalProductId,
-            $voucher->id
+            $digitalProduct->id,
+            $voucher->id,
+            $digitalProduct->name,
+            $digitalProduct->sku,
+            $digitalProduct->brand,
         );
 
         $this->voucherRepository->updateVoucherStatus($voucher->id, VoucherCodeStatus::ALLOCATED->value);

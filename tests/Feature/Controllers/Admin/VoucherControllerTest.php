@@ -9,9 +9,12 @@ use App\Models\PurchaseOrder;
 use App\Models\DigitalProduct;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Http\UploadedFile;
-use App\Services\VoucherCipherService;
+use App\Events\PurchaseOrderFulfill;
+use App\Models\PurchaseOrderSupplier;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Foundation\Testing\WithFaker;
+use App\Services\Voucher\VoucherCipherService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class VoucherControllerTest extends TestCase
@@ -35,6 +38,7 @@ class VoucherControllerTest extends TestCase
 
     public function test_admin_can_import_vouchers_with_csv_file(): void
     {
+        Event::fake();
         $this->actingAs($this->admin);
 
         $purchaseOrder = PurchaseOrder::factory()->create();
@@ -42,6 +46,11 @@ class VoucherControllerTest extends TestCase
 
         PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(3)->create([
             'digital_product_id' => $digitalProduct->id,
+        ]);
+
+        PurchaseOrderSupplier::factory()->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'status' => 'processing',
         ]);
 
         // Create a real CSV file with 3 voucher codes to match purchase order quantity
@@ -53,6 +62,8 @@ class VoucherControllerTest extends TestCase
             'purchase_order_id' => $purchaseOrder->id,
         ]);
 
+        Event::assertDispatched(PurchaseOrderFulfill::class);
+
         $response->assertStatus(200)
             ->assertJson([
                 'error' => false,
@@ -62,6 +73,8 @@ class VoucherControllerTest extends TestCase
 
     public function test_admin_can_import_vouchers_with_voucher_codes_array(): void
     {
+        Event::fake();
+
         $this->actingAs($this->admin);
 
         $purchaseOrder = PurchaseOrder::factory()->create();
@@ -71,11 +84,16 @@ class VoucherControllerTest extends TestCase
             'digital_product_id' => $digitalProduct->id,
         ]);
 
+        PurchaseOrderSupplier::factory()->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'status' => 'processing',
+        ]);
+
         $response = $this->postJson('/api/vouchers/store', [
             'voucher_codes' => [
-                ['code' => 'CODE-001', 'digitalProductID' => $digitalProduct->id],
-                ['code' => 'CODE-002', 'digitalProductID' => $digitalProduct->id],
-                ['code' => 'CODE-003', 'digitalProductID' => $digitalProduct->id],
+                ['code' => 'CODE-001', 'digital_product_id' => $digitalProduct->id],
+                ['code' => 'CODE-002', 'digital_product_id' => $digitalProduct->id],
+                ['code' => 'CODE-003', 'digital_product_id' => $digitalProduct->id],
             ],
             'purchase_order_id' => $purchaseOrder->id,
         ]);
@@ -85,6 +103,8 @@ class VoucherControllerTest extends TestCase
                 'error' => false,
                 'message' => 'Vouchers imported successfully.',
             ]);
+
+        Event::assertDispatched(PurchaseOrderFulfill::class);
 
         // Verify vouchers were created and are encrypted
         $vouchers = Voucher::where('purchase_order_id', $purchaseOrder->id)->get();
@@ -159,6 +179,65 @@ class VoucherControllerTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['voucher_codes']);
+    }
+
+    public function test_import_vouchers_with_voucher_codes_requires_correct_pattern(): void
+    {
+        $this->actingAs($this->admin);
+
+        $purchaseOrder = PurchaseOrder::factory()->create();
+        $digitalProduct = DigitalProduct::factory()->create();
+        PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(2)->create([
+            'digital_product_id' => $digitalProduct->id,
+        ]);
+
+        // Test missing code field
+        $response = $this->postJson('/api/vouchers/store', [
+            'voucher_codes' => [
+                ['digital_product_id' => $digitalProduct->id], // Missing 'code'
+                ['code' => 'CODE-002', 'digital_product_id' => $digitalProduct->id],
+            ],
+            'purchase_order_id' => $purchaseOrder->id,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['voucher_codes.0.code']);
+
+        // Test missing digital_product_id field
+        $response = $this->postJson('/api/vouchers/store', [
+            'voucher_codes' => [
+                ['code' => 'CODE-001'], // Missing 'digital_product_id'
+                ['code' => 'CODE-002', 'digital_product_id' => $digitalProduct->id],
+            ],
+            'purchase_order_id' => $purchaseOrder->id,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['voucher_codes.0.digital_product_id']);
+
+        // Test invalid digital_product_id (non-integer)
+        $response = $this->postJson('/api/vouchers/store', [
+            'voucher_codes' => [
+                ['code' => 'CODE-001', 'digital_product_id' => 'not-a-number'],
+                ['code' => 'CODE-002', 'digital_product_id' => $digitalProduct->id],
+            ],
+            'purchase_order_id' => $purchaseOrder->id,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['voucher_codes.0.digital_product_id']);
+
+        // Test non-existent digital_product_id
+        $response = $this->postJson('/api/vouchers/store', [
+            'voucher_codes' => [
+                ['code' => 'CODE-001', 'digital_product_id' => 99999],
+                ['code' => 'CODE-002', 'digital_product_id' => $digitalProduct->id],
+            ],
+            'purchase_order_id' => $purchaseOrder->id,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['voucher_codes.0.digital_product_id']);
     }
 
     public function test_import_vouchers_validates_file_type(): void

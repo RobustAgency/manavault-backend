@@ -117,10 +117,18 @@ class PurchaseOrderRepository
             ];
         }
 
+        $purchaseOrderSupplier = PurchaseOrderSupplier::create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'supplier_id' => $supplier->id,
+            'status' => $status,
+        ]);
+
         if ($this->isExternalSupplier($supplier)) {
             try {
                 $externalOrderResponse = $this->placeExternalOrder($supplier, $orderItems, $orderNumber, $currency);
                 $transactionId = $externalOrderResponse['transactionId'] ?? null;
+
+                $purchaseOrderSupplier->update(['transaction_id' => $transactionId]);
 
                 Log::info('External order placed successfully', [
                     'supplier_slug' => $supplier->slug,
@@ -133,31 +141,32 @@ class PurchaseOrderRepository
                     'supplier_id' => $supplier->id,
                     'error' => $e->getMessage(),
                 ]);
-                $productName = isset($orderItems[0]['digital_product']) ? $orderItems[0]['digital_product']->name : 'Unknown Product';
-                throw new \RuntimeException('Can not create purchase order against '.$supplier->name.' '.$productName);
+
+                // Update supplier status to failed if external order placement fails
+                $purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::FAILED->value]);
+
+                return;
             }
         }
 
-        $purchaseOrderSupplier = PurchaseOrderSupplier::create([
-            'purchase_order_id' => $purchaseOrder->id,
-            'supplier_id' => $supplier->id,
-            'transaction_id' => $transactionId,
-            'status' => $status,
-        ]);
-
         // Create purchase order items
         foreach ($orderItems as $orderItem) {
+            /** @var DigitalProduct $digitalProduct */
+            $digitalProduct = $orderItem['digital_product'];
             PurchaseOrderItem::create([
                 'purchase_order_id' => $purchaseOrder->id,
                 'supplier_id' => $supplier->id,
                 'digital_product_id' => $orderItem['digital_product_id'],
+                'digital_product_name' => $digitalProduct->name,
+                'digital_product_sku' => $digitalProduct->sku,
+                'digital_product_brand' => $digitalProduct->brand,
                 'quantity' => $orderItem['quantity'],
                 'unit_cost' => $orderItem['unit_cost'],
                 'subtotal' => $orderItem['subtotal'],
             ]);
         }
 
-        if ($supplier->slug === 'gift2games') {
+        if ($this->isGift2GamesSupplier($supplier)) {
             // For Gift2Games, vouchers are returned immediately in the order response
             // Use the Gift2GamesVoucherService to process and store them
             $this->gift2GamesVoucherService->storeVouchers($purchaseOrder, $externalOrderResponse);
@@ -191,12 +200,34 @@ class PurchaseOrderRepository
         return $supplier->type === 'external';
     }
 
+    private function isGift2GamesSupplier(Supplier $supplier): bool
+    {
+        return str_starts_with($supplier->slug, 'gift2games')
+            || str_starts_with($supplier->slug, 'gift-2-games');
+    }
+
     private function placeExternalOrder(Supplier $supplier, array $orderItems, string $orderNumber, string $currency): array
     {
-        return match ($supplier->slug) {
-            'ez_cards' => $this->ezcardPlaceOrderService->placeOrder($orderItems, $orderNumber, $currency),
-            'gift2games' => $this->gift2GamesPlaceOrderService->placeOrder($orderItems, $orderNumber),
-            default => throw new \RuntimeException("Unknown external supplier: {$supplier->slug}"),
-        };
+        if ($supplier->slug === 'ez_cards') {
+            return $this->ezcardPlaceOrderService->placeOrder($orderItems, $orderNumber, $currency);
+        }
+
+        if ($this->isGift2GamesSupplier($supplier)) {
+            return $this->gift2GamesPlaceOrderService->placeOrder($orderItems, $orderNumber, $supplier->slug);
+        }
+
+        throw new \RuntimeException("Unknown external supplier: {$supplier->slug}");
+    }
+
+    public function getPurchaseOrderByID(int $purchaseOrderID): PurchaseOrder
+    {
+        /** @var PurchaseOrder|null $purchaseOrder */
+        $purchaseOrder = PurchaseOrder::with('items')->find($purchaseOrderID);
+
+        if (! $purchaseOrder) {
+            throw new \RuntimeException('Purchase order not found with ID: '.$purchaseOrderID);
+        }
+
+        return $purchaseOrder;
     }
 }

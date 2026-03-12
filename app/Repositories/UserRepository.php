@@ -15,6 +15,7 @@ class UserRepository
     public function searchPaginated(array $filters = []): LengthAwarePaginator
     {
         $query = User::query()
+            ->with(['roles'])
             ->where('role', '!=', 'super_admin');
 
         if ($term = $filters['term'] ?? null) {

@@ -27,6 +27,7 @@ class ProductControllerTest extends TestCase
 
     public function test_admin_list_products(): void
     {
+
         $this->actingAs($this->admin);
 
         Product::factory()->count(5)->create();
@@ -102,8 +103,15 @@ class ProductControllerTest extends TestCase
 
         $product = Product::factory()->create([
             'name' => 'Test Product',
-            'selling_price' => 99.99,
+            'face_value' => 100.00,
         ]);
+
+        $digitalProduct = DigitalProduct::factory()->create([
+            'selling_price' => 99.99,
+            'currency' => 'usd',
+        ]);
+
+        $product->digitalProducts()->attach($digitalProduct->id);
 
         $response = $this->getJson("/api/products/{$product->id}");
 
@@ -167,7 +175,6 @@ class ProductControllerTest extends TestCase
             'tags' => ['gaming', 'digital'],
             'image' => UploadedFile::fake()->image('product.jpg'),
             'face_value' => 120.00,
-            'selling_price' => 149.99,
             'currency' => 'usd',
             'status' => 'active',
             'regions' => ['US', 'CA'],
@@ -204,7 +211,6 @@ class ProductControllerTest extends TestCase
                 'data' => [
                     'name' => 'New Product',
                     'description' => 'Product description',
-                    'selling_price' => 149.99,
                     'status' => 'active',
                 ],
             ]);
@@ -212,7 +218,6 @@ class ProductControllerTest extends TestCase
         $this->assertDatabaseHas('products', [
             'name' => 'New Product',
             'description' => 'Product description',
-            'selling_price' => 149.99,
             'currency' => 'usd',
         ]);
     }
@@ -225,7 +230,6 @@ class ProductControllerTest extends TestCase
 
         $product = Product::factory()->create([
             'name' => 'Original Name',
-            'selling_price' => 100.00,
         ]);
 
         $updateData = [
@@ -233,7 +237,6 @@ class ProductControllerTest extends TestCase
             'description' => 'Updated description',
             'brand_id' => $brand->id,
             'short_description' => 'Updated short desc',
-            'selling_price' => 199.99,
         ];
 
         $response = $this->postJson("/api/products/{$product->id}", $updateData);
@@ -268,7 +271,6 @@ class ProductControllerTest extends TestCase
                     'id' => $product->id,
                     'name' => 'Updated Name',
                     'description' => 'Updated description',
-                    'selling_price' => 199.99,
                 ],
             ]);
 
@@ -276,7 +278,6 @@ class ProductControllerTest extends TestCase
             'id' => $product->id,
             'name' => 'Updated Name',
             'description' => 'Updated description',
-            'selling_price' => 199.99,
         ]);
     }
 

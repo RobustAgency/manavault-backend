@@ -33,11 +33,12 @@ class SaleOrderServiceTest extends TestCase
     {
         // Arrange: Create a product with a digital product and limited vouchers
         $product = Product::factory()->active()->create([
-            'selling_price' => 100.00,
             'fulfillment_mode' => 'price',
         ]);
 
-        $digitalProduct = DigitalProduct::factory()->create();
+        $digitalProduct = DigitalProduct::factory()->create([
+            'selling_price' => 100.00,
+        ]);
         $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
 
         $purchaseOrder = PurchaseOrder::factory()->completed()->create();
@@ -74,11 +75,12 @@ class SaleOrderServiceTest extends TestCase
     {
         // Arrange: Create a product with sufficient vouchers
         $product = Product::factory()->active()->create([
-            'selling_price' => 50.00,
             'fulfillment_mode' => 'price',
         ]);
 
-        $digitalProduct = DigitalProduct::factory()->create();
+        $digitalProduct = DigitalProduct::factory()->create([
+            'selling_price' => 50.00,
+        ]);
         $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
 
         $purchaseOrder = PurchaseOrder::factory()->completed()->create();
@@ -115,11 +117,12 @@ class SaleOrderServiceTest extends TestCase
     {
         // Arrange: Create product with digital product and vouchers
         $product = Product::factory()->active()->create([
-            'selling_price' => 25.00,
             'fulfillment_mode' => 'price',
         ]);
 
-        $digitalProduct = DigitalProduct::factory()->create();
+        $digitalProduct = DigitalProduct::factory()->create([
+            'selling_price' => 25.00,
+        ]);
         $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
 
         $purchaseOrder = PurchaseOrder::factory()->completed()->create();
@@ -164,11 +167,12 @@ class SaleOrderServiceTest extends TestCase
     {
         // Arrange: Create product and purchase order with vouchers
         $product = Product::factory()->active()->create([
-            'selling_price' => 75.00,
             'fulfillment_mode' => 'price',
         ]);
 
-        $digitalProduct = DigitalProduct::factory()->create();
+        $digitalProduct = DigitalProduct::factory()->create([
+            'selling_price' => 75.00,
+        ]);
         $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
 
         $purchaseOrder = PurchaseOrder::factory()->completed()->create();
@@ -211,17 +215,17 @@ class SaleOrderServiceTest extends TestCase
     {
         // Arrange: Create product with sufficient vouchers
         $product1 = Product::factory()->active()->create([
-            'selling_price' => 50.00,
             'fulfillment_mode' => 'price',
         ]);
 
         $product2 = Product::factory()->active()->create([
-            'selling_price' => 75.00,
             'fulfillment_mode' => 'price',
         ]);
 
         // Setup digital products and vouchers for product1
-        $digitalProduct1 = DigitalProduct::factory()->create();
+        $digitalProduct1 = DigitalProduct::factory()->create([
+            'selling_price' => 50.00,
+        ]);
         $product1->digitalProducts()->attach($digitalProduct1->id, ['priority' => 1]);
 
         $purchaseOrder1 = PurchaseOrder::factory()->completed()->create();
@@ -238,7 +242,9 @@ class SaleOrderServiceTest extends TestCase
         ]);
 
         // Setup digital products and vouchers for product2
-        $digitalProduct2 = DigitalProduct::factory()->create();
+        $digitalProduct2 = DigitalProduct::factory()->create([
+            'selling_price' => 75.00,
+        ]);
         $product2->digitalProducts()->attach($digitalProduct2->id, ['priority' => 1]);
 
         $purchaseOrder2 = PurchaseOrder::factory()->completed()->create();
@@ -299,11 +305,12 @@ class SaleOrderServiceTest extends TestCase
     {
         // Arrange: Create product with limited vouchers
         $product = Product::factory()->active()->create([
-            'selling_price' => 50.00,
             'fulfillment_mode' => 'price',
         ]);
 
-        $digitalProduct = DigitalProduct::factory()->create();
+        $digitalProduct = DigitalProduct::factory()->create([
+            'selling_price' => 50.00,
+        ]);
         $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
 
         $purchaseOrder = PurchaseOrder::factory()->completed()->create();
@@ -355,9 +362,7 @@ class SaleOrderServiceTest extends TestCase
     public function test_transaction_rolled_back_on_exception(): void
     {
         // Arrange: Create product without digital products (will trigger exception)
-        $product = Product::factory()->active()->create([
-            'selling_price' => 50.00,
-        ]);
+        $product = Product::factory()->active()->create();
 
         // Act & Assert: Should throw exception and rollback
         $this->expectException(\Exception::class);
@@ -386,14 +391,13 @@ class SaleOrderServiceTest extends TestCase
     {
         // Arrange: Create product with PRICE fulfillment mode
         $product = Product::factory()->active()->create([
-            'selling_price' => 100.00,
             'fulfillment_mode' => 'price',
         ]);
 
         // Create digital products with different costs
-        $digitalProduct1 = DigitalProduct::factory()->create(['cost_price' => 50.00]);
-        $digitalProduct2 = DigitalProduct::factory()->create(['cost_price' => 30.00]);
-        $digitalProduct3 = DigitalProduct::factory()->create(['cost_price' => 70.00]);
+        $digitalProduct1 = DigitalProduct::factory()->create(['cost_price' => 50.00, 'selling_price' => 100.00]);
+        $digitalProduct2 = DigitalProduct::factory()->create(['cost_price' => 30.00, 'selling_price' => 60.00]);
+        $digitalProduct3 = DigitalProduct::factory()->create(['cost_price' => 70.00, 'selling_price' => 140.00]);
 
         $product->digitalProducts()->attach([
             $digitalProduct1->id => ['priority' => 3],
@@ -440,14 +444,22 @@ class SaleOrderServiceTest extends TestCase
     {
         // Arrange: Create product with MANUAL fulfillment mode
         $product = Product::factory()->active()->create([
-            'selling_price' => 100.00,
             'fulfillment_mode' => 'manual',
         ]);
 
         // Create digital products
-        $digitalProduct1 = DigitalProduct::factory()->create();
-        $digitalProduct2 = DigitalProduct::factory()->create();
-        $digitalProduct3 = DigitalProduct::factory()->create();
+        $digitalProduct1 = DigitalProduct::factory()->create([
+            'cost_price' => 50.00,
+            'selling_price' => 100.00,
+        ]);
+        $digitalProduct2 = DigitalProduct::factory()->create([
+            'cost_price' => 30.00,
+            'selling_price' => 60.00,
+        ]);
+        $digitalProduct3 = DigitalProduct::factory()->create([
+            'cost_price' => 70.00,
+            'selling_price' => 140.00,
+        ]);
 
         $product->digitalProducts()->attach([
             $digitalProduct1->id => ['priority' => 3],

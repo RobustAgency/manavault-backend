@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Supplier;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 class Gift2GamesSupplierSeeder extends Seeder
 {
@@ -12,27 +12,52 @@ class Gift2GamesSupplierSeeder extends Seeder
      */
     public function run(): void
     {
-        $supplier = [
-            'name' => 'Gift2Games',
-            'slug' => 'gift2games',
-            'type' => 'external',
-            'contact_email' => 'support@gift2games.com',
-            'contact_phone' => null,
-            'status' => 'active',
-            'created_at' => now(),
-            'updated_at' => now(),
+        $suppliers = [
+            [
+                'name' => 'Gift2Games',
+                'slug' => 'gift2games',
+                'type' => 'external',
+                'contact_email' => 'support@gift2games.com',
+                'contact_phone' => null,
+                'status' => 'active',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'name' => 'Gift2Games - EUR',
+                'slug' => 'gift-2-games-eur',
+                'type' => 'external',
+                'contact_email' => 'support@gift2games.com',
+                'contact_phone' => null,
+                'status' => 'active',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'name' => 'Gift2Games - GBP',
+                'slug' => 'gift-2-games-gbp',
+                'type' => 'external',
+                'contact_email' => 'support@gift2games.com',
+                'contact_phone' => null,
+                'status' => 'active',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ];
 
-        // Check if Gift2Games supplier already exists
-        $exists = DB::table('suppliers')
-            ->where('slug', 'gift2games')
-            ->exists();
-
-        if (! $exists) {
-            DB::table('suppliers')->insert($supplier);
-            $this->command->info('Gift2Games supplier created successfully.');
-        } else {
-            $this->command->info('Gift2Games supplier already exists.');
+        foreach ($suppliers as $supplier) {
+            Supplier::firstOrCreate(
+                ['slug' => $supplier['slug']],
+                [
+                    'name' => $supplier['name'],
+                    'type' => $supplier['type'],
+                    'contact_email' => $supplier['contact_email'],
+                    'contact_phone' => $supplier['contact_phone'],
+                    'status' => $supplier['status'],
+                    'created_at' => $supplier['created_at'],
+                    'updated_at' => $supplier['updated_at'],
+                ]
+            );
         }
     }
 }

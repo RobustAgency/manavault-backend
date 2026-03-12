@@ -92,19 +92,13 @@ class SaleOrderControllerTest extends TestCase
     {
         $supplier = Supplier::factory()->create(['type' => 'internal']);
 
-        $product1 = Product::factory()->create([
-            'selling_price' => 50.00,
-            'fulfillment_mode' => FulfillmentMode::MANUAL->value,
-        ]);
-        $digitalProduct1 = DigitalProduct::factory()->create(['supplier_id' => $supplier->id]);
-        $product1->digitalProducts()->attach($digitalProduct1->id, ['priority' => 1]);
+        $product1 = Product::factory()->create();
+        $digitalProduct1 = DigitalProduct::factory()->create(['selling_price' => 20.00, 'supplier_id' => $supplier->id]);
+        $product1->digitalProducts()->attach($digitalProduct1->id);
 
-        $product2 = Product::factory()->create([
-            'selling_price' => 30.00,
-            'fulfillment_mode' => FulfillmentMode::MANUAL->value,
-        ]);
-        $digitalProduct2 = DigitalProduct::factory()->create(['supplier_id' => $supplier->id]);
-        $product2->digitalProducts()->attach($digitalProduct2->id, ['priority' => 1]);
+        $product2 = Product::factory()->create();
+        $digitalProduct2 = DigitalProduct::factory()->create(['supplier_id' => $supplier->id, 'selling_price' => 30.00]);
+        $product2->digitalProducts()->attach($digitalProduct2->id);
 
         $po1 = PurchaseOrder::factory()->create();
         $poi1 = PurchaseOrderItem::factory()->create([
@@ -316,10 +310,13 @@ class SaleOrderControllerTest extends TestCase
     {
         $supplier = Supplier::factory()->create(['type' => 'internal']);
         $product = Product::factory()->create([
-            'selling_price' => 100.00,
             'fulfillment_mode' => FulfillmentMode::MANUAL->value,
         ]);
-        $digitalProduct = DigitalProduct::factory()->create(['supplier_id' => $supplier->id]);
+        $digitalProduct = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier->id,
+            'selling_price' => 100.00,
+
+        ]);
         $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
 
         $purchaseOrder = PurchaseOrder::factory()->create();
@@ -439,10 +436,12 @@ class SaleOrderControllerTest extends TestCase
         // Arrange: Create product with digital product and vouchers
         $supplier = Supplier::factory()->create(['type' => 'internal']);
         $product = Product::factory()->create([
-            'selling_price' => 100.00,
             'fulfillment_mode' => FulfillmentMode::MANUAL->value,
         ]);
-        $digitalProduct = DigitalProduct::factory()->create(['supplier_id' => $supplier->id]);
+        $digitalProduct = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier->id,
+            'selling_price' => 100.00,
+        ]);
         $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
 
         $purchaseOrder = PurchaseOrder::factory()->create();
@@ -543,10 +542,13 @@ class SaleOrderControllerTest extends TestCase
 
         // Product 1 setup
         $product1 = Product::factory()->create([
-            'selling_price' => 100.00,
             'fulfillment_mode' => FulfillmentMode::MANUAL->value,
         ]);
-        $digitalProduct1 = DigitalProduct::factory()->create(['supplier_id' => $supplier->id]);
+        $digitalProduct1 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier->id,
+            'selling_price' => 100.00,
+
+        ]);
         $product1->digitalProducts()->attach($digitalProduct1->id, ['priority' => 1]);
 
         $purchaseOrder1 = PurchaseOrder::factory()->create();
@@ -565,10 +567,10 @@ class SaleOrderControllerTest extends TestCase
 
         // Product 2 setup
         $product2 = Product::factory()->create([
-            'selling_price' => 75.00,
             'fulfillment_mode' => FulfillmentMode::MANUAL->value,
         ]);
-        $digitalProduct2 = DigitalProduct::factory()->create(['supplier_id' => $supplier->id]);
+
+        $digitalProduct2 = DigitalProduct::factory()->create(['supplier_id' => $supplier->id, 'selling_price' => 75.00]);
         $product2->digitalProducts()->attach($digitalProduct2->id, ['priority' => 1]);
 
         $purchaseOrder2 = PurchaseOrder::factory()->create();

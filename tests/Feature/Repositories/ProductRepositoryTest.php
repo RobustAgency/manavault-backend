@@ -37,7 +37,6 @@ class ProductRepositoryTest extends TestCase
             'long_description' => $this->faker->paragraph(),
             'tags' => ['gaming', 'gift card'],
             'image' => $this->faker->imageUrl(),
-            'selling_price' => $this->faker->randomFloat(2, 1, 100),
             'status' => $this->faker->randomElement(array_map(fn ($c) => $c->value, Lifecycle::cases())),
             'regions' => ['US', 'CA'],
         ];
@@ -50,7 +49,6 @@ class ProductRepositoryTest extends TestCase
             'sku' => $data['sku'],
             'brand_id' => $data['brand_id'],
             'description' => $data['description'],
-            'selling_price' => $data['selling_price'],
             'status' => $data['status'],
         ]);
     }
@@ -115,7 +113,6 @@ class ProductRepositoryTest extends TestCase
             'long_description' => 'Updated long description',
             'tags' => ['updated', 'tags'],
             'image' => 'https://example.com/updated-image.jpg',
-            'selling_price' => 150.00,
             'regions' => ['UK', 'EU'],
         ];
 
@@ -125,7 +122,6 @@ class ProductRepositoryTest extends TestCase
         $this->assertEquals('Updated-SKU-1234', $updatedProduct->sku);
         $this->assertEquals($this->brand->id, $updatedProduct->brand_id);
         $this->assertEquals('Updated description', $updatedProduct->description);
-        $this->assertEquals(150.00, $updatedProduct->selling_price);
 
         $this->assertDatabaseHas('products', [
             'id' => $product->id,
@@ -133,7 +129,6 @@ class ProductRepositoryTest extends TestCase
             'sku' => 'Updated-SKU-1234',
             'brand_id' => $this->brand->id,
             'description' => 'Updated description',
-            'selling_price' => 150.00,
         ]);
     }
 
@@ -165,22 +160,6 @@ class ProductRepositoryTest extends TestCase
         $this->assertTrue($results->every(fn ($product) => $product->name === 'Gaming Gift Card'));
     }
 
-    public function test_get_products_by_conditions_with_price_greater_than(): void
-    {
-        Product::factory()->create(['selling_price' => 50.00]);
-        Product::factory()->create(['selling_price' => 100.00]);
-        Product::factory()->create(['selling_price' => 150.00]);
-
-        $conditions = [
-            ['field' => 'selling_price', 'operator' => Operator::GREATER_THAN->value, 'value' => '75.00'],
-        ];
-
-        $results = $this->repository->getProductsByConditions($conditions);
-
-        $this->assertCount(2, $results);
-        $this->assertTrue($results->every(fn ($product) => $product->selling_price > 75.00));
-    }
-
     public function test_get_products_by_conditions_with_multiple_conditions_all_match(): void
     {
         $brand1 = Brand::factory()->create();
@@ -189,22 +168,19 @@ class ProductRepositoryTest extends TestCase
         Product::factory()->create([
             'name' => 'Premium Gaming Card',
             'brand_id' => $brand1->id,
-            'selling_price' => 100.00,
         ]);
         Product::factory()->create([
             'name' => 'Budget Gaming Card',
             'brand_id' => $brand1->id,
-            'selling_price' => 25.00,
         ]);
         Product::factory()->create([
             'name' => 'Premium Sports Card',
             'brand_id' => $brand2->id,
-            'selling_price' => 100.00,
         ]);
 
         $conditions = [
             ['field' => 'brand_id', 'operator' => Operator::EQUAL->value, 'value' => (string) $brand1->id],
-            ['field' => 'selling_price', 'operator' => Operator::GREATER_THAN_OR_EQUAL->value, 'value' => '100.00'],
+            ['field' => 'name', 'operator' => Operator::EQUAL->value, 'value' => 'Premium Gaming Card'],
         ];
 
         $results = $this->repository->getProductsByConditions($conditions, 'all');
@@ -221,22 +197,19 @@ class ProductRepositoryTest extends TestCase
         Product::factory()->create([
             'name' => 'Premium Gaming Card',
             'brand_id' => $brand1->id,
-            'selling_price' => 100.00,
         ]);
         Product::factory()->create([
             'name' => 'Budget Card',
             'brand_id' => $brand2->id,
-            'selling_price' => 25.00,
         ]);
         Product::factory()->create([
             'name' => 'Expensive Card',
             'brand_id' => $brand2->id,
-            'selling_price' => 200.00,
         ]);
 
         $conditions = [
             ['field' => 'brand_id', 'operator' => Operator::EQUAL->value, 'value' => (string) $brand1->id],
-            ['field' => 'selling_price', 'operator' => Operator::GREATER_THAN_OR_EQUAL->value, 'value' => '200.00'],
+            ['field' => 'name', 'operator' => Operator::EQUAL->value, 'value' => 'Expensive Card'],
         ];
 
         $results = $this->repository->getProductsByConditions($conditions, 'any');
@@ -264,11 +237,11 @@ class ProductRepositoryTest extends TestCase
 
     public function test_get_products_by_conditions_with_no_matches(): void
     {
-        Product::factory()->create(['selling_price' => 50.00]);
-        Product::factory()->create(['selling_price' => 75.00]);
+        Product::factory()->create(['name' => 'Cheap Card']);
+        Product::factory()->create(['name' => 'Budget Card']);
 
         $conditions = [
-            ['field' => 'selling_price', 'operator' => Operator::GREATER_THAN->value, 'value' => '200.00'],
+            ['field' => 'name', 'operator' => Operator::EQUAL->value, 'value' => 'Expensive Card'],
         ];
 
         $results = $this->repository->getProductsByConditions($conditions);

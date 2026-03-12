@@ -7,12 +7,16 @@ use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PurchaseOrderResource;
 use App\Repositories\PurchaseOrderRepository;
+use App\Services\Ezcards\EzcardsVoucherCodeService;
 use App\Http\Requests\PurchaseOrder\ListPurchaseOrderRequest;
 use App\Http\Requests\PurchaseOrder\StorePurchaseOrderRequest;
 
 class PurchaseOrderController extends Controller
 {
-    public function __construct(private PurchaseOrderRepository $repository) {}
+    public function __construct(
+        private PurchaseOrderRepository $repository,
+        private EzcardsVoucherCodeService $ezcardsVoucherCodeService
+    ) {}
 
     /**
      * Display a listing of purchase orders.
@@ -34,7 +38,7 @@ class PurchaseOrderController extends Controller
         $validated = $request->validated();
         try {
             $purchaseOrder = $this->repository->createPurchaseOrder($validated);
-        } catch (\RuntimeException $e) {
+        } catch (\Exception $e) {
             return response()->json([
                 'error' => true,
                 'message' => $e->getMessage(),
@@ -50,12 +54,37 @@ class PurchaseOrderController extends Controller
 
     public function show(PurchaseOrder $purchaseOrder): JsonResponse
     {
-        $purchaseOrder->load(['items.digitalProduct.supplier', 'suppliers', 'vouchers']);
+        $purchaseOrder->load([
+            'purchaseOrderSuppliers.supplier',
+            'items',
+            'vouchers',
+        ]);
 
         return response()->json([
             'error' => false,
             'data' => new PurchaseOrderResource($purchaseOrder),
             'message' => 'Purchase order retrieved successfully.',
         ]);
+    }
+
+    /**
+     * Process a purchase order by ID to fetch and store voucher codes.
+     */
+    public function purchaseOrderVouchers(PurchaseOrder $purchaseOrder): JsonResponse
+    {
+        try {
+            $this->ezcardsVoucherCodeService->processPurchaseOrderById($purchaseOrder);
+
+            return response()->json([
+                'error' => false,
+                'data' => null,
+                'message' => 'Purchase order vouchers processed successfully.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => true,
+                'message' => 'Failed to process vouchers: '.$e->getMessage(),
+            ], 500);
+        }
     }
 }

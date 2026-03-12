@@ -231,4 +231,87 @@ class CreateOrderTest extends TestCase
                    str_contains($request->url(), '/create_order');
         });
     }
+
+    public function test_execute_creates_order_using_eur_wallet(): void
+    {
+        // Arrange
+        $orderData = [
+            'productId' => 44444,
+            'referenceNumber' => 'PO-20251117-EUR001',
+        ];
+
+        $expectedResponse = [
+            'status' => true,
+            'data' => [
+                'serialCode' => 'EUR-CODE-001',
+                'serialNumber' => 'SN-EUR-001',
+            ],
+        ];
+
+        Http::fake([
+            '*/create_order' => Http::response($expectedResponse, 200),
+        ]);
+
+        $createOrderAction = app(CreateOrder::class);
+
+        // Act
+        $result = $createOrderAction->execute($orderData, 'gift-2-games-eur');
+
+        // Assert
+        $this->assertEquals($expectedResponse, $result);
+        $this->assertTrue($result['status']);
+        $this->assertEquals('EUR-CODE-001', $result['data']['serialCode']);
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), '/create_order');
+        });
+    }
+
+    public function test_execute_creates_order_using_gbp_wallet(): void
+    {
+        // Arrange
+        $orderData = [
+            'productId' => 55555,
+            'referenceNumber' => 'PO-20251117-GBP001',
+        ];
+
+        $expectedResponse = [
+            'status' => true,
+            'data' => [
+                'serialCode' => 'GBP-CODE-001',
+                'serialNumber' => 'SN-GBP-001',
+            ],
+        ];
+
+        Http::fake([
+            '*/create_order' => Http::response($expectedResponse, 200),
+        ]);
+
+        $createOrderAction = app(CreateOrder::class);
+
+        // Act
+        $result = $createOrderAction->execute($orderData, 'gift-2-games-gbp');
+
+        // Assert
+        $this->assertEquals($expectedResponse, $result);
+        $this->assertTrue($result['status']);
+        $this->assertEquals('GBP-CODE-001', $result['data']['serialCode']);
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), '/create_order');
+        });
+    }
+
+    public function test_execute_throws_exception_for_unknown_supplier_slug(): void
+    {
+        $orderData = [
+            'productId' => 66666,
+            'referenceNumber' => 'PO-20251117-UNKNOWN',
+        ];
+
+        $createOrderAction = app(CreateOrder::class);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unknown Gift2Games supplier slug: gift-2-games-unknown');
+
+        $createOrderAction->execute($orderData, 'gift-2-games-unknown');
+    }
 }

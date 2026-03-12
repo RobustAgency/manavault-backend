@@ -173,4 +173,14 @@ class ProductRepository
             ->pluck('id')
             ->all();
     }
+
+    /**
+     * Get products by brand ID.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, Product>
+     */
+    public function getProductsByBrandId(int $brandId): Collection
+    {
+        return Product::where('brand_id', $brandId)->get();
+    }
 }

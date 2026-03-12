@@ -6,12 +6,20 @@ use App\Clients\BaseApiClient;
 
 class Client extends BaseApiClient
 {
+    private string $configPrefixOverride;
+
+    public function __construct(string $configPrefix = 'services.gift2games')
+    {
+        $this->configPrefixOverride = $configPrefix;
+        parent::__construct();
+    }
+
     /**
      * Get the configuration key prefix for the service.
      */
     protected function getConfigPrefix(): string
     {
-        return 'services.gift2games';
+        return $this->configPrefixOverride;
     }
 
     /**

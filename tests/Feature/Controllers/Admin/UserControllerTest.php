@@ -3,6 +3,7 @@
 namespace Tests\Feature\Controllers\Admin;
 
 use Tests\TestCase;
+use App\Models\Role;
 use App\Models\User;
 use App\Enums\UserRole;
 use Illuminate\Foundation\Testing\WithFaker;
@@ -16,17 +17,14 @@ class UserControllerTest extends TestCase
     public function test_super_admin_can_view_all_users_with_pagination(): void
     {
         Notification::fake();
-        $admin = User::factory()->create(['role' => UserRole::SUPER_ADMIN]);
+        $admin = User::factory()->create(['role' => UserRole::SUPER_ADMIN->value]);
 
-        $users = User::factory()->count(5)->create(['role' => UserRole::USER]);
-
+        $users = User::factory()->count(5)->create(['role' => UserRole::USER->value]);
+        $role = Role::create(['name' => 'user']);
         foreach ($users as $user) {
-            $user->created_at = now();
-            $user->updated_at = now();
-            $user->save();
+            $user->assignRole($role);
         }
         $response = $this->actingAs($admin)->getJson('/api/users?role=user');
-
         $response->assertOk();
 
         $responseData = $response->json();
@@ -35,15 +33,15 @@ class UserControllerTest extends TestCase
         $this->assertArrayHasKey('data', $responseData);
 
         foreach ($responseData['data']['data'] as $user) {
-            $this->assertEquals(UserRole::USER->value, $user['role']);
+            $this->assertEquals(UserRole::USER->value, $user['roles'][0]['name']);
         }
     }
 
     public function test_super_admin_can_view_user(): void
     {
         Notification::fake();
-        $admin = User::factory()->create(['role' => UserRole::SUPER_ADMIN]);
-        $user = User::factory()->create(['role' => UserRole::USER]);
+        $admin = User::factory()->create(['role' => UserRole::SUPER_ADMIN->value]);
+        $user = User::factory()->create(['role' => UserRole::USER->value]);
 
         $response = $this->actingAs($admin)->getJson("/api/users/{$user->id}");
         $response->assertOk();

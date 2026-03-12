@@ -69,7 +69,6 @@ class SupabaseGuard implements Guard
 
         // Validate token and get user data in one step
         $userData = $this->supabaseClient->validateToken($token);
-
         if (! $userData) {
             return null;
         }

@@ -17,11 +17,11 @@ Schedule::command(AddVoucherCodeForEZCardsCommand::class)
     ->runInBackground();
 
 Schedule::command(SyncEzCardsProductsCommand::class)
-    ->daily()
+    ->hourly()
     ->withoutOverlapping()
     ->runInBackground();
 
 Schedule::command(SyncGift2GamesProductsCommand::class)
-    ->daily()
+    ->hourly()
     ->withoutOverlapping()
     ->runInBackground();

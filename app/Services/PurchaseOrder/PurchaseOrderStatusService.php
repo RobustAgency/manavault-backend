@@ -2,6 +2,7 @@
 
 namespace App\Services\PurchaseOrder;
 
+use App\Enums\SupplierType;
 use App\Models\PurchaseOrder;
 use App\Enums\PurchaseOrderStatus;
 use App\Events\PurchaseOrderFulfill;
@@ -9,22 +10,53 @@ use App\Enums\PurchaseOrderSupplierStatus;
 
 class PurchaseOrderStatusService
 {
+    /**
+     * Evaluate the statuses of all PurchaseOrderSuppliers
+     */
     public function updateStatus(PurchaseOrder $purchaseOrder): void
     {
-        $purchaseOrder->load('vouchers');
+        $finalStatuses = [
+            PurchaseOrderSupplierStatus::COMPLETED->value,
+            PurchaseOrderSupplierStatus::FAILED->value,
+        ];
 
-        // Get the total quantity from all purchase order items
-        $expectedQuantity = $purchaseOrder->totalQuantity();
+        $suppliers = $purchaseOrder->purchaseOrderSuppliers()->get(['status']);
 
-        // Check if all vouchers have available status
-        $availableVouchers = $purchaseOrder->vouchers()
-            ->where('status', 'available')
-            ->count();
-
-        if ($availableVouchers == $expectedQuantity) {
-            $purchaseOrder->update(['status' => PurchaseOrderStatus::COMPLETED->value]);
-            $purchaseOrder->purchaseOrderSuppliers()->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
-            event(new PurchaseOrderFulfill($purchaseOrder));
+        if ($suppliers->isEmpty()) {
+            return;
         }
+
+        $allInFinalState = $suppliers->every(
+            fn ($supplier) => in_array($supplier->status, $finalStatuses, true)
+        );
+
+        if (! $allInFinalState) {
+            return;
+        }
+
+        $hasFailedSupplier = $suppliers->contains(
+            fn ($supplier) => $supplier->status === PurchaseOrderSupplierStatus::FAILED->value
+        );
+
+        $allSuppliersFailed = $suppliers->every(
+            fn ($supplier) => $supplier->status === PurchaseOrderSupplierStatus::FAILED->value
+        );
+
+        if ($allSuppliersFailed) {
+            $purchaseOrder->update(['status' => PurchaseOrderStatus::FAILED->value]);
+        } elseif (! $hasFailedSupplier) {
+            $purchaseOrder->update(['status' => PurchaseOrderStatus::COMPLETED->value]);
+        }
+
+        event(new PurchaseOrderFulfill($purchaseOrder));
+    }
+
+    public function updateInternalSuppliersStatusToCompleted(PurchaseOrder $purchaseOrder): void
+    {
+        $purchaseOrder->purchaseOrderSuppliers()
+            ->whereHas('supplier', fn ($query) => $query->where('type', SupplierType::INTERNAL->value))
+            ->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
+
+        $this->updateStatus($purchaseOrder);
     }
 }

@@ -7,7 +7,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Broadcasting\InteractsWithSockets;
 
-class DigitalProductUpdate
+class AssignDigitalProduct
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 

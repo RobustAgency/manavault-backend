@@ -32,9 +32,11 @@ class UpdateDigitalProductRequest extends FormRequest
             'tags.*' => ['string', 'max:255'],
             'region' => ['sometimes', 'nullable', 'string', 'max:255'],
             'cost_price' => ['sometimes', 'numeric', 'min:0'],
+            'selling_price' => ['sometimes', 'numeric', 'gt:0'],
             'currency' => ['sometimes', 'string', Rule::in(array_map(fn ($c) => $c->value, Currency::cases()))],
             'status' => ['sometimes', 'string', 'in:active,inactive'],
             'metadata' => ['sometimes', 'nullable', 'array'],
+            'image' => ['sometimes', 'nullable', 'file', 'image', 'max:2048'],
         ];
     }
 }

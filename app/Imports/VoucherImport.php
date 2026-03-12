@@ -2,38 +2,27 @@
 
 namespace App\Imports;
 
-use RuntimeException;
 use App\Models\Voucher;
-use App\Models\PurchaseOrder;
+use App\DTOs\VoucherDTO;
 use App\Enums\VoucherCodeStatus;
 use Illuminate\Support\Collection;
-use App\Services\VoucherCipherService;
-use Illuminate\Support\Facades\Validator;
 use Maatwebsite\Excel\Concerns\ToCollection;
-use Illuminate\Validation\ValidationException;
+use App\Services\Voucher\VoucherCipherService;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithBatchInserts;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
+use App\Services\Voucher\VoucherPurchaseOrderValidator;
 
 class VoucherImport implements ToCollection, WithBatchInserts, WithChunkReading, WithHeadingRow
 {
     protected int $purchaseOrderID;
 
-    protected int $purchaseOrderTotalQuantity;
+    protected VoucherPurchaseOrderValidator $validator;
 
-    protected array $errors = [];
-
-    protected int $successCount = 0;
-
-    protected int $failureCount = 0;
-
-    protected VoucherCipherService $voucherCipherService;
-
-    public function __construct(VoucherCipherService $voucherCipherService, int $purchaseOrderID, int $purchaseOrderTotalQuantity)
-    {
+    public function __construct(
+        int $purchaseOrderID,
+    ) {
         $this->purchaseOrderID = $purchaseOrderID;
-        $this->purchaseOrderTotalQuantity = $purchaseOrderTotalQuantity;
-        $this->voucherCipherService = $voucherCipherService;
     }
 
     /**
@@ -41,51 +30,40 @@ class VoucherImport implements ToCollection, WithBatchInserts, WithChunkReading,
      */
     public function collection(Collection $rows): void
     {
-        $totalRows = $rows->count();
+        $rows = $rows->toArray();
 
-        if ($totalRows !== $this->purchaseOrderTotalQuantity) {
-            throw new RuntimeException("The number of voucher codes ({$totalRows}) does not match the total quantity of the purchase order ({$this->purchaseOrderTotalQuantity}).");
-        }
+        // Convert rows to DTOs for consistent validation and processing
+        $voucherDTOs = array_map(
+            fn (array $row) => VoucherDTO::fromFileRow($row),
+            $rows
+        );
 
-        try {
-            $purchaseOrder = PurchaseOrder::find($this->purchaseOrderID);
-            foreach ($rows as $row) {
-                // @phpstan-ignore function.impossibleType
-                $rowData = is_array($row) ? $row : $row->toArray();
+        $validator = new VoucherPurchaseOrderValidator;
+        $purchaseOrder = $validator->validateVoucherDTOs(
+            $voucherDTOs,
+            $this->purchaseOrderID
+        );
 
-                $this->validateRow($rowData);
-                $code = $this->voucherCipherService->encryptCode($rowData['code']);
-                $digitalProductID = $rowData['digital_product_id'];
-                $purchaseOrderItem = $purchaseOrder->items->firstWhere('digital_product_id', $digitalProductID);
+        foreach ($voucherDTOs as $voucherDTO) {
+            // Find the purchase order item for this digital product
+            $purchaseOrderItem = $purchaseOrder->items->firstWhere(
+                'digital_product_id',
+                $voucherDTO->digital_product_id
+            );
 
-                if (! $purchaseOrderItem) {
-                    throw new RuntimeException("Digital product ID {$digitalProductID} does not exist in the purchase order items.");
-                }
+            // Encrypt the code
+            $voucherCipherService = new VoucherCipherService;
+            $encryptedCode = $voucherCipherService->encryptCode($voucherDTO->code);
 
-                Voucher::create([
-                    'code' => $code,
-                    'purchase_order_id' => $this->purchaseOrderID,
-                    'purchase_order_item_id' => $purchaseOrderItem->id,
-                    'status' => VoucherCodeStatus::AVAILABLE->value,
-                ]);
-                $this->successCount++;
-            }
-        } catch (ValidationException $e) {
-            throw new RuntimeException($e->getMessage());
-        } catch (\Exception $e) {
-            throw $e;
-        }
-    }
-
-    protected function validateRow(array $data): void
-    {
-        $validator = Validator::make($data, [
-            'code' => 'required|string|max:255|unique:vouchers,code',
-            'digital_product_id' => 'required|integer|exists:digital_products,id',
-        ]);
-
-        if ($validator->fails()) {
-            throw new ValidationException($validator);
+            // Create voucher record
+            Voucher::create([
+                'purchase_order_id' => $this->purchaseOrderID,
+                'purchase_order_item_id' => $purchaseOrderItem->id,
+                'code' => $encryptedCode,
+                'serial_number' => $voucherDTO->serial_number,
+                'pin_code' => $voucherDTO->pin_code,
+                'status' => VoucherCodeStatus::AVAILABLE->value,
+            ]);
         }
     }
 

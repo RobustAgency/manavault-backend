@@ -2,7 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\Product\Lifecycle;
+use App\Enums\Product\FulfillmentMode;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -22,7 +25,6 @@ class Product extends Model
         'tags',
         'image',
         'face_value',
-        'selling_price',
         'currency',
         'status',
         'regions',
@@ -37,6 +39,10 @@ class Product extends Model
         'is_out_of_stock' => 'boolean',
     ];
 
+    protected $appends = [
+        'selling_price',
+    ];
+
     /**
      * @return BelongsToMany<DigitalProduct, $this, ProductSupplier>
      */
@@ -44,7 +50,9 @@ class Product extends Model
     {
         return $this->belongsToMany(DigitalProduct::class, 'product_supplier')
             ->using(ProductSupplier::class)
-            ->withPivot('priority');
+            ->withPivot('priority')
+            ->where('digital_products.is_active', true)
+            ->where('digital_products.in_stock', true);
     }
 
     /**
@@ -55,5 +63,41 @@ class Product extends Model
     public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class);
+    }
+
+    /**
+     * Get the price rule applications for this product.
+     *
+     * @return HasMany<PriceRuleProduct, $this>
+     */
+    public function priceRuleProducts(): HasMany
+    {
+        return $this->hasMany(PriceRuleProduct::class);
+    }
+
+    /**
+     * Get the selling price of the product, considering digital product associations and its priority.
+
+     *
+     * @return float The final selling price after applying active price rules.
+     */
+    public function getSellingPriceAttribute(): float
+    {
+        $query = $this->digitalProducts();
+
+        $digitalProduct = $this->fulfillment_mode === FulfillmentMode::MANUAL->value
+            ? $query->orderByPivot('priority')->first()
+            : $query->orderBy('digital_products.cost_price')->first();
+
+        return $digitalProduct ? (float) $digitalProduct->selling_price : 0.0;
+    }
+
+    public function getStatusAttribute(?string $value): string
+    {
+        if ($this->selling_price <= 0.0) {
+            return Lifecycle::IN_ACTIVE->value;
+        }
+
+        return $value;
     }
 }

@@ -49,6 +49,7 @@ class DigitalProductControllerTest extends TestCase
                     'currency' => 'usd',
                     'region' => 'US',
                     'cost_price' => 149.99,
+                    'selling_price' => 199.99,
                     'metadata' => ['external_id' => 'ext-123'],
                 ],
             ],
@@ -70,6 +71,7 @@ class DigitalProductControllerTest extends TestCase
                         'tags',
                         'region',
                         'cost_price',
+                        'selling_price',
                         'currency',
                     ],
                 ],
@@ -104,6 +106,7 @@ class DigitalProductControllerTest extends TestCase
                     'sku' => 'SKU-001',
                     'brand' => 'Brand A',
                     'cost_price' => 10.00,
+                    'selling_price' => 15.00,
                     'currency' => 'usd',
                 ],
                 [
@@ -112,6 +115,7 @@ class DigitalProductControllerTest extends TestCase
                     'sku' => 'SKU-002',
                     'brand' => 'Brand B',
                     'cost_price' => 20.00,
+                    'selling_price' => 30.00,
                     'currency' => 'usd',
                 ],
                 [
@@ -120,6 +124,7 @@ class DigitalProductControllerTest extends TestCase
                     'sku' => 'SKU-003',
                     'brand' => 'Brand C',
                     'cost_price' => 30.00,
+                    'selling_price' => 45.00,
                     'currency' => 'eur',
                 ],
             ],
@@ -156,6 +161,34 @@ class DigitalProductControllerTest extends TestCase
                 'products.0.sku',
                 'products.0.cost_price',
             ]);
+    }
+
+    public function test_admin_create_digital_product_fails_when_selling_price_is_zero(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create();
+
+        $data = [
+            'products' => [
+                [
+                    'supplier_id' => $supplier->id,
+                    'name' => 'Zero Price Product',
+                    'sku' => 'SKU-ZERO-001',
+                    'brand' => 'Test Brand',
+                    'cost_price' => 10.00,
+                    'selling_price' => 0,
+                    'currency' => 'usd',
+                ],
+            ],
+        ];
+
+        $response = $this->postJson('/api/digital-products', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['products.0.selling_price']);
+
+        $this->assertDatabaseMissing('digital_products', ['sku' => 'SKU-ZERO-001']);
     }
 
     public function test_admin_update_digital_product(): void

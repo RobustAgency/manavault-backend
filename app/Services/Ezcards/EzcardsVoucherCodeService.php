@@ -7,9 +7,9 @@ use App\Models\PurchaseOrder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\PurchaseOrderSupplier;
-use App\Services\VoucherCipherService;
 use App\Actions\Ezcards\GetVoucherCodes;
 use App\Enums\PurchaseOrderSupplierStatus;
+use App\Services\Voucher\VoucherCipherService;
 use App\Services\PurchaseOrder\PurchaseOrderStatusService;
 
 class EzcardsVoucherCodeService
@@ -90,6 +90,18 @@ class EzcardsVoucherCodeService
     }
 
     /**
+     * Process a purchase order by its ID to fetch and store voucher codes.
+     *
+     * @return array Processing result
+     */
+    public function processPurchaseOrderById(PurchaseOrder $purchaseOrder): array
+    {
+        $purchaseOrder->load(['vouchers', 'items.digitalProduct']);
+
+        return $this->processPurchaseOrder($purchaseOrder);
+    }
+
+    /**
      * Process a single purchase order to fetch and store voucher codes.
      *
      * @return array Processing result
@@ -125,9 +137,9 @@ class EzcardsVoucherCodeService
         $vouchersAdded = $this->storeVoucherCodes($purchaseOrder, $voucherCodesResponse);
         $result['vouchers_added'] = $vouchersAdded;
 
-        $this->purchaseOrderStatusService->updateStatus($purchaseOrder);
-
         $purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
+
+        $this->purchaseOrderStatusService->updateStatus($purchaseOrder);
 
         return $result;
     }

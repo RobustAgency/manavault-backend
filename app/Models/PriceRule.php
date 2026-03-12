@@ -34,4 +34,14 @@ class PriceRule extends Model
     {
         return $this->hasMany(PriceRuleCondition::class);
     }
+
+    /**
+     * Get the products that this price rule has been applied to.
+     *
+     * @return HasMany<PriceRuleProduct, $this>
+     */
+    public function priceRuleProducts(): HasMany
+    {
+        return $this->hasMany(PriceRuleProduct::class);
+    }
 }

@@ -263,4 +263,78 @@ class GetProductsTest extends TestCase
         $this->assertEquals(1, $result['meta']['current_page']);
         $this->assertEquals(5, $result['meta']['total_pages']);
     }
+
+    public function test_execute_uses_eur_wallet_when_supplier_slug_is_eur(): void
+    {
+        // Arrange
+        $expectedResponse = [
+            'status' => true,
+            'data' => [
+                [
+                    'id' => 1,
+                    'name' => 'Amazon Gift Card €25',
+                    'price' => 25.00,
+                    'currency' => 'EUR',
+                ],
+            ],
+        ];
+
+        Http::fake([
+            '*/products' => Http::response($expectedResponse, 200),
+        ]);
+
+        $getProductsAction = app(GetProducts::class);
+
+        // Act
+        $result = $getProductsAction->execute('gift-2-games-eur');
+
+        // Assert
+        $this->assertEquals($expectedResponse, $result);
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), '/products') &&
+                   $request->method() === 'GET';
+        });
+    }
+
+    public function test_execute_uses_gbp_wallet_when_supplier_slug_is_gbp(): void
+    {
+        // Arrange
+        $expectedResponse = [
+            'status' => true,
+            'data' => [
+                [
+                    'id' => 1,
+                    'name' => 'Amazon Gift Card £25',
+                    'price' => 25.00,
+                    'currency' => 'GBP',
+                ],
+            ],
+        ];
+
+        Http::fake([
+            '*/products' => Http::response($expectedResponse, 200),
+        ]);
+
+        $getProductsAction = app(GetProducts::class);
+
+        // Act
+        $result = $getProductsAction->execute('gift-2-games-gbp');
+
+        // Assert
+        $this->assertEquals($expectedResponse, $result);
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), '/products') &&
+                   $request->method() === 'GET';
+        });
+    }
+
+    public function test_execute_throws_exception_for_unknown_supplier_slug(): void
+    {
+        $getProductsAction = app(GetProducts::class);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unknown Gift2Games supplier slug: gift-2-games-unknown');
+
+        $getProductsAction->execute('gift-2-games-unknown');
+    }
 }

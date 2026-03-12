@@ -5,30 +5,21 @@ namespace App\Services\Gift2Games;
 use App\Models\Voucher;
 use App\Models\PurchaseOrder;
 use Illuminate\Support\Facades\Log;
-use App\Services\VoucherCipherService;
-use App\Services\PurchaseOrder\PurchaseOrderStatusService;
+use App\Services\Voucher\VoucherCipherService;
 
 class Gift2GamesVoucherService
 {
     public function __construct(
-        private VoucherCipherService $voucherCipherService,
-        private PurchaseOrderStatusService $purchaseOrderStatusService
+        private VoucherCipherService $voucherCipherService
     ) {}
 
     /**
      * Process and store vouchers from Gift2Games order response.
-     *
-     * @return array Processing result
      */
-    public function storeVouchers(PurchaseOrder $purchaseOrder, array $voucherCodesResponse): array
+    public function storeVouchers(PurchaseOrder $purchaseOrder, array $voucherCodesResponse): void
     {
-        $result = [
-            'vouchers_added' => 0,
-            'status_updated' => false,
-        ];
-
         if (empty($voucherCodesResponse)) {
-            return $result;
+            return;
         }
 
         // Load purchase order items with digital products
@@ -97,12 +88,7 @@ class Gift2GamesVoucherService
                     'serial_number' => $voucherData['serialNumber'] ?? null,
                     'status' => 'available',
                 ]);
-
-                $vouchersAdded++;
             }
-            $this->purchaseOrderStatusService->updateStatus($purchaseOrder);
-
-            $result['vouchers_added'] = $vouchersAdded;
         } catch (\Exception $e) {
             Log::error('Failed to store Gift2Games vouchers', [
                 'purchase_order_id' => $purchaseOrder->id,
@@ -111,6 +97,5 @@ class Gift2GamesVoucherService
             throw $e;
         }
 
-        return $result;
     }
 }

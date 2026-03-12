@@ -8,6 +8,7 @@ use App\Enums\PriceRule\ActionMode;
 use App\Enums\PriceRule\ActionOperator;
 use App\Repositories\ProductRepository;
 use App\Repositories\PriceRuleRepository;
+use App\Repositories\PriceRuleProductRepository;
 use App\Repositories\PriceRuleConditionRepository;
 
 class PricingRuleService
@@ -15,6 +16,7 @@ class PricingRuleService
     public function __construct(
         private PriceRuleRepository $priceRuleRepository,
         private PriceRuleConditionRepository $priceRuleConditionRepository,
+        private PriceRuleProductRepository $priceRuleProductRepository,
         private ProductRepository $productRepository,
     ) {}
 
@@ -70,6 +72,7 @@ class PricingRuleService
         }
 
         // Reapply actions to products
+        $this->priceRuleProductRepository->deleteByPriceRuleId($priceRule->id);
         $products = $this->productRepository->getProductsByConditions($data['conditions'], $updatedPriceRule->match_type);
         foreach ($products as $product) {
             $this->applyAction($product, $updatedPriceRule);
@@ -78,10 +81,24 @@ class PricingRuleService
 
     private function applyAction(Product $product, PriceRule $rule): void
     {
-        $updatedPrice = $this->calculateNewPrice($product, $rule->action_mode, $rule->action_value, $rule->action_operator);
+        $applicationData = $this->buildApplicationData(
+            $product,
+            $rule->action_mode,
+            $rule->action_operator,
+            $rule->action_value,
+        );
 
-        $product->update([
-            'selling_price' => max($updatedPrice, 0),
+        $this->priceRuleProductRepository->create([
+            'product_id' => $applicationData['product_id'],
+            'price_rule_id' => $rule->id,
+            'original_selling_price' => $applicationData['original_selling_price'],
+            'base_value' => $applicationData['base_value'],
+            'action_mode' => $applicationData['action_mode'],
+            'action_operator' => $applicationData['action_operator'],
+            'action_value' => $applicationData['action_value'],
+            'calculated_price' => $applicationData['calculated_price'],
+            'final_selling_price' => $applicationData['final_selling_price'],
+            'applied_at' => now(),
         ]);
     }
 
@@ -94,18 +111,57 @@ class PricingRuleService
 
         $preview = [];
         foreach ($products as $product) {
-            $newPrice = $this->calculateNewPrice($product, $data['action_mode'], $data['action_value'], $data['action_operator']);
+            $applicationData = $this->buildApplicationData(
+                $product,
+                $data['action_mode'],
+                $data['action_operator'],
+                $data['action_value'],
+            );
 
             $preview[] = [
-                'product_id' => $product->id,
-                'product_name' => $product->name,
-                'face_value' => (float) $product->face_value,
-                'current_selling_price' => (float) $product->selling_price,
-                'new_selling_price' => (float) max($newPrice, 0),
+                'product_id' => $applicationData['product_id'],
+                'product_name' => $applicationData['product_name'],
+                'face_value' => $applicationData['face_value'],
+                'current_selling_price' => $applicationData['current_selling_price'],
+                'new_selling_price' => $applicationData['new_selling_price'],
             ];
         }
 
         return $preview;
+    }
+
+    /**
+     * Build the application data for a single product and price rule action.
+     * This is the SINGLE SOURCE OF TRUTH for all price calculations.
+     * Used by both preview (no DB write) and apply (DB write).
+     *
+     * @return array<string, mixed>
+     */
+    private function buildApplicationData(
+        Product $product,
+        string $actionMode,
+        string $actionOperator,
+        mixed $actionValue,
+    ): array {
+        $baseValue = (float) $product->face_value;
+        $originalSellingPrice = (float) $product->selling_price;
+        $calculatedPrice = $this->calculateNewPrice($product, $actionMode, $actionValue, $actionOperator);
+        $finalSellingPrice = (float) max($calculatedPrice, 0);
+
+        return [
+            'product_id' => $product->id,
+            'product_name' => $product->name,
+            'original_selling_price' => $originalSellingPrice,
+            'base_value' => $baseValue,
+            'action_mode' => $actionMode,
+            'action_operator' => $actionOperator,
+            'action_value' => (float) $actionValue,
+            'calculated_price' => $calculatedPrice,
+            'final_selling_price' => $finalSellingPrice,
+            'face_value' => $baseValue,
+            'current_selling_price' => $originalSellingPrice,
+            'new_selling_price' => $finalSellingPrice,
+        ];
     }
 
     /**
