@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Enums\Product\FulfillmentMode;
 use App\Http\Resources\ProductResource;
 use App\Repositories\ProductRepository;
+use App\Events\DigitalProductPriorityChange;
 use App\Http\Requests\Product\ListProductRequest;
 use App\Http\Requests\Product\StoreProductRequest;
 use App\Http\Requests\Product\UpdateProductRequest;
@@ -127,6 +128,8 @@ class ProductController extends Controller
         $validated = $request->validated();
         $this->repository->updateDigitalProductsPriority($product, $validated['digital_products']);
         $product->load('digitalProducts');
+
+        event(new DigitalProductPriorityChange($product));
 
         return response()->json([
             'error' => false,
