@@ -6,6 +6,7 @@ use App\Models\Voucher;
 use App\Models\PurchaseOrder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Events\NewVouchersAvailable;
 use App\Models\PurchaseOrderSupplier;
 use App\Actions\Ezcards\GetVoucherCodes;
 use App\Enums\PurchaseOrderSupplierStatus;
@@ -263,6 +264,12 @@ class EzcardsVoucherCodeService
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;
+        }
+
+        // Notify listeners that new vouchers are available so pending sale orders can be fulfilled
+        if ($vouchersAdded > 0) {
+            $digitalProductIds = $purchaseOrder->items->pluck('digital_product_id')->unique()->values()->all();
+            event(new NewVouchersAvailable($digitalProductIds));
         }
 
         return $vouchersAdded;

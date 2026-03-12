@@ -5,6 +5,7 @@ namespace App\Services\Gift2Games;
 use App\Models\Voucher;
 use App\Models\PurchaseOrder;
 use Illuminate\Support\Facades\Log;
+use App\Events\NewVouchersAvailable;
 use App\Services\Voucher\VoucherCipherService;
 
 class Gift2GamesVoucherService
@@ -97,5 +98,8 @@ class Gift2GamesVoucherService
             throw $e;
         }
 
+        // Notify listeners that new vouchers are available so pending sale orders can be fulfilled
+        $digitalProductIds = $purchaseOrder->items->pluck('digital_product_id')->unique()->values()->all();
+        event(new NewVouchersAvailable($digitalProductIds));
     }
 }

@@ -165,4 +165,24 @@ class PurchaseOrderService
     {
         return 'PO-'.date('Ymd').'-'.strtoupper(uniqid());
     }
+
+    /**
+     * Convenience wrapper to create a purchase order for a single digital product.
+     * Used by AutoPurchaseOrderService when covering sale order shortfalls.
+     */
+    public function createPurchaseOrderForDigitalProduct(
+        DigitalProduct $digitalProduct,
+        int $quantity
+    ): PurchaseOrder {
+        return $this->createPurchaseOrder([
+            'currency' => $digitalProduct->currency,
+            'items' => [
+                [
+                    'supplier_id' => $digitalProduct->supplier_id,
+                    'digital_product_id' => $digitalProduct->id,
+                    'quantity' => $quantity,
+                ],
+            ],
+        ]);
+    }
 }
