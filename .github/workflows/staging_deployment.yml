@@ -32,4 +32,4 @@ jobs:
           ssh-keyscan -H 144.126.254.193 >> ~/.ssh/known_hosts
 
       - name: Deploy to Staging server
-        run: ./vendor/bin/envoy --envoy=Envoy.staging.blade.php run deploy
+        run: ./vendor/bin/envoy run deploy --env=staging
