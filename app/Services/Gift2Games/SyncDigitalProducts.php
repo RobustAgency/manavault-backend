@@ -58,7 +58,7 @@ class SyncDigitalProducts
                 'sku' => $item['id'],
                 'brand' => $item['brand'] ?? null,
                 'description' => $item['description'] ?? null,
-                'cost_price' => $item['price'] ?? null,
+                'cost_price' => $item['originalPrice'] ?? null,
                 'currency' => strtolower($item['productFaceValueCurrency'] ?? null),
                 'metadata' => $item,
                 'source' => 'api',
