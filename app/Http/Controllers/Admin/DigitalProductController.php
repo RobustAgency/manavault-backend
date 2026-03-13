@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Models\DigitalProduct;
 use Illuminate\Http\JsonResponse;
+use App\Events\DigitalStockUpdate;
 use App\Http\Controllers\Controller;
 use App\Services\DigitalProductImportService;
 use App\Http\Resources\DigitalProductResource;
@@ -70,7 +71,14 @@ class DigitalProductController extends Controller
     public function update(UpdateDigitalProductRequest $request, DigitalProduct $digitalProduct): JsonResponse
     {
         $validated = $request->validated();
+        $sellingPriceChanged = isset($validated['selling_price'])
+            && $validated['selling_price'] != $digitalProduct->selling_price;
+
         $digitalProduct = $this->repository->updateDigitalProduct($digitalProduct, $validated);
+
+        if ($sellingPriceChanged) {
+            event(new DigitalStockUpdate($digitalProduct));
+        }
 
         return response()->json([
             'error' => false,

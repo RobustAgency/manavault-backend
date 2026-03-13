@@ -1,15 +1,16 @@
-@servers(['prod' => 'dev@68.183.187.79']);
+@servers(['staging' => 'dev@146.190.193.138', 'production' => 'dev@68.183.187.79']);
 
 @setup
-    $repository = 'git@github.com:RobustAgency/manavault-backend.git';
-    $branch = 'main';
-    $app_dir = '/var/www/app';
+    $env = isset($env) ? $env : 'staging';
+    $repository = ($env == 'production') ? "git@github.com:RobustAgency/manavault-backend.git" : "git@github.com-repo-14:RobustAgency/manavault-backend.git";
+    $branch = $env == 'production' ? 'main' : 'staging';
+    $app_dir = $env == 'production' ? '/var/www/app' : '/var/www/manavault';
     $release = date('Y_m_d_H_i');
     $releases_dir = $app_dir . '/releases';
     $new_release_dir = $releases_dir .'/'. $release;
 @endsetup
 
-@story('deploy', ['on' => 'prod'])
+@story('deploy', ['on' => $env])
     clone_repository
     run_composer
     update_symlinks
