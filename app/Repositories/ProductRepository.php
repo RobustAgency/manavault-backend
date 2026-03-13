@@ -174,6 +174,14 @@ class ProductRepository
             ->all();
     }
 
+    public function getProductIdsByDigitalProductId(int $digitalProductId): array
+    {
+        return Product::query()
+            ->whereHas('digitalProducts', fn ($q) => $q->where('digital_products.id', $digitalProductId))
+            ->pluck('id')
+            ->all();
+    }
+
     /**
      * Get products by brand ID.
      *
