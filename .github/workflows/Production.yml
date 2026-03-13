@@ -16,19 +16,20 @@ jobs:
       - name: Set git safe directory
         run: git config --global --add safe.directory /app
 
+
       - name: Require Laravel Envoy
         uses: php-actions/composer@v6
         with:
           command: require
           args: laravel/envoy --dev --ignore-platform-reqs
 
-      - name: Setup SSH
+      - name: Set up SSH
         run: |
-          echo "${{ secrets.MANAVAULT_PROD_KEY }}" > ~/.ssh/id_rsa
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.MANAVAULT_PROD }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          eval "$(ssh-agent -s)"
-          ssh-add ~/.ssh/id_rsa
-          ssh-keyscan -H 188.166.211.251 >> ~/.ssh/known_hosts
+          ssh-keyscan -H 68.183.187.79 >> ~/.ssh/known_hosts
 
-      - name: Deploy to Production server
+      - name: Deploy to Staging server
         run: ./vendor/bin/envoy run deploy
