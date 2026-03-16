@@ -25,7 +25,7 @@ class ProcessPendingSaleOrders implements ShouldQueue
         Log::info('FulfillPendingSaleOrders: triggered with new vouchers for digital products', [
             'digital_product_ids' => $digitalProductIds,
         ]);
-        $pendingOrders = $this->saleOrderRepository->getPendingSaleOrders();
+        $pendingOrders = $this->saleOrderRepository->getPendingSaleOrdersForDigitalProducts($digitalProductIds);
 
         foreach ($pendingOrders as $saleOrder) {
             $this->processSaleOrder($saleOrder);

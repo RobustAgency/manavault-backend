@@ -33,7 +33,7 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
         private readonly PurchaseOrder $purchaseOrder,
         private readonly Supplier $supplier,
         private readonly PurchaseOrderSupplier $purchaseOrderSupplier,
-        private readonly array $orderItems,
+        private readonly array $purchaseOrderItems,
         private readonly string $orderNumber,
         private readonly string $currency,
     ) {}
@@ -49,7 +49,7 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
         try {
             $externalOrderResponse = $purchaseOrderPlacementService->placeOrder(
                 $this->supplier,
-                $this->orderItems,
+                $this->purchaseOrderItems,
                 $this->orderNumber,
                 $this->currency,
             );
@@ -65,6 +65,7 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to place external order', [
+                'purchase_order_id' => $this->purchaseOrder->id,
                 'supplier_slug' => $this->supplier->slug,
                 'supplier_id' => $this->supplier->id,
                 'error' => $e->getMessage(),

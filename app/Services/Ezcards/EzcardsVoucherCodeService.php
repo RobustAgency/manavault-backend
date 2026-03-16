@@ -81,7 +81,7 @@ class EzcardsVoucherCodeService
         $purchaseOrderIds = PurchaseOrderSupplier::whereHas('supplier', function ($query) {
             $query->where('slug', 'ez_cards');
         })
-            ->where('status', '!=', 'completed')
+            ->where('status', PurchaseOrderSupplierStatus::PROCESSING->value)
             ->whereNotNull('transaction_id')
             ->pluck('purchase_order_id');
 

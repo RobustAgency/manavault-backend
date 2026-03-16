@@ -66,8 +66,6 @@ class PurchaseOrderService
     ): void {
         $totalPrice = (float) $purchaseOrder->total_price;
         $orderItems = [];
-        $transactionId = null;
-        $externalOrderResponse = [];
 
         foreach ($items as $item) {
             /** @var DigitalProduct $digitalProduct */
@@ -93,10 +91,11 @@ class PurchaseOrderService
             'status' => PurchaseOrderSupplierStatus::PROCESSING->value,
         ]);
 
+        $purchaseOrderItems = [];
         foreach ($orderItems as $orderItem) {
             /** @var DigitalProduct $digitalProduct */
             $digitalProduct = $orderItem['digital_product'];
-            $this->purchaseOrderRepository->createPurchaseOrderItem([
+            $purchaseOrderItems[] = $this->purchaseOrderRepository->createPurchaseOrderItem([
                 'purchase_order_id' => $purchaseOrder->id,
                 'supplier_id' => $supplier->id,
                 'digital_product_id' => $orderItem['digital_product_id'],
@@ -116,7 +115,7 @@ class PurchaseOrderService
                 $purchaseOrder,
                 $supplier,
                 $purchaseOrderSupplier,
-                $orderItems,
+                $purchaseOrderItems,
                 $orderNumber,
                 $currency,
             );

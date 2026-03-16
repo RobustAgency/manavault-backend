@@ -14,8 +14,8 @@ class EzcardsPlaceOrderService
         $products = [];
         foreach ($orderItems as $item) {
             $products[] = [
-                'sku' => $item['digital_product']->sku,
-                'quantity' => $item['quantity'],
+                'sku' => $item->digitalProduct->sku,
+                'quantity' => $item->quantity,
             ];
         }
 

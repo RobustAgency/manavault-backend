@@ -145,4 +145,21 @@ class SaleOrderRepository
             ->where('status', Status::PROCESSING->value)
             ->get();
     }
+
+    /**
+     * Get pending sale orders that have at least one item whose product is linked
+     * to one of the given digital product IDs (i.e. orders that may now be fulfillable).
+     *
+     * @param  array<int>  $digitalProductIds
+     * @return Collection<int, SaleOrder>
+     */
+    public function getPendingSaleOrdersForDigitalProducts(array $digitalProductIds): Collection
+    {
+        return SaleOrder::with(['items.product.digitalProducts'])
+            ->where('status', Status::PROCESSING->value)
+            ->whereHas('items.product.digitalProducts', function ($query) use ($digitalProductIds) {
+                $query->whereIn('digital_products.id', $digitalProductIds);
+            })
+            ->get();
+    }
 }

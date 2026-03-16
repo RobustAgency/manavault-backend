@@ -77,7 +77,7 @@ class SaleOrderService
             return $saleOrder->load(['items.digitalProducts']);
 
         } catch (\Exception $e) {
-            $saleOrder->update(['status' => Status::FAILED->value]);
+            logger()->error("Error processing sale order ID: {$saleOrder->id} - {$e->getMessage()}");
 
             return $saleOrder;
         }

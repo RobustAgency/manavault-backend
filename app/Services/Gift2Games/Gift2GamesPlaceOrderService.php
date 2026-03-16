@@ -17,7 +17,7 @@ class Gift2GamesPlaceOrderService
     {
         $totalPrice = 0;
         foreach ($orderItems as $item) {
-            $totalPrice += $item['subtotal'];
+            $totalPrice += $item->subtotal;
         }
         $hasSufficientBalance = $this->hasSufficientBalance($totalPrice, $supplierSlug);
         if (! $hasSufficientBalance) {
@@ -27,9 +27,9 @@ class Gift2GamesPlaceOrderService
         }
         $vouchers = [];
         foreach ($orderItems as $item) {
-            for ($i = 0; $i < $item['quantity']; $i++) {
+            for ($i = 0; $i < $item->quantity; $i++) {
                 $data = [
-                    'productId' => (int) $item['digital_product']->sku,
+                    'productId' => (int) $item->digitalProduct->sku,
                     'referenceNumber' => $orderNumber,
                 ];
                 try {
@@ -40,7 +40,8 @@ class Gift2GamesPlaceOrderService
                     continue;
                 }
                 $voucherData = $response['data'];
-                $voucherData['digital_product_id'] = $item['digital_product_id'];
+                $voucherData['digital_product_id'] = $item->digital_product_id;
+                $voucherData['purchase_order_item_id'] = $item->id;
                 $vouchers[] = $voucherData;
             }
         }
