@@ -5,7 +5,6 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Imports\PriceUpdateImport;
 use Maatwebsite\Excel\Facades\Excel;
-use Illuminate\Support\Facades\Storage;
 
 class UpdateDigitalProductSellingPrice extends Command
 {
@@ -30,7 +29,7 @@ class UpdateDigitalProductSellingPrice extends Command
     {
         $this->info('Starting price update process...');
         $import = new PriceUpdateImport;
-        $path = Storage::disk('public')->path('Mana_Minds_Price_List_2026_updated.xlsx');
+        $path = base_path('Mana_Minds_Price_List_2026_updated-2.xlsx');
 
         Excel::import($import, $path);
         $summary = $import->summary;
