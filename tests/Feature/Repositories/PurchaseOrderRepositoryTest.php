@@ -2,14 +2,15 @@
 
 namespace Tests\Feature\Repositories;
 
+use Mockery;
 use Tests\TestCase;
-use App\Models\Supplier;
+use App\Models\Product;
 use App\Models\PurchaseOrder;
-use App\Models\DigitalProduct;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Foundation\Testing\WithFaker;
 use App\Repositories\PurchaseOrderRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Actions\Ezcards\PlaceOrder as EzcardsPlaceOrder;
+use App\Actions\Gift2Games\CreateOrder as Gift2GamesCreateOrder;
 
 class PurchaseOrderRepositoryTest extends TestCase
 {
@@ -20,253 +21,323 @@ class PurchaseOrderRepositoryTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->repository = app(PurchaseOrderRepository::class);
     }
 
-    public function test_create_purchase_order_with_gift2games_supplier(): void
+    protected function tearDown(): void
     {
-        $supplier = Supplier::factory()->create([
-            'name' => 'Gift2Games',
-            'slug' => 'gift2games',
-            'type' => 'external',
+        Mockery::close();
+        parent::tearDown();
+    }
+
+    /** @test */
+    public function it_creates_purchase_order_for_ez_cards_supplier()
+    {
+        // Arrange
+        $supplier = Supplier::factory()->create(['slug' => 'ez_cards']);
+        $product = Product::factory()->create([
+            'supplier_id' => $supplier->id,
+            'sku' => 'TEST-SKU-123',
+            'purchase_price' => 10.00,
         ]);
 
-        $digitalProduct = DigitalProduct::factory()->create([
-            'sku' => '12345',
-            'cost_price' => 10.00,
+        $mockEzcardsAction = Mockery::mock(EzcardsPlaceOrder::class);
+        $mockEzcardsAction->shouldReceive('execute')
+            ->once()
+            ->withArgs(function ($args) use ($product) {
+                return $args['product_sku'] === $product->sku
+                    && $args['quantity'] === 5
+                    && isset($args['order_number']);
+            })
+            ->andReturn([
+                'success' => true,
+                'data' => ['transactionId' => 'TXN-12345'],
+            ]);
+
+        $mockGift2GamesAction = Mockery::mock(Gift2GamesCreateOrder::class);
+
+        $this->repository = new PurchaseOrderRepository(
+            $mockEzcardsAction,
+            $mockGift2GamesAction
+        );
+
+        // Act
+        $purchaseOrder = $this->repository->createPurchaseOrder([
+            'product_id' => $product->id,
+            'supplier_id' => $supplier->id,
+            'quantity' => 5,
         ]);
 
-        Http::fake([
-            '*/create_order' => Http::sequence()
-                ->push([
-                    'status' => 'success',
-                    'data' => [
-                        'referenceNumber' => 'PO-20251117-TEST',
-                        'productId' => 12345,
-                        'code' => 'VOUCHER-CODE-001',
-                        'pin' => '1234',
-                        'serial' => 'SERIAL-001',
-                        'expiryDate' => '2025-12-31',
-                    ],
-                ], 200)
-                ->push([
-                    'status' => 'success',
-                    'data' => [
-                        'referenceNumber' => 'PO-20251117-TEST',
-                        'productId' => 12345,
-                        'code' => 'VOUCHER-CODE-002',
-                        'pin' => '5678',
-                        'serial' => 'SERIAL-002',
-                        'expiryDate' => '2025-12-31',
-                    ],
-                ], 200),
-        ]);
-
-        $data = [
-            'items' => [
-                [
-                    'supplier_id' => $supplier->id,
-                    'digital_product_id' => $digitalProduct->id,
-                    'quantity' => 2,
-                ],
-            ],
-        ];
-
-        $purchaseOrder = $this->repository->createPurchaseOrder($data);
-
+        // Assert
         $this->assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
-        $this->assertEquals('completed', $purchaseOrder->status);
-        $this->assertCount(1, $purchaseOrder->items);
-        $this->assertEquals(2, $purchaseOrder->vouchers()->count());
+        $this->assertEquals($product->id, $purchaseOrder->product_id);
+        $this->assertEquals($supplier->id, $purchaseOrder->supplier_id);
+        $this->assertEquals(5, $purchaseOrder->quantity);
+        $this->assertEquals(50.00, $purchaseOrder->total_price); // 10 * 5
+        $this->assertEquals('TXN-12345', $purchaseOrder->transaction_id);
+        $this->assertNotNull($purchaseOrder->order_number);
+        $this->assertFalse((bool) $purchaseOrder->voucher_codes_processed);
 
-        Http::assertSent(function ($request) {
-            return str_contains($request->url(), '/create_order') &&
-                   $request->method() === 'POST';
-        });
+        // Verify no vouchers created immediately for EZ Cards
+        $this->assertEquals(0, $purchaseOrder->vouchers()->count());
     }
 
-    public function test_create_purchase_order_with_ezcards_supplier(): void
+    /** @test */
+    public function it_creates_purchase_order_for_gift2games_supplier()
     {
-        $supplier = Supplier::factory()->create([
-            'name' => 'EzCards',
-            'slug' => 'ez_cards',
-            'type' => 'external',
+        // Arrange
+        $supplier = Supplier::factory()->create(['slug' => 'gift2games']);
+        $product = Product::factory()->create([
+            'supplier_id' => $supplier->id,
+            'sku' => 'G2G-SKU-456',
+            'purchase_price' => 20.00,
         ]);
 
-        $digitalProduct = DigitalProduct::factory()->create([
-            'sku' => 'AAU-QB-Q1J',
-            'cost_price' => 22.88,
-        ]);
+        $mockEzcardsAction = Mockery::mock(EzcardsPlaceOrder::class);
 
-        Http::fake([
-            '*/v2/orders' => Http::response([
-                'requestId' => 'test-request-id',
+        $mockGift2GamesAction = Mockery::mock(Gift2GamesCreateOrder::class);
+        $mockGift2GamesAction->shouldReceive('execute')
+            ->once()
+            ->withArgs(function ($args) use ($product) {
+                return $args['product_sku'] === $product->sku
+                    && $args['quantity'] === 10
+                    && isset($args['order_number']);
+            })
+            ->andReturn([
+                'success' => true,
                 'data' => [
-                    'transactionId' => '1234',
-                    'clientOrderNumber' => 'PO-20251117-TEST',
-                    'status' => 'PROCESSING',
-                    'grandTotal' => [
-                        'amount' => '68.64',
-                        'currency' => 'USD',
-                    ],
-                    'products' => [
-                        [
-                            'sku' => 'AAU-QB-Q1J',
-                            'quantity' => 3,
-                            'unitPrice' => ['amount' => '22.88', 'currency' => 'USD'],
-                            'totalPrice' => ['amount' => '68.64', 'currency' => 'USD'],
-                            'status' => 'PROCESSING',
-                        ],
-                    ],
+                    'serialCode' => 'SERIAL-ABC-123',
+                    'serialNumber' => 'SN-789456',
                 ],
-            ], 200),
+            ]);
+
+        $this->repository = new PurchaseOrderRepository(
+            $mockEzcardsAction,
+            $mockGift2GamesAction
+        );
+
+        // Act
+        $purchaseOrder = $this->repository->createPurchaseOrder([
+            'product_id' => $product->id,
+            'supplier_id' => $supplier->id,
+            'quantity' => 10,
         ]);
 
-        $data = [
-            'items' => [
-                [
-                    'supplier_id' => $supplier->id,
-                    'digital_product_id' => $digitalProduct->id,
-                    'quantity' => 3,
-                ],
-            ],
-        ];
-
-        $purchaseOrder = $this->repository->createPurchaseOrder($data);
-
+        // Assert
         $this->assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
-        $this->assertEquals('processing', $purchaseOrder->status);
-        $this->assertCount(1, $purchaseOrder->items);
+        $this->assertEquals($product->id, $purchaseOrder->product_id);
+        $this->assertEquals($supplier->id, $purchaseOrder->supplier_id);
+        $this->assertEquals(10, $purchaseOrder->quantity);
+        $this->assertEquals(200.00, $purchaseOrder->total_price); // 20 * 10
+        $this->assertNull($purchaseOrder->transaction_id); // Gift2Games doesn't use transaction_id
 
-        Http::assertSent(function ($request) {
-            return str_contains($request->url(), '/v2/orders') &&
-                   $request->method() === 'POST';
-        });
+        // Verify voucher created immediately for Gift2Games
+        $this->assertEquals(1, $purchaseOrder->vouchers()->count());
+
+        $voucher = $purchaseOrder->vouchers()->first();
+        $this->assertEquals('SERIAL-ABC-123', $voucher->code);
+        $this->assertEquals('SN-789456', $voucher->serial_number);
+        $this->assertEquals('COMPLETED', $voucher->status);
     }
 
-    public function test_create_purchase_order_with_internal_supplier(): void
+    /** @test */
+    public function it_throws_exception_when_ez_cards_api_fails()
     {
-        $supplier = Supplier::factory()->create([
-            'name' => 'Internal Supplier',
-            'slug' => 'internal_supplier',
-            'type' => 'internal',
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Failed to place order with supplier ez_cards');
+
+        // Arrange
+        $supplier = Supplier::factory()->create(['slug' => 'ez_cards']);
+        $product = Product::factory()->create(['supplier_id' => $supplier->id]);
+
+        $mockEzcardsAction = Mockery::mock(EzcardsPlaceOrder::class);
+        $mockEzcardsAction->shouldReceive('execute')
+            ->once()
+            ->andThrow(new \Exception('API connection failed'));
+
+        $mockGift2GamesAction = Mockery::mock(Gift2GamesCreateOrder::class);
+
+        $this->repository = new PurchaseOrderRepository(
+            $mockEzcardsAction,
+            $mockGift2GamesAction
+        );
+
+        // Act
+        $this->repository->createPurchaseOrder([
+            'product_id' => $product->id,
+            'supplier_id' => $supplier->id,
+            'quantity' => 5,
         ]);
-
-        $digitalProduct = DigitalProduct::factory()->create([
-            'sku' => 'INTERNAL-SKU',
-            'cost_price' => 15.00,
-        ]);
-
-        $data = [
-            'items' => [
-                [
-                    'supplier_id' => $supplier->id,
-                    'digital_product_id' => $digitalProduct->id,
-                    'quantity' => 5,
-                ],
-            ],
-        ];
-
-        $purchaseOrder = $this->repository->createPurchaseOrder($data);
-
-        $this->assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
-        $this->assertEquals('processing', $purchaseOrder->status);
-        $this->assertCount(1, $purchaseOrder->items);
-        $this->assertEquals(75.00, $purchaseOrder->total_price);
     }
 
-    public function test_create_purchase_order_with_multiple_items(): void
+    /** @test */
+    public function it_throws_exception_when_gift2games_api_fails()
     {
-        $supplier = Supplier::factory()->create([
-            'name' => 'EzCards',
-            'slug' => 'ez_cards',
-            'type' => 'external',
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Failed to place order with supplier gift2games');
+
+        // Arrange
+        $supplier = Supplier::factory()->create(['slug' => 'gift2games']);
+        $product = Product::factory()->create(['supplier_id' => $supplier->id]);
+
+        $mockEzcardsAction = Mockery::mock(EzcardsPlaceOrder::class);
+
+        $mockGift2GamesAction = Mockery::mock(Gift2GamesCreateOrder::class);
+        $mockGift2GamesAction->shouldReceive('execute')
+            ->once()
+            ->andThrow(new \Exception('API timeout'));
+
+        $this->repository = new PurchaseOrderRepository(
+            $mockEzcardsAction,
+            $mockGift2GamesAction
+        );
+
+        // Act
+        $this->repository->createPurchaseOrder([
+            'product_id' => $product->id,
+            'supplier_id' => $supplier->id,
+            'quantity' => 10,
         ]);
-
-        $digitalProduct1 = DigitalProduct::factory()->create([
-            'sku' => 'AAU-QB-Q1J',
-            'cost_price' => 22.88,
-        ]);
-
-        $digitalProduct2 = DigitalProduct::factory()->create([
-            'sku' => 'SMS-1B-I4A',
-            'cost_price' => 45.50,
-        ]);
-
-        Http::fake([
-            '*/v2/orders' => Http::response([
-                'requestId' => 'test-request-id',
-                'data' => [
-                    'transactionId' => '5678',
-                    'clientOrderNumber' => 'PO-20251117-MULTI',
-                    'status' => 'PROCESSING',
-                    'grandTotal' => [
-                        'amount' => '182.26',
-                        'currency' => 'USD',
-                    ],
-                    'products' => [
-                        [
-                            'sku' => 'AAU-QB-Q1J',
-                            'quantity' => 2,
-                            'status' => 'PROCESSING',
-                        ],
-                        [
-                            'sku' => 'SMS-1B-I4A',
-                            'quantity' => 3,
-                            'status' => 'PROCESSING',
-                        ],
-                    ],
-                ],
-            ], 200),
-        ]);
-
-        $data = [
-            'items' => [
-                [
-                    'supplier_id' => $supplier->id,
-                    'digital_product_id' => $digitalProduct1->id,
-                    'quantity' => 2,
-                ],
-                [
-                    'supplier_id' => $supplier->id,
-                    'digital_product_id' => $digitalProduct2->id,
-                    'quantity' => 3,
-                ],
-            ],
-        ];
-
-        $purchaseOrder = $this->repository->createPurchaseOrder($data);
-
-        $this->assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
-        $this->assertEquals('processing', $purchaseOrder->status);
-        $this->assertCount(2, $purchaseOrder->items);
-        $this->assertEquals(182.26, $purchaseOrder->total_price);
-
-        Http::assertSent(function ($request) {
-            return str_contains($request->url(), '/v2/orders') &&
-                   $request->method() === 'POST' &&
-                   count($request['products']) === 2;
-        });
     }
 
-    public function test_get_paginated_purchase_orders(): void
+    /** @test */
+    public function it_calculates_total_price_correctly()
+    {
+        // Arrange
+        $supplier = Supplier::factory()->create(['slug' => 'ez_cards']);
+        $product = Product::factory()->create([
+            'supplier_id' => $supplier->id,
+            'purchase_price' => 15.50,
+        ]);
+
+        $mockEzcardsAction = Mockery::mock(EzcardsPlaceOrder::class);
+        $mockEzcardsAction->shouldReceive('execute')->andReturn([
+            'success' => true,
+            'data' => ['transactionId' => 'TXN-999'],
+        ]);
+
+        $mockGift2GamesAction = Mockery::mock(Gift2GamesCreateOrder::class);
+
+        $this->repository = new PurchaseOrderRepository(
+            $mockEzcardsAction,
+            $mockGift2GamesAction
+        );
+
+        // Act
+        $purchaseOrder = $this->repository->createPurchaseOrder([
+            'product_id' => $product->id,
+            'supplier_id' => $supplier->id,
+            'quantity' => 7,
+        ]);
+
+        // Assert
+        $this->assertEquals(108.50, $purchaseOrder->total_price); // 15.50 * 7
+    }
+
+    /** @test */
+    public function it_generates_unique_order_number()
+    {
+        // Arrange
+        $supplier = Supplier::factory()->create(['slug' => 'ez_cards']);
+        $product = Product::factory()->create(['supplier_id' => $supplier->id]);
+
+        $mockEzcardsAction = Mockery::mock(EzcardsPlaceOrder::class);
+        $mockEzcardsAction->shouldReceive('execute')->andReturn([
+            'success' => true,
+            'data' => ['transactionId' => 'TXN-001'],
+        ]);
+
+        $mockGift2GamesAction = Mockery::mock(Gift2GamesCreateOrder::class);
+
+        $this->repository = new PurchaseOrderRepository(
+            $mockEzcardsAction,
+            $mockGift2GamesAction
+        );
+
+        // Act
+        $order1 = $this->repository->createPurchaseOrder([
+            'product_id' => $product->id,
+            'supplier_id' => $supplier->id,
+            'quantity' => 1,
+        ]);
+
+        $order2 = $this->repository->createPurchaseOrder([
+            'product_id' => $product->id,
+            'supplier_id' => $supplier->id,
+            'quantity' => 1,
+        ]);
+
+        // Assert
+        $this->assertNotEquals($order1->order_number, $order2->order_number);
+        $this->assertMatchesRegularExpression('/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i', $order1->order_number);
+    }
+
+    /** @test */
+    public function it_can_get_filtered_purchase_orders()
     {
         PurchaseOrder::factory()->count(15)->create();
 
-        $orders = $this->repository->getFilteredPurchaseOrders();
+        $this->repository = app(PurchaseOrderRepository::class);
+        $orders = $this->repository->getFilteredPurchaseOrders(['per_page' => 10]);
 
         $this->assertCount(10, $orders->items());
         $this->assertEquals(15, $orders->total());
     }
 
-    public function test_get_paginated_purchase_orders_with_custom_per_page(): void
+    /** @test */
+    public function it_can_filter_by_order_number()
     {
-        PurchaseOrder::factory()->count(25)->create();
+        $order = PurchaseOrder::factory()->create(['order_number' => 'ORDER-123-ABC']);
+        PurchaseOrder::factory()->count(5)->create();
 
-        $orders = $this->repository->getFilteredPurchaseOrders(['per_page' => 5]);
+        $this->repository = app(PurchaseOrderRepository::class);
+        $orders = $this->repository->getFilteredPurchaseOrders(['order_number' => '123']);
 
-        $this->assertCount(5, $orders->items());
-        $this->assertEquals(25, $orders->total());
-        $this->assertEquals(5, $orders->count());
+        $this->assertEquals(1, $orders->total());
+        $this->assertEquals($order->id, $orders->first()->id);
+    }
+
+    /** @test */
+    public function it_can_filter_by_supplier_name()
+    {
+        $supplier = Supplier::factory()->create(['name' => 'Special Supplier']);
+        $product = Product::factory()->create(['supplier_id' => $supplier->id]);
+        PurchaseOrder::factory()->create([
+            'product_id' => $product->id,
+            'supplier_id' => $supplier->id,
+        ]);
+        PurchaseOrder::factory()->count(3)->create();
+
+        $this->repository = app(PurchaseOrderRepository::class);
+        $orders = $this->repository->getFilteredPurchaseOrders(['supplier_name' => 'Special']);
+
+        $this->assertEquals(1, $orders->total());
+    }
+
+    /** @test */
+    public function it_can_filter_by_product_name()
+    {
+        $product = Product::factory()->create(['name' => 'Unique Product']);
+        PurchaseOrder::factory()->create(['product_id' => $product->id]);
+        PurchaseOrder::factory()->count(4)->create();
+
+        $this->repository = app(PurchaseOrderRepository::class);
+        $orders = $this->repository->getFilteredPurchaseOrders(['product_name' => 'Unique']);
+
+        $this->assertEquals(1, $orders->total());
+    }
+
+    /** @test */
+    public function it_loads_relationships_when_filtering()
+    {
+        PurchaseOrder::factory()->create();
+
+        $this->repository = app(PurchaseOrderRepository::class);
+        $orders = $this->repository->getFilteredPurchaseOrders([]);
+        $firstOrder = $orders->items()[0];
+
+        $this->assertTrue($firstOrder->relationLoaded('product'));
+        $this->assertTrue($firstOrder->relationLoaded('supplier'));
+        $this->assertNotNull($firstOrder->product);
+        $this->assertNotNull($firstOrder->supplier);
     }
 }

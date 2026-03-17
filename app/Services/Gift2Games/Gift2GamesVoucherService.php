@@ -5,6 +5,7 @@ namespace App\Services\Gift2Games;
 use App\Models\Voucher;
 use App\Models\PurchaseOrder;
 use Illuminate\Support\Facades\Log;
+use App\Events\NewVouchersAvailable;
 use App\Services\Voucher\VoucherCipherService;
 
 class Gift2GamesVoucherService
@@ -15,6 +16,8 @@ class Gift2GamesVoucherService
 
     /**
      * Process and store vouchers from Gift2Games order response.
+     *
+     * @param  array<int, array{purchase_order_item_id: int, digital_product_id: int, serialCode?: string, serialNumber?: string}>  $voucherCodesResponse
      */
     public function storeVouchers(PurchaseOrder $purchaseOrder, array $voucherCodesResponse): void
     {
@@ -22,68 +25,17 @@ class Gift2GamesVoucherService
             return;
         }
 
-        // Load purchase order items with digital products
-        $purchaseOrder->load('items.digitalProduct');
-
-        $voucherCountByProduct = [];
-        $vouchersAdded = 0;
-
         try {
             foreach ($voucherCodesResponse as $voucherData) {
-                $digitalProductId = $voucherData['digital_product_id'] ?? null;
-
-                if (! $digitalProductId) {
-                    Log::warning('Gift2Games voucher missing digital_product_id', [
-                        'voucher' => $voucherData,
-                        'purchase_order_id' => $purchaseOrder->id,
-                    ]);
-
-                    continue;
-                }
-
-                // Initialize counter for this product if not exists
-                if (! isset($voucherCountByProduct[$digitalProductId])) {
-                    $voucherCountByProduct[$digitalProductId] = 0;
-                }
-
-                // Find the purchase order item for this digital product
-                $purchaseOrderItem = $purchaseOrder->items->first(function ($item) use ($digitalProductId) {
-                    return $item->digital_product_id == $digitalProductId;
-                });
-
-                if (! $purchaseOrderItem) {
-                    Log::warning('No purchase order item found for Gift2Games voucher', [
-                        'digital_product_id' => $digitalProductId,
-                        'voucher' => $voucherData,
-                        'purchase_order_id' => $purchaseOrder->id,
-                    ]);
-
-                    continue;
-                }
-
-                // Increment the counter
-                $voucherCountByProduct[$digitalProductId]++;
-
-                // Verify we're not exceeding the ordered quantity
-                if ($voucherCountByProduct[$digitalProductId] > $purchaseOrderItem->quantity) {
-                    Log::warning('Received more vouchers than ordered quantity', [
-                        'digital_product_id' => $digitalProductId,
-                        'ordered_quantity' => $purchaseOrderItem->quantity,
-                        'received_count' => $voucherCountByProduct[$digitalProductId],
-                        'purchase_order_id' => $purchaseOrder->id,
-                    ]);
-                }
-
                 $voucherCode = $voucherData['serialCode'] ?? null;
 
                 if ($voucherCode) {
                     $voucherCode = $this->voucherCipherService->encryptCode($voucherCode);
                 }
 
-                // Create the voucher
                 Voucher::create([
                     'purchase_order_id' => $purchaseOrder->id,
-                    'purchase_order_item_id' => $purchaseOrderItem->id,
+                    'purchase_order_item_id' => $voucherData['purchase_order_item_id'],
                     'code' => $voucherCode,
                     'serial_number' => $voucherData['serialNumber'] ?? null,
                     'status' => 'available',
@@ -97,5 +49,7 @@ class Gift2GamesVoucherService
             throw $e;
         }
 
+        $digitalProductIds = collect($voucherCodesResponse)->pluck('digital_product_id')->unique()->values()->all();
+        event(new NewVouchersAvailable($digitalProductIds));
     }
 }

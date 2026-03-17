@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\SaleOrder;
+use App\Enums\SaleOrder\Status;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -131,5 +132,34 @@ class SaleOrderRepository
     public function countTotalSaleOrders(): int
     {
         return SaleOrder::count();
+    }
+
+    /**
+     * Get all sale orders in PROCESSING status, eager-loading items and their products.
+     *
+     * @return Collection<int, SaleOrder>
+     */
+    public function getPendingSaleOrders(): Collection
+    {
+        return SaleOrder::with(['items.product.digitalProducts'])
+            ->where('status', Status::PROCESSING->value)
+            ->get();
+    }
+
+    /**
+     * Get pending sale orders that have at least one item whose product is linked
+     * to one of the given digital product IDs (i.e. orders that may now be fulfillable).
+     *
+     * @param  array<int>  $digitalProductIds
+     * @return Collection<int, SaleOrder>
+     */
+    public function getPendingSaleOrdersForDigitalProducts(array $digitalProductIds): Collection
+    {
+        return SaleOrder::with(['items.product.digitalProducts'])
+            ->where('status', Status::PROCESSING->value)
+            ->whereHas('items.product.digitalProducts', function ($query) use ($digitalProductIds) {
+                $query->whereIn('digital_products.id', $digitalProductIds);
+            })
+            ->get();
     }
 }

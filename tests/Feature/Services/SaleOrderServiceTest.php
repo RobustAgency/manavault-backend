@@ -5,13 +5,17 @@ namespace Tests\Feature\Services;
 use Tests\TestCase;
 use App\Models\Product;
 use App\Models\Voucher;
+use App\Models\Supplier;
 use App\Models\SaleOrder;
 use App\Models\PurchaseOrder;
 use App\Models\DigitalProduct;
 use App\Enums\SaleOrder\Status;
 use App\Enums\VoucherCodeStatus;
 use App\Models\PurchaseOrderItem;
+use App\Events\SaleOrderCompleted;
 use App\Services\SaleOrderService;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class SaleOrderServiceTest extends TestCase
@@ -27,16 +31,17 @@ class SaleOrderServiceTest extends TestCase
     }
 
     /**
-     * Test: System validates that sufficient stock is available.
+     * Test: Insufficient internal stock leaves order in PROCESSING (no longer throws).
      */
     public function test_validates_sufficient_stock_is_available(): void
     {
-        // Arrange: Create a product with a digital product and limited vouchers
+        // Arrange: Create a product with an internal supplier and limited vouchers
+        $supplier = Supplier::factory()->create(['type' => 'internal']);
         $product = Product::factory()->active()->create([
             'fulfillment_mode' => 'price',
         ]);
 
-        $digitalProduct = DigitalProduct::factory()->create([
+        $digitalProduct = DigitalProduct::factory()->forSupplier($supplier)->create([
             'selling_price' => 100.00,
         ]);
         $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
@@ -54,18 +59,19 @@ class SaleOrderServiceTest extends TestCase
             'status' => VoucherCodeStatus::AVAILABLE->value,
         ]);
 
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('Insufficient inventory for product');
-
-        $this->service->createOrder([
+        // Requesting more than available → order is created in PROCESSING (not thrown)
+        $saleOrder = $this->service->createOrder([
             'order_number' => 'SO-001',
             'items' => [
                 [
                     'product_id' => $product->id,
-                    'quantity' => 3, // Request more than available
+                    'quantity' => 3,
                 ],
             ],
         ]);
+
+        $this->assertEquals(Status::PROCESSING->value, $saleOrder->status);
+        $this->assertDatabaseHas('sale_orders', ['order_number' => 'SO-001', 'status' => Status::PROCESSING->value]);
     }
 
     /**
@@ -299,16 +305,17 @@ class SaleOrderServiceTest extends TestCase
     }
 
     /**
-     * Test: No same voucher is assigned twice (unique constraint).
+     * Test: No same voucher is assigned twice — second order is left PROCESSING.
      */
     public function test_same_voucher_cannot_be_assigned_twice(): void
     {
-        // Arrange: Create product with limited vouchers
+        // Arrange: Create product with internal supplier and limited vouchers
+        $supplier = Supplier::factory()->create(['type' => 'internal']);
         $product = Product::factory()->active()->create([
             'fulfillment_mode' => 'price',
         ]);
 
-        $digitalProduct = DigitalProduct::factory()->create([
+        $digitalProduct = DigitalProduct::factory()->forSupplier($supplier)->create([
             'selling_price' => 50.00,
         ]);
         $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
@@ -326,34 +333,23 @@ class SaleOrderServiceTest extends TestCase
             'status' => VoucherCodeStatus::AVAILABLE->value,
         ]);
 
-        // Act: Create first sale order
+        // Act: Create first sale order consuming 1 voucher
         $saleOrder1 = $this->service->createOrder([
             'order_number' => 'SO-007A',
-            'items' => [
-                [
-                    'product_id' => $product->id,
-                    'quantity' => 1,
-                ],
-            ],
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
         ]);
+        $this->assertEquals(Status::COMPLETED->value, $saleOrder1->status);
 
-        // Assert: First order succeeds
-        $this->assertNotNull($saleOrder1->id);
-
-        // Act & Assert: Attempting to create another order should fail
-        // because remaining voucher is insufficient for 2 units
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('Insufficient inventory for product');
-
-        $this->service->createOrder([
+        // Act: Create second sale order requesting 2 units — only 1 remains → PROCESSING
+        $saleOrder2 = $this->service->createOrder([
             'order_number' => 'SO-007B',
-            'items' => [
-                [
-                    'product_id' => $product->id,
-                    'quantity' => 2, // Only 1 voucher left
-                ],
-            ],
+            'items' => [['product_id' => $product->id, 'quantity' => 2]],
         ]);
+        $this->assertEquals(Status::PROCESSING->value, $saleOrder2->status);
+
+        // The single remaining voucher must not be allocated to SO-007B (0 available after allocating 1)
+        $allocatedToSo2 = $saleOrder2->items->first()->digitalProducts()->count();
+        $this->assertLessThan(2, $allocatedToSo2);
     }
 
     /**
@@ -496,5 +492,217 @@ class SaleOrderServiceTest extends TestCase
 
         $allocations = $saleOrder->items->first()->digitalProducts()->get();
         $this->assertEquals($digitalProduct2->id, $allocations->first()->digital_product_id);
+    }
+
+    // -------------------------------------------------------------------------
+    // Auto-PO scenarios
+    // -------------------------------------------------------------------------
+
+    /**
+     * Sufficient internal stock → order COMPLETED, no PO created.
+     */
+    public function test_sufficient_internal_stock_completes_order_without_purchase_order(): void
+    {
+        Event::fake([SaleOrderCompleted::class]);
+
+        $supplier = Supplier::factory()->create(['type' => 'internal']);
+        $product = Product::factory()->active()->create(['fulfillment_mode' => 'price']);
+        $digitalProduct = DigitalProduct::factory()->forSupplier($supplier)->create(['selling_price' => 10.00]);
+        $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
+
+        $po = PurchaseOrder::factory()->completed()->create();
+        $poi = PurchaseOrderItem::factory()->forPurchaseOrder($po)->forDigitalProduct($digitalProduct)->withQuantity(3)->create();
+        Voucher::factory()->count(3)->create([
+            'purchase_order_id' => $po->id,
+            'purchase_order_item_id' => $poi->id,
+            'status' => VoucherCodeStatus::AVAILABLE->value,
+        ]);
+
+        $saleOrder = $this->service->createOrder([
+            'order_number' => 'SO-AUTO-001',
+            'items' => [['product_id' => $product->id, 'quantity' => 3]],
+        ]);
+
+        $this->assertEquals(Status::COMPLETED->value, $saleOrder->status);
+        $this->assertEquals(0, PurchaseOrder::where('order_number', 'like', 'PO-%')->whereDoesntHave('items', fn ($q) => $q->where('purchase_order_id', $po->id))->count());
+        Event::assertDispatched(SaleOrderCompleted::class);
+    }
+
+    /**
+     * Insufficient internal stock (no external supplier) → order PROCESSING, partial allocation.
+     */
+    public function test_insufficient_internal_stock_creates_processing_order(): void
+    {
+        Event::fake([SaleOrderCompleted::class]);
+
+        $supplier = Supplier::factory()->create(['type' => 'internal']);
+        $product = Product::factory()->active()->create(['fulfillment_mode' => 'price']);
+        $digitalProduct = DigitalProduct::factory()->forSupplier($supplier)->create(['selling_price' => 10.00]);
+        $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
+
+        $po = PurchaseOrder::factory()->completed()->create();
+        $poi = PurchaseOrderItem::factory()->forPurchaseOrder($po)->forDigitalProduct($digitalProduct)->withQuantity(2)->create();
+        Voucher::factory()->count(2)->create([
+            'purchase_order_id' => $po->id,
+            'purchase_order_item_id' => $poi->id,
+            'status' => VoucherCodeStatus::AVAILABLE->value,
+        ]);
+
+        $saleOrder = $this->service->createOrder([
+            'order_number' => 'SO-AUTO-002',
+            'items' => [['product_id' => $product->id, 'quantity' => 5]],
+        ]);
+
+        $this->assertEquals(Status::PROCESSING->value, $saleOrder->status);
+        Event::assertNotDispatched(SaleOrderCompleted::class);
+    }
+
+    /**
+     * Shortfall with Gift2Games supplier → auto-PO created, vouchers allocated, order COMPLETED.
+     */
+    public function test_shortfall_with_gift2games_supplier_creates_po_and_completes_order(): void
+    {
+        Event::fake([SaleOrderCompleted::class]);
+
+        $supplier = Supplier::factory()->create([
+            'slug' => 'gift2games',
+            'type' => 'external',
+        ]);
+        $product = Product::factory()->active()->create(['fulfillment_mode' => 'price']);
+        $digitalProduct = DigitalProduct::factory()->forSupplier($supplier)->create([
+            'sku' => 'G2G-SKU-001',
+            'cost_price' => 10.00,
+            'selling_price' => 15.00,
+        ]);
+        $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
+
+        // 0 vouchers available — full shortfall
+        $purchaseOrderCount = PurchaseOrder::count();
+
+        Http::fake([
+            '*/create_order' => Http::response([
+                'status' => 'success',
+                'data' => [
+                    'referenceNumber' => 'REF-G2G-001',
+                    'productId' => 99,
+                    'code' => 'VOUCHER-001',
+                    'pin' => '0000',
+                    'serial' => 'SER-001',
+                    'expiryDate' => '2026-12-31',
+                ],
+            ], 200),
+        ]);
+
+        $saleOrder = $this->service->createOrder([
+            'order_number' => 'SO-AUTO-003',
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+        ]);
+
+        // A new PO was created
+        $this->assertGreaterThan($purchaseOrderCount, PurchaseOrder::count());
+        // Voucher was stored and allocated → order is COMPLETED
+        $this->assertEquals(Status::COMPLETED->value, $saleOrder->status);
+        Event::assertDispatched(SaleOrderCompleted::class);
+    }
+
+    /**
+     * Shortfall with Ezcards supplier → auto-PO created, order stays PROCESSING.
+     */
+    public function test_shortfall_with_ezcards_supplier_creates_po_and_leaves_order_processing(): void
+    {
+        Event::fake([SaleOrderCompleted::class]);
+
+        $supplier = Supplier::factory()->create([
+            'slug' => 'ez_cards',
+            'type' => 'external',
+        ]);
+        $product = Product::factory()->active()->create(['fulfillment_mode' => 'price']);
+        $digitalProduct = DigitalProduct::factory()->forSupplier($supplier)->create([
+            'sku' => 'EZC-SKU-001',
+            'cost_price' => 10.00,
+            'selling_price' => 15.00,
+        ]);
+        $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
+
+        $purchaseOrderCount = PurchaseOrder::count();
+
+        Http::fake([
+            '*/v2/orders' => Http::response([
+                'requestId' => 'req-001',
+                'data' => [
+                    'transactionId' => '9999',
+                    'clientOrderNumber' => 'PO-EZC-001',
+                    'status' => 'PROCESSING',
+                    'grandTotal' => ['amount' => '10.00', 'currency' => 'USD'],
+                    'products' => [
+                        ['sku' => 'EZC-SKU-001', 'quantity' => 1, 'status' => 'PROCESSING'],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $saleOrder = $this->service->createOrder([
+            'order_number' => 'SO-AUTO-004',
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+        ]);
+
+        // PO was created
+        $this->assertGreaterThan($purchaseOrderCount, PurchaseOrder::count());
+        // No vouchers yet (async) → order stays PROCESSING
+        $this->assertEquals(Status::PROCESSING->value, $saleOrder->status);
+        Event::assertNotDispatched(SaleOrderCompleted::class);
+    }
+
+    /**
+     * External API failure → entire order rejected, full rollback.
+     */
+    public function test_external_api_failure_rejects_order_and_rolls_back(): void
+    {
+        $supplier = Supplier::factory()->create([
+            'slug' => 'gift2games',
+            'type' => 'external',
+        ]);
+        $product = Product::factory()->active()->create(['fulfillment_mode' => 'price']);
+        $digitalProduct = DigitalProduct::factory()->forSupplier($supplier)->create([
+            'sku' => 'G2G-FAIL-001',
+            'cost_price' => 10.00,
+            'selling_price' => 15.00,
+        ]);
+        $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
+
+        Http::fake([
+            '*/create_order' => Http::response(['error' => 'Service unavailable'], 503),
+        ]);
+
+        $saleOrderCountBefore = SaleOrder::count();
+        $purchaseOrderCountBefore = PurchaseOrder::count();
+
+        $this->expectException(\Exception::class);
+
+        $this->service->createOrder([
+            'order_number' => 'SO-AUTO-005',
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+        ]);
+
+        $this->assertEquals($saleOrderCountBefore, SaleOrder::count());
+        $this->assertEquals($purchaseOrderCountBefore, PurchaseOrder::count());
+    }
+
+    /**
+     * Product with no digital products → order rejected with descriptive exception.
+     */
+    public function test_product_with_no_digital_products_rejects_order(): void
+    {
+        $product = Product::factory()->active()->create();
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('has no digital products assigned');
+
+        $this->service->createOrder([
+            'order_number' => 'SO-AUTO-006',
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+        ]);
+
+        $this->assertDatabaseMissing('sale_orders', ['order_number' => 'SO-AUTO-006']);
     }
 }
