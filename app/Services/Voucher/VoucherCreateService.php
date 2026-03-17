@@ -5,6 +5,7 @@ namespace App\Services\Voucher;
 use App\Models\Voucher;
 use App\DTOs\VoucherDTO;
 use App\Models\PurchaseOrder;
+use App\Events\NewVouchersAvailable;
 use App\Services\PurchaseOrder\PurchaseOrderStatusService;
 
 class VoucherCreateService
@@ -37,6 +38,10 @@ class VoucherCreateService
         /** @var PurchaseOrder $purchaseOrder */
         $purchaseOrder = PurchaseOrder::findOrFail($purchaseOrderID);
         $this->purchaseOrderStatusService->updateInternalSuppliersStatusToCompleted($purchaseOrder);
+
+        // Notify listeners that new vouchers are available so pending sale orders can be fulfilled
+        $digitalProductIds = $purchaseOrder->items()->pluck('digital_product_id')->unique()->values()->all();
+        event(new NewVouchersAvailable($digitalProductIds));
     }
 
     /**

@@ -54,20 +54,12 @@ class VoucherRepository
     /**
      * @return Collection<int, \App\Models\Voucher>
      */
-    public function getAvailableVouchersForDigitalProduct(int $digitalProductId, int $quantity): Collection
+    public function getAvailableVouchersForDigitalProduct(int $digitalProductId): Collection
     {
         $vouchers = $this->availableVouchersQuery($digitalProductId)
             ->orderBy('created_at')
             ->lockForUpdate()
-            ->limit($quantity)
             ->get();
-
-        if ($vouchers->count() < $quantity) {
-            throw new \RuntimeException(
-                "Insufficient vouchers available for digital product {$digitalProductId}. "
-                ."Requested: {$quantity}, Available: {$vouchers->count()}"
-            );
-        }
 
         /** @var Collection<int, \App\Models\Voucher> $keyed */
         $keyed = $vouchers->keyBy('id');

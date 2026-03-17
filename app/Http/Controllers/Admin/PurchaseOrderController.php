@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Models\PurchaseOrder;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
+use App\Services\PurchaseOrderService;
 use App\Http\Resources\PurchaseOrderResource;
 use App\Repositories\PurchaseOrderRepository;
 use App\Services\Ezcards\EzcardsVoucherCodeService;
@@ -14,7 +15,8 @@ use App\Http\Requests\PurchaseOrder\StorePurchaseOrderRequest;
 class PurchaseOrderController extends Controller
 {
     public function __construct(
-        private PurchaseOrderRepository $repository,
+        private PurchaseOrderService $purchaseOrderService,
+        private PurchaseOrderRepository $purchaseOrderRepository,
         private EzcardsVoucherCodeService $ezcardsVoucherCodeService
     ) {}
 
@@ -24,7 +26,7 @@ class PurchaseOrderController extends Controller
     public function index(ListPurchaseOrderRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        $purchaseOrders = $this->repository->getFilteredPurchaseOrders($validated);
+        $purchaseOrders = $this->purchaseOrderRepository->getFilteredPurchaseOrders($validated);
 
         return response()->json([
             'error' => false,
@@ -37,7 +39,7 @@ class PurchaseOrderController extends Controller
     {
         $validated = $request->validated();
         try {
-            $purchaseOrder = $this->repository->createPurchaseOrder($validated);
+            $purchaseOrder = $this->purchaseOrderService->createPurchaseOrder($validated);
         } catch (\Exception $e) {
             return response()->json([
                 'error' => true,
