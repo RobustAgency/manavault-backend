@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Product;
-use App\Enums\SupplierType;
 use App\Models\DigitalProduct;
 
 class AutoPurchaseOrderService
@@ -22,11 +21,6 @@ class AutoPurchaseOrderService
     {
         logger()->info("Handling shortfall for DigitalProduct ID: {$digitalProduct->id}, Shortfall: {$shortfall}");
         $digitalProduct->load('supplier');
-        $supplier = $digitalProduct->supplier;
-
-        if (! $supplier || $supplier->type !== SupplierType::EXTERNAL->value) {
-            return false;
-        }
 
         $this->purchaseOrderService->createPurchaseOrderForDigitalProduct($digitalProduct, $shortfall);
 
