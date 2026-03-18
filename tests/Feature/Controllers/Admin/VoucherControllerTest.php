@@ -9,7 +9,7 @@ use App\Models\PurchaseOrder;
 use App\Models\DigitalProduct;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Http\UploadedFile;
-use App\Events\PurchaseOrderFulfill;
+use App\Events\NewVouchersAvailable;
 use App\Models\PurchaseOrderSupplier;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
@@ -62,7 +62,7 @@ class VoucherControllerTest extends TestCase
             'purchase_order_id' => $purchaseOrder->id,
         ]);
 
-        Event::assertDispatched(PurchaseOrderFulfill::class);
+        Event::assertDispatched(NewVouchersAvailable::class);
 
         $response->assertStatus(200)
             ->assertJson([
@@ -104,7 +104,7 @@ class VoucherControllerTest extends TestCase
                 'message' => 'Vouchers imported successfully.',
             ]);
 
-        Event::assertDispatched(PurchaseOrderFulfill::class);
+        Event::assertDispatched(NewVouchersAvailable::class);
 
         // Verify vouchers were created and are encrypted
         $vouchers = Voucher::where('purchase_order_id', $purchaseOrder->id)->get();

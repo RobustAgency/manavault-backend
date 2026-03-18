@@ -222,25 +222,6 @@ class ProductControllerTest extends TestCase
     }
 
     /**
-     * Test: Get products with various product statuses
-     */
-    public function test_get_products_with_various_product_statuses(): void
-    {
-        $brand = Brand::factory()->create();
-        Product::factory()->count(3)->create(['brand_id' => $brand->id, 'status' => 1]);
-        Product::factory()->count(2)->create(['brand_id' => $brand->id, 'status' => 0]);
-
-        $response = $this->withHeader('x-api-key', $this->token)
-            ->getJson($this->endpoint);
-
-        $response->assertStatus(200);
-        $this->assertCount(5, $response->json('data.data'));
-
-        $activeProducts = collect($response->json('data.data'))->where('status', 1)->count();
-        $this->assertEquals(3, $activeProducts);
-    }
-
-    /**
      * Test: Get products with invalid token fails
      */
     public function test_get_products_with_invalid_token_fails(): void

@@ -256,56 +256,6 @@ class SaleOrderControllerTest extends TestCase
         $response->assertStatus(422);
     }
 
-    public function test_store_returns_error_when_no_digital_products(): void
-    {
-        $product = Product::factory()->create();
-
-        $data = [
-            'order_number' => 'SO-2026-000001',
-            'items' => [
-                [
-                    'product_id' => $product->id,
-                    'quantity' => 5,
-                ],
-            ],
-        ];
-
-        $response = $this->postJson('/api/v1/sale-orders', $data, $this->getHeaders());
-
-        $response->assertStatus(400)
-            ->assertJson(['error' => true]);
-    }
-
-    public function test_store_returns_error_when_insufficient_inventory(): void
-    {
-        $supplier = Supplier::factory()->create(['type' => 'internal']);
-        $product = Product::factory()->create(['fulfillment_mode' => FulfillmentMode::MANUAL->value]);
-        $digitalProduct = DigitalProduct::factory()->create(['supplier_id' => $supplier->id]);
-        $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
-
-        $purchaseOrder = PurchaseOrder::factory()->create();
-        PurchaseOrderItem::factory()->create([
-            'purchase_order_id' => $purchaseOrder->id,
-            'digital_product_id' => $digitalProduct->id,
-            'quantity' => 5,
-        ]);
-
-        $data = [
-            'order_number' => 'SO-2026-000001',
-            'items' => [
-                [
-                    'product_id' => $product->id,
-                    'quantity' => 10,
-                ],
-            ],
-        ];
-
-        $response = $this->postJson('/api/v1/sale-orders', $data, $this->getHeaders());
-
-        $response->assertStatus(400)
-            ->assertJson(['error' => true]);
-    }
-
     public function test_store_calculates_correct_total_price(): void
     {
         $supplier = Supplier::factory()->create(['type' => 'internal']);

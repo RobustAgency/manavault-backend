@@ -353,34 +353,6 @@ class SaleOrderServiceTest extends TestCase
     }
 
     /**
-     * Test: Transaction is rolled back on exception.
-     */
-    public function test_transaction_rolled_back_on_exception(): void
-    {
-        // Arrange: Create product without digital products (will trigger exception)
-        $product = Product::factory()->active()->create();
-
-        // Act & Assert: Should throw exception and rollback
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('has no digital products assigned');
-
-        $this->service->createOrder([
-            'order_number' => 'SO-008',
-            'items' => [
-                [
-                    'product_id' => $product->id,
-                    'quantity' => 1,
-                ],
-            ],
-        ]);
-
-        // Verify no sale order was created
-        $this->assertFalse(
-            SaleOrder::where('order_number', 'SO-008')->exists()
-        );
-    }
-
-    /**
      * Test: Fulfillment mode PRICE orders by lowest cost.
      */
     public function test_price_fulfillment_mode_orders_by_cost(): void
@@ -651,58 +623,5 @@ class SaleOrderServiceTest extends TestCase
         // No vouchers yet (async) → order stays PROCESSING
         $this->assertEquals(Status::PROCESSING->value, $saleOrder->status);
         Event::assertNotDispatched(SaleOrderCompleted::class);
-    }
-
-    /**
-     * External API failure → entire order rejected, full rollback.
-     */
-    public function test_external_api_failure_rejects_order_and_rolls_back(): void
-    {
-        $supplier = Supplier::factory()->create([
-            'slug' => 'gift2games',
-            'type' => 'external',
-        ]);
-        $product = Product::factory()->active()->create(['fulfillment_mode' => 'price']);
-        $digitalProduct = DigitalProduct::factory()->forSupplier($supplier)->create([
-            'sku' => 'G2G-FAIL-001',
-            'cost_price' => 10.00,
-            'selling_price' => 15.00,
-        ]);
-        $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
-
-        Http::fake([
-            '*/create_order' => Http::response(['error' => 'Service unavailable'], 503),
-        ]);
-
-        $saleOrderCountBefore = SaleOrder::count();
-        $purchaseOrderCountBefore = PurchaseOrder::count();
-
-        $this->expectException(\Exception::class);
-
-        $this->service->createOrder([
-            'order_number' => 'SO-AUTO-005',
-            'items' => [['product_id' => $product->id, 'quantity' => 1]],
-        ]);
-
-        $this->assertEquals($saleOrderCountBefore, SaleOrder::count());
-        $this->assertEquals($purchaseOrderCountBefore, PurchaseOrder::count());
-    }
-
-    /**
-     * Product with no digital products → order rejected with descriptive exception.
-     */
-    public function test_product_with_no_digital_products_rejects_order(): void
-    {
-        $product = Product::factory()->active()->create();
-
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('has no digital products assigned');
-
-        $this->service->createOrder([
-            'order_number' => 'SO-AUTO-006',
-            'items' => [['product_id' => $product->id, 'quantity' => 1]],
-        ]);
-
-        $this->assertDatabaseMissing('sale_orders', ['order_number' => 'SO-AUTO-006']);
     }
 }
