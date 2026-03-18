@@ -27,6 +27,7 @@ class DigitalProduct extends Model
         'region',
         'image_url',
         'cost_price',
+        'face_value',
         'selling_price',
         'currency',
         'metadata',
@@ -40,6 +41,7 @@ class DigitalProduct extends Model
         'tags' => 'array',
         'metadata' => 'array',
         'cost_price' => 'decimal:2',
+        'face_value' => 'decimal:2',
         'last_synced_at' => 'datetime',
         'is_active' => 'boolean',
         'in_stock' => 'boolean',
@@ -59,5 +61,15 @@ class DigitalProduct extends Model
     public function purchaseOrderItems(): HasMany
     {
         return $this->hasMany(PurchaseOrderItem::class);
+    }
+
+    /**
+     * Get the price rule applications for this digital product.
+     *
+     * @return HasMany<PriceRuleDigitalProduct, $this>
+     */
+    public function priceRuleDigitalProducts(): HasMany
+    {
+        return $this->hasMany(PriceRuleDigitalProduct::class);
     }
 }

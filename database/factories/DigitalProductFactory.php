@@ -18,6 +18,7 @@ class DigitalProductFactory extends Factory
     public function definition(): array
     {
         $costPrice = $this->faker->randomFloat(2, 5, 100);
+        $faceValue = $this->faker->randomFloat(2, $costPrice, $costPrice + 30);
 
         return [
             'supplier_id' => Supplier::factory(),
@@ -28,6 +29,7 @@ class DigitalProductFactory extends Factory
             'tags' => $this->faker->randomElements(['gift card', 'gaming', 'entertainment', 'software', 'subscription'], $this->faker->numberBetween(1, 3)),
             'region' => $this->faker->randomElement(['US', 'EU', 'ASIA']),
             'cost_price' => $costPrice,
+            'face_value' => $faceValue,
             'selling_price' => $this->faker->randomFloat(2, $costPrice + 1, $costPrice + 50),
             'currency' => 'usd',
             'metadata' => [

@@ -2,22 +2,22 @@
 
 namespace App\Services;
 
-use App\Models\Product;
 use App\Models\PriceRule;
+use App\Models\DigitalProduct;
 use App\Enums\PriceRule\ActionMode;
 use App\Enums\PriceRule\ActionOperator;
-use App\Repositories\ProductRepository;
 use App\Repositories\PriceRuleRepository;
-use App\Repositories\PriceRuleProductRepository;
+use App\Repositories\DigitalProductRepository;
 use App\Repositories\PriceRuleConditionRepository;
+use App\Repositories\PriceRuleDigitalProductRepository;
 
 class PricingRuleService
 {
     public function __construct(
         private PriceRuleRepository $priceRuleRepository,
         private PriceRuleConditionRepository $priceRuleConditionRepository,
-        private PriceRuleProductRepository $priceRuleProductRepository,
-        private ProductRepository $productRepository,
+        private PriceRuleDigitalProductRepository $priceRuleDigitalProductRepository,
+        private DigitalProductRepository $digitalProductRepository,
     ) {}
 
     public function createPriceRuleWithConditions(array $data): void
@@ -44,10 +44,10 @@ class PricingRuleService
             $this->priceRuleConditionRepository->create($condition);
         }
 
-        $products = $this->productRepository->getProductsByConditions($data['conditions'], $data['match_type']);
+        $products = $this->digitalProductRepository->getDigitalProductsByConditions($data['conditions'], $data['match_type']);
 
-        foreach ($products as $product) {
-            $this->applyAction($product, $priceRule);
+        foreach ($products as $digitalProduct) {
+            $this->applyAction($digitalProduct, $priceRule);
         }
 
     }
@@ -71,25 +71,25 @@ class PricingRuleService
             }
         }
 
-        // Reapply actions to products
-        $this->priceRuleProductRepository->deleteByPriceRuleId($priceRule->id);
-        $products = $this->productRepository->getProductsByConditions($data['conditions'], $updatedPriceRule->match_type);
-        foreach ($products as $product) {
-            $this->applyAction($product, $updatedPriceRule);
+        // Reapply actions to digital products
+        $this->priceRuleDigitalProductRepository->deleteByPriceRuleId($priceRule->id);
+        $digitalProducts = $this->digitalProductRepository->getDigitalProductsByConditions($data['conditions'], $updatedPriceRule->match_type);
+        foreach ($digitalProducts as $digitalProduct) {
+            $this->applyAction($digitalProduct, $updatedPriceRule);
         }
     }
 
-    private function applyAction(Product $product, PriceRule $rule): void
+    private function applyAction(DigitalProduct $digitalProduct, PriceRule $rule): void
     {
         $applicationData = $this->buildApplicationData(
-            $product,
+            $digitalProduct,
             $rule->action_mode,
             $rule->action_operator,
             $rule->action_value,
         );
 
-        $this->priceRuleProductRepository->create([
-            'product_id' => $applicationData['product_id'],
+        $this->priceRuleDigitalProductRepository->create([
+            'digital_product_id' => $applicationData['digital_product_id'],
             'price_rule_id' => $rule->id,
             'original_selling_price' => $applicationData['original_selling_price'],
             'base_value' => $applicationData['base_value'],
@@ -100,6 +100,9 @@ class PricingRuleService
             'final_selling_price' => $applicationData['final_selling_price'],
             'applied_at' => now(),
         ]);
+
+        // Persist the final selling price to the digital product
+        $digitalProduct->update(['selling_price' => $applicationData['final_selling_price']]);
     }
 
     /**
@@ -107,21 +110,21 @@ class PricingRuleService
      */
     public function previewPriceRuleEffect(array $data): array
     {
-        $products = $this->productRepository->getProductsByConditions($data['conditions'], $data['match_type']);
+        $digitalProducts = $this->digitalProductRepository->getDigitalProductsByConditions($data['conditions'], $data['match_type']);
 
         $preview = [];
-        foreach ($products as $product) {
+        foreach ($digitalProducts as $digitalProduct) {
             $applicationData = $this->buildApplicationData(
-                $product,
+                $digitalProduct,
                 $data['action_mode'],
                 $data['action_operator'],
                 $data['action_value'],
             );
 
             $preview[] = [
-                'product_id' => $applicationData['product_id'],
-                'product_name' => $applicationData['product_name'],
-                'face_value' => $applicationData['face_value'],
+                'digital_product_id' => $applicationData['digital_product_id'],
+                'digital_product_name' => $applicationData['digital_product_name'],
+                'face_value' => $applicationData['base_value'],
                 'current_selling_price' => $applicationData['current_selling_price'],
                 'new_selling_price' => $applicationData['new_selling_price'],
             ];
@@ -138,19 +141,19 @@ class PricingRuleService
      * @return array<string, mixed>
      */
     private function buildApplicationData(
-        Product $product,
+        DigitalProduct $digitalProduct,
         string $actionMode,
         string $actionOperator,
         mixed $actionValue,
     ): array {
-        $baseValue = (float) $product->face_value;
-        $originalSellingPrice = (float) $product->selling_price;
-        $calculatedPrice = $this->calculateNewPrice($product, $actionMode, $actionValue, $actionOperator);
+        $baseValue = (float) $digitalProduct->face_value;
+        $originalSellingPrice = (float) $digitalProduct->selling_price;
+        $calculatedPrice = $this->calculateNewPrice($digitalProduct, $actionMode, $actionValue, $actionOperator);
         $finalSellingPrice = (float) max($calculatedPrice, 0);
 
         return [
-            'product_id' => $product->id,
-            'product_name' => $product->name,
+            'digital_product_id' => $digitalProduct->id,
+            'digital_product_name' => $digitalProduct->name,
             'original_selling_price' => $originalSellingPrice,
             'base_value' => $baseValue,
             'action_mode' => $actionMode,
@@ -158,7 +161,6 @@ class PricingRuleService
             'action_value' => (float) $actionValue,
             'calculated_price' => $calculatedPrice,
             'final_selling_price' => $finalSellingPrice,
-            'face_value' => $baseValue,
             'current_selling_price' => $originalSellingPrice,
             'new_selling_price' => $finalSellingPrice,
         ];
@@ -167,9 +169,9 @@ class PricingRuleService
     /**
      * Calculate the new price for a product based on the price rule action.
      */
-    private function calculateNewPrice(Product $product, string $actionMode, mixed $actionValue, string $actionOperator): float
+    private function calculateNewPrice(DigitalProduct $digitalProduct, string $actionMode, mixed $actionValue, string $actionOperator): float
     {
-        $base = (float) $product->face_value;
+        $base = (float) $digitalProduct->face_value;
 
         return match ($actionMode) {
             ActionMode::PERCENTAGE->value => $base + ($base * ($actionValue / 100)) * ($actionOperator === ActionOperator::ADDITION->value ? 1 : -1),
