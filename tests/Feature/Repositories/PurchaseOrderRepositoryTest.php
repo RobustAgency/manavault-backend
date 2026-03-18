@@ -29,7 +29,6 @@ class PurchaseOrderRepositoryTest extends TestCase
         parent::tearDown();
     }
 
-    /** @test */
     public function it_creates_purchase_order_for_ez_cards_supplier()
     {
         // Arrange
@@ -81,7 +80,6 @@ class PurchaseOrderRepositoryTest extends TestCase
         $this->assertEquals(0, $purchaseOrder->vouchers()->count());
     }
 
-    /** @test */
     public function it_creates_purchase_order_for_gift2games_supplier()
     {
         // Arrange
@@ -139,7 +137,6 @@ class PurchaseOrderRepositoryTest extends TestCase
         $this->assertEquals('COMPLETED', $voucher->status);
     }
 
-    /** @test */
     public function it_throws_exception_when_ez_cards_api_fails()
     {
         $this->expectException(\RuntimeException::class);
@@ -169,7 +166,6 @@ class PurchaseOrderRepositoryTest extends TestCase
         ]);
     }
 
-    /** @test */
     public function it_throws_exception_when_gift2games_api_fails()
     {
         $this->expectException(\RuntimeException::class);
@@ -199,7 +195,6 @@ class PurchaseOrderRepositoryTest extends TestCase
         ]);
     }
 
-    /** @test */
     public function it_calculates_total_price_correctly()
     {
         // Arrange
@@ -233,7 +228,6 @@ class PurchaseOrderRepositoryTest extends TestCase
         $this->assertEquals(108.50, $purchaseOrder->total_price); // 15.50 * 7
     }
 
-    /** @test */
     public function it_generates_unique_order_number()
     {
         // Arrange
@@ -271,7 +265,6 @@ class PurchaseOrderRepositoryTest extends TestCase
         $this->assertMatchesRegularExpression('/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i', $order1->order_number);
     }
 
-    /** @test */
     public function it_can_get_filtered_purchase_orders()
     {
         PurchaseOrder::factory()->count(15)->create();
@@ -283,7 +276,6 @@ class PurchaseOrderRepositoryTest extends TestCase
         $this->assertEquals(15, $orders->total());
     }
 
-    /** @test */
     public function it_can_filter_by_order_number()
     {
         $order = PurchaseOrder::factory()->create(['order_number' => 'ORDER-123-ABC']);
@@ -296,7 +288,6 @@ class PurchaseOrderRepositoryTest extends TestCase
         $this->assertEquals($order->id, $orders->first()->id);
     }
 
-    /** @test */
     public function it_can_filter_by_supplier_name()
     {
         $supplier = Supplier::factory()->create(['name' => 'Special Supplier']);
@@ -313,7 +304,6 @@ class PurchaseOrderRepositoryTest extends TestCase
         $this->assertEquals(1, $orders->total());
     }
 
-    /** @test */
     public function it_can_filter_by_product_name()
     {
         $product = Product::factory()->create(['name' => 'Unique Product']);
@@ -326,7 +316,6 @@ class PurchaseOrderRepositoryTest extends TestCase
         $this->assertEquals(1, $orders->total());
     }
 
-    /** @test */
     public function it_loads_relationships_when_filtering()
     {
         PurchaseOrder::factory()->create();

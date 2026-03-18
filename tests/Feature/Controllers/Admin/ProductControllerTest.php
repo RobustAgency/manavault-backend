@@ -211,7 +211,7 @@ class ProductControllerTest extends TestCase
                 'data' => [
                     'name' => 'New Product',
                     'description' => 'Product description',
-                    'status' => 'active',
+                    'status' => 'in_active',
                 ],
             ]);
 
