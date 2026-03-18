@@ -1,0 +1,34 @@
+<?php
+
+namespace App\Services\PurchaseOrder;
+
+use App\Models\Supplier;
+use App\Services\Ezcards\EzcardsPlaceOrderService;
+use App\Services\Gift2Games\Gift2GamesPlaceOrderService;
+
+class PurchaseOrderPlacementService
+{
+    public function __construct(
+        private EzcardsPlaceOrderService $ezcardsPlaceOrderService,
+        private Gift2GamesPlaceOrderService $gift2GamesPlaceOrderService,
+    ) {}
+
+    public function placeOrder(Supplier $supplier, array $orderItems, string $orderNumber, string $currency): array
+    {
+        if ($supplier->slug === 'ez_cards') {
+            return $this->ezcardsPlaceOrderService->placeOrder($orderItems, $orderNumber, $currency);
+        }
+
+        if ($this->isGift2GamesSupplier($supplier)) {
+            return $this->gift2GamesPlaceOrderService->placeOrder($orderItems, $orderNumber, $supplier->slug);
+        }
+
+        throw new \RuntimeException("Unknown external supplier: {$supplier->slug}");
+    }
+
+    private function isGift2GamesSupplier(Supplier $supplier): bool
+    {
+        return str_starts_with($supplier->slug, 'gift2games')
+            || str_starts_with($supplier->slug, 'gift-2-games');
+    }
+}

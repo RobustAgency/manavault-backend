@@ -2,19 +2,18 @@
 
 namespace App\Events;
 
-use App\Models\PurchaseOrder;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Broadcasting\InteractsWithSockets;
 
-class PurchaseOrderFulfill
+class NewVouchersAvailable
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     /**
-     * Create a new event instance.
+     * @param  array<int>  $digitalProductIds  IDs of digital products that received new vouchers
      */
     public function __construct(
-        public PurchaseOrder $purchaseOrder
+        public readonly array $digitalProductIds,
     ) {}
 }
