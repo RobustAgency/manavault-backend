@@ -26,13 +26,19 @@ class ValidateOperatorForField implements ValidationRule
         // Define allowed operators for each field
         $allowedOperators = [
             'name' => [Operator::EQUAL->value, Operator::CONTAINS->value, Operator::NOT_EQUAL->value],
+            'supplier_id' => [Operator::EQUAL->value, Operator::NOT_EQUAL->value],
+            'sku' => [Operator::EQUAL->value, Operator::NOT_EQUAL->value],
             'selling_price' => [Operator::EQUAL->value, Operator::LESS_THAN_OR_EQUAL->value,
                 Operator::GREATER_THAN_OR_EQUAL->value, Operator::LESS_THAN->value,
                 Operator::GREATER_THAN->value, Operator::NOT_EQUAL->value,
             ],
-            'brand_id' => [Operator::EQUAL->value],
-            'brand_name' => [Operator::EQUAL->value, Operator::CONTAINS->value, Operator::NOT_EQUAL->value],
-            'regions' => [Operator::CONTAINS->value],
+            'cost_price' => [Operator::EQUAL->value, Operator::LESS_THAN_OR_EQUAL->value,
+                Operator::GREATER_THAN_OR_EQUAL->value, Operator::LESS_THAN->value,
+                Operator::GREATER_THAN->value, Operator::NOT_EQUAL->value,
+            ],
+            'currency' => [Operator::EQUAL->value, Operator::NOT_EQUAL->value],
+            'brand' => [Operator::EQUAL->value, Operator::CONTAINS->value, Operator::NOT_EQUAL->value],
+            'region' => [Operator::EQUAL->value, Operator::NOT_EQUAL->value],
         ];
 
         // Get allowed operators for this field

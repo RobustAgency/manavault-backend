@@ -6,11 +6,13 @@ use Tests\TestCase;
 use App\Models\User;
 use App\Models\Brand;
 use App\Models\Product;
+use App\Models\Supplier;
 use App\Models\PriceRule;
+use App\Models\DigitalProduct;
 use App\Enums\PriceRule\Status;
-use App\Models\PriceRuleProduct;
 use App\Enums\PriceRule\ActionMode;
 use App\Enums\PriceRule\ActionOperator;
+use App\Models\PriceRuleDigitalProduct;
 use App\Enums\PriceRuleCondition\Operator;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -23,11 +25,14 @@ class PriceRuleControllerTest extends TestCase
 
     private Brand $brand;
 
+    private Supplier $supplier;
+
     protected function setUp(): void
     {
         parent::setUp();
         $this->user = User::factory()->create(['role' => 'super_admin', 'is_approved' => true]);
         $this->brand = Brand::factory()->create();
+        $this->supplier = Supplier::factory()->create();
     }
 
     public function test_index_returns_all_price_rules(): void
@@ -115,7 +120,10 @@ class PriceRuleControllerTest extends TestCase
 
     public function test_store_creates_price_rule(): void
     {
-        $product = Product::factory()->create(['brand_id' => $this->brand->id]);
+        $digitalProduct = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
+            'brand' => 'TestBrand',
+        ]);
 
         $data = [
             'name' => 'New Price Rule',
@@ -127,9 +135,9 @@ class PriceRuleControllerTest extends TestCase
             'status' => Status::ACTIVE->value,
             'conditions' => [
                 [
-                    'field' => 'brand_name',
+                    'field' => 'supplier_id',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $this->brand->name,
+                    'value' => (string) $this->supplier->id,
                 ],
             ],
         ];
@@ -149,13 +157,16 @@ class PriceRuleControllerTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('price_rule_conditions', [
-            'field' => 'brand_name',
+            'field' => 'supplier_id',
         ]);
     }
 
     public function test_store_creates_price_rule_with_brand_name_contains(): void
     {
-        $product = Product::factory()->create(['brand_id' => $this->brand->id]);
+        $digitalProduct = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
+            'brand' => 'Tech Corp Inc',
+        ]);
 
         $data = [
             'name' => 'Brand Contains Rule',
@@ -167,7 +178,7 @@ class PriceRuleControllerTest extends TestCase
             'status' => Status::ACTIVE->value,
             'conditions' => [
                 [
-                    'field' => 'brand_name',
+                    'field' => 'brand',
                     'operator' => Operator::CONTAINS->value,
                     'value' => 'Corp',
                 ],
@@ -189,7 +200,7 @@ class PriceRuleControllerTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('price_rule_conditions', [
-            'field' => 'brand_name',
+            'field' => 'brand',
             'operator' => Operator::CONTAINS->value,
             'value' => 'Corp',
         ]);
@@ -341,7 +352,7 @@ class PriceRuleControllerTest extends TestCase
             'conditions' => [
                 [
                     'field' => 'region',
-                    'operator' => Operator::EQUAL->value,
+                    'operator' => Operator::CONTAINS->value,
                     'value' => 'US',
                 ],
             ],
@@ -353,9 +364,12 @@ class PriceRuleControllerTest extends TestCase
             ->assertJsonValidationErrors(['conditions.0.operator']);
     }
 
-    public function test_store_creates_price_rule_with_region_contains(): void
+    public function test_store_creates_price_rule_with_region(): void
     {
-        $product = Product::factory()->create(['brand_id' => $this->brand->id, 'regions' => ['US', 'CA', 'UK']]);
+        $digitalProduct = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
+            'region' => 'US',
+        ]);
 
         $data = [
             'name' => 'Region Contains Rule',
@@ -367,8 +381,8 @@ class PriceRuleControllerTest extends TestCase
             'status' => Status::ACTIVE->value,
             'conditions' => [
                 [
-                    'field' => 'regions',
-                    'operator' => Operator::CONTAINS->value,
+                    'field' => 'region',
+                    'operator' => Operator::EQUAL->value,
                     'value' => 'US',
                 ],
             ],
@@ -389,15 +403,20 @@ class PriceRuleControllerTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('price_rule_conditions', [
-            'field' => 'regions',
-            'operator' => Operator::CONTAINS->value,
+            'field' => 'region',
+            'operator' => Operator::EQUAL->value,
             'value' => 'US',
         ]);
     }
 
     public function test_store_creates_price_rule_with_multiple_conditions_including_contains(): void
     {
-        $product = Product::factory()->create(['brand_id' => $this->brand->id, 'regions' => ['US', 'CA', 'UK']]);
+        $digitalProduct = DigitalProduct::factory()->create([
+            'name' => 'Tech Gadget',
+            'supplier_id' => $this->supplier->id,
+            'brand' => 'Tech Corp',
+            'region' => 'US',
+        ]);
 
         $data = [
             'name' => 'Multiple Conditions Rule',
@@ -409,7 +428,7 @@ class PriceRuleControllerTest extends TestCase
             'status' => Status::ACTIVE->value,
             'conditions' => [
                 [
-                    'field' => 'brand_name',
+                    'field' => 'name',
                     'operator' => Operator::CONTAINS->value,
                     'value' => 'Tech',
                 ],
@@ -419,8 +438,8 @@ class PriceRuleControllerTest extends TestCase
                     'value' => '500',
                 ],
                 [
-                    'field' => 'regions',
-                    'operator' => Operator::CONTAINS->value,
+                    'field' => 'region',
+                    'operator' => Operator::EQUAL->value,
                     'value' => 'US',
                 ],
             ],
@@ -442,7 +461,7 @@ class PriceRuleControllerTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('price_rule_conditions', [
-            'field' => 'brand_name',
+            'field' => 'name',
             'operator' => Operator::CONTAINS->value,
             'value' => 'Tech',
         ]);
@@ -454,8 +473,8 @@ class PriceRuleControllerTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('price_rule_conditions', [
-            'field' => 'regions',
-            'operator' => Operator::CONTAINS->value,
+            'field' => 'region',
+            'operator' => Operator::EQUAL->value,
             'value' => 'US',
         ]);
     }
@@ -537,9 +556,9 @@ class PriceRuleControllerTest extends TestCase
             'status' => Status::ACTIVE->value,
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $this->brand->id,
+                    'value' => (string) $this->brand->name,
                 ],
             ],
         ];
@@ -577,9 +596,9 @@ class PriceRuleControllerTest extends TestCase
             'status' => Status::ACTIVE->value,
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $this->brand->id,
+                    'value' => (string) $this->brand->name,
                 ],
             ],
         ];
@@ -595,13 +614,18 @@ class PriceRuleControllerTest extends TestCase
 
         $this->assertDatabaseHas('price_rule_conditions', [
             'price_rule_id' => $priceRule->id,
-            'field' => 'brand_id',
+            'field' => 'brand',
         ]);
     }
 
-    public function test_update_does_not_stack_price_rule_product_records(): void
+    public function test_update_does_not_stack_price_rule_digital_product_records(): void
     {
-        $product = Product::factory()->create(['brand_id' => $this->brand->id, 'face_value' => 100.00, 'selling_price' => 100.00]);
+        $digitalProduct = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
+            'brand' => 'TestBrand',
+            'face_value' => 100.00,
+            'selling_price' => 100.00,
+        ]);
 
         $priceRule = PriceRule::factory()->create([
             'match_type' => 'all',
@@ -620,9 +644,9 @@ class PriceRuleControllerTest extends TestCase
             'status' => Status::ACTIVE->value,
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $this->brand->id,
+                    'value' => 'TestBrand',
                 ],
             ],
         ];
@@ -631,26 +655,35 @@ class PriceRuleControllerTest extends TestCase
         $this->actingAs($this->user)->postJson("/api/price-rules/{$priceRule->id}", $data);
         $this->actingAs($this->user)->postJson("/api/price-rules/{$priceRule->id}", $data)->assertStatus(200);
 
-        // Exactly 1 record per product — no stacking
-        $count = PriceRuleProduct::where('price_rule_id', $priceRule->id)
-            ->where('product_id', $product->id)
+        // Exactly 1 record per digital product — no stacking
+        $count = PriceRuleDigitalProduct::where('price_rule_id', $priceRule->id)
+            ->where('digital_product_id', $digitalProduct->id)
             ->count();
 
         $this->assertEquals(1, $count);
 
         // Price reflects the latest update: 100 - 20% = 80
-        $this->assertDatabaseHas('price_rule_product', [
-            'product_id' => $product->id,
+        $this->assertDatabaseHas('price_rule_digital_product', [
+            'digital_product_id' => $digitalProduct->id,
             'price_rule_id' => $priceRule->id,
             'final_selling_price' => 80.00,
         ]);
     }
 
-    public function test_update_clears_stale_products_when_conditions_change(): void
+    public function test_update_clears_stale_digital_products_when_conditions_change(): void
     {
-        $brand2 = Brand::factory()->create();
-        $product1 = Product::factory()->create(['brand_id' => $this->brand->id, 'face_value' => 100.00, 'selling_price' => 100.00]);
-        $product2 = Product::factory()->create(['brand_id' => $brand2->id, 'face_value' => 100.00, 'selling_price' => 100.00]);
+        $dp1 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
+            'brand' => 'BrandA',
+            'face_value' => 100.00,
+            'selling_price' => 100.00,
+        ]);
+        $dp2 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
+            'brand' => 'BrandB',
+            'face_value' => 100.00,
+            'selling_price' => 100.00,
+        ]);
 
         $priceRule = PriceRule::factory()->create([
             'match_type' => 'all',
@@ -660,7 +693,7 @@ class PriceRuleControllerTest extends TestCase
             'status' => Status::ACTIVE->value,
         ]);
 
-        // First update — targets brand 1
+        // First update — targets BrandA
         $this->actingAs($this->user)->postJson("/api/price-rules/{$priceRule->id}", [
             'name' => $priceRule->name,
             'match_type' => 'all',
@@ -669,14 +702,14 @@ class PriceRuleControllerTest extends TestCase
             'action_value' => 10,
             'status' => Status::ACTIVE->value,
             'conditions' => [
-                ['field' => 'brand_id', 'operator' => Operator::EQUAL->value, 'value' => (string) $this->brand->id],
+                ['field' => 'brand', 'operator' => Operator::EQUAL->value, 'value' => 'BrandA'],
             ],
         ])->assertStatus(200);
 
-        $this->assertDatabaseHas('price_rule_product', ['product_id' => $product1->id, 'price_rule_id' => $priceRule->id]);
-        $this->assertDatabaseMissing('price_rule_product', ['product_id' => $product2->id, 'price_rule_id' => $priceRule->id]);
+        $this->assertDatabaseHas('price_rule_digital_product', ['digital_product_id' => $dp1->id, 'price_rule_id' => $priceRule->id]);
+        $this->assertDatabaseMissing('price_rule_digital_product', ['digital_product_id' => $dp2->id, 'price_rule_id' => $priceRule->id]);
 
-        // Second update — conditions now target brand 2 instead
+        // Second update — conditions now target BrandB instead
         $this->actingAs($this->user)->postJson("/api/price-rules/{$priceRule->id}", [
             'name' => $priceRule->name,
             'match_type' => 'all',
@@ -685,13 +718,13 @@ class PriceRuleControllerTest extends TestCase
             'action_value' => 10,
             'status' => Status::ACTIVE->value,
             'conditions' => [
-                ['field' => 'brand_id', 'operator' => Operator::EQUAL->value, 'value' => (string) $brand2->id],
+                ['field' => 'brand', 'operator' => Operator::EQUAL->value, 'value' => 'BrandB'],
             ],
         ])->assertStatus(200);
 
-        // product1's old record must be gone; product2's fresh record must exist
-        $this->assertDatabaseMissing('price_rule_product', ['product_id' => $product1->id, 'price_rule_id' => $priceRule->id]);
-        $this->assertDatabaseHas('price_rule_product', ['product_id' => $product2->id, 'price_rule_id' => $priceRule->id]);
+        // dp1's old record must be gone; dp2's fresh record must exist
+        $this->assertDatabaseMissing('price_rule_digital_product', ['digital_product_id' => $dp1->id, 'price_rule_id' => $priceRule->id]);
+        $this->assertDatabaseHas('price_rule_digital_product', ['digital_product_id' => $dp2->id, 'price_rule_id' => $priceRule->id]);
     }
 
     public function test_update_validates_operator_for_name_field(): void
@@ -745,7 +778,7 @@ class PriceRuleControllerTest extends TestCase
             'conditions' => [
                 [
                     'field' => 'region',
-                    'operator' => Operator::EQUAL->value,
+                    'operator' => Operator::CONTAINS->value,
                     'value' => 'US',
                 ],
             ],
@@ -785,42 +818,42 @@ class PriceRuleControllerTest extends TestCase
         $response->assertStatus(404);
     }
 
-    public function test_post_view_product_returns_products_for_price_rule(): void
+    public function test_post_view_digital_products_returns_digital_products_for_price_rule(): void
     {
         $priceRule = PriceRule::factory()->create();
-        $product1 = Product::factory()->create(['brand_id' => $this->brand->id]);
-        $product2 = Product::factory()->create(['brand_id' => $this->brand->id]);
+        $dp1 = DigitalProduct::factory()->create(['supplier_id' => $this->supplier->id]);
+        $dp2 = DigitalProduct::factory()->create(['supplier_id' => $this->supplier->id]);
 
-        PriceRuleProduct::factory()->create([
+        PriceRuleDigitalProduct::factory()->create([
             'price_rule_id' => $priceRule->id,
-            'product_id' => $product1->id,
+            'digital_product_id' => $dp1->id,
             'final_selling_price' => 90.00,
         ]);
-        PriceRuleProduct::factory()->create([
+        PriceRuleDigitalProduct::factory()->create([
             'price_rule_id' => $priceRule->id,
-            'product_id' => $product2->id,
+            'digital_product_id' => $dp2->id,
             'final_selling_price' => 135.00,
         ]);
 
-        $response = $this->actingAs($this->user)->getJson("/api/price-rules/{$priceRule->id}/products");
+        $response = $this->actingAs($this->user)->getJson("/api/price-rules/{$priceRule->id}/digital-products");
 
         $response->assertStatus(200)
             ->assertJson([
                 'error' => false,
-                'message' => 'Price rule products retrieved successfully.',
+                'message' => 'Price rule digital products retrieved successfully.',
             ]);
 
         $this->assertCount(2, $response['data']['data']);
     }
 
-    public function test_post_view_product_returns_correct_structure(): void
+    public function test_post_view_digital_products_returns_correct_structure(): void
     {
         $priceRule = PriceRule::factory()->create();
-        $product = Product::factory()->create(['brand_id' => $this->brand->id]);
+        $digitalProduct = DigitalProduct::factory()->create(['supplier_id' => $this->supplier->id]);
 
-        PriceRuleProduct::factory()->create([
+        PriceRuleDigitalProduct::factory()->create([
             'price_rule_id' => $priceRule->id,
-            'product_id' => $product->id,
+            'digital_product_id' => $digitalProduct->id,
             'original_selling_price' => 100.00,
             'base_value' => 100.00,
             'action_mode' => 'percentage',
@@ -830,7 +863,7 @@ class PriceRuleControllerTest extends TestCase
             'final_selling_price' => 90.00,
         ]);
 
-        $response = $this->actingAs($this->user)->getJson("/api/price-rules/{$priceRule->id}/products");
+        $response = $this->actingAs($this->user)->getJson("/api/price-rules/{$priceRule->id}/digital-products");
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -840,7 +873,7 @@ class PriceRuleControllerTest extends TestCase
                     'data' => [
                         '*' => [
                             'id',
-                            'product_id',
+                            'digital_product_id',
                             'price_rule_id',
                             'original_selling_price',
                             'base_value',
@@ -850,7 +883,7 @@ class PriceRuleControllerTest extends TestCase
                             'calculated_price',
                             'final_selling_price',
                             'applied_at',
-                            'product',
+                            'digital_product',
                         ],
                     ],
                     'last_page',
@@ -861,63 +894,63 @@ class PriceRuleControllerTest extends TestCase
 
         $item = $response['data']['data'][0];
         $this->assertEquals($priceRule->id, $item['price_rule_id']);
-        $this->assertEquals($product->id, $item['product_id']);
+        $this->assertEquals($digitalProduct->id, $item['digital_product_id']);
         $this->assertEquals('90.00', $item['final_selling_price']);
     }
 
-    public function test_post_view_product_returns_empty_for_rule_with_no_applications(): void
+    public function test_post_view_digital_products_returns_empty_for_rule_with_no_applications(): void
     {
         $priceRule = PriceRule::factory()->create();
 
-        $response = $this->actingAs($this->user)->getJson("/api/price-rules/{$priceRule->id}/products");
+        $response = $this->actingAs($this->user)->getJson("/api/price-rules/{$priceRule->id}/digital-products");
 
         $response->assertStatus(200)
             ->assertJson([
                 'error' => false,
-                'message' => 'Price rule products retrieved successfully.',
+                'message' => 'Price rule digital products retrieved successfully.',
             ]);
 
         $this->assertCount(0, $response['data']['data']);
     }
 
-    public function test_post_view_product_does_not_return_other_rules_products(): void
+    public function test_post_view_digital_products_does_not_return_other_rules_digital_products(): void
     {
         $priceRule1 = PriceRule::factory()->create();
         $priceRule2 = PriceRule::factory()->create();
-        $product = Product::factory()->create(['brand_id' => $this->brand->id]);
+        $digitalProduct = DigitalProduct::factory()->create(['supplier_id' => $this->supplier->id]);
 
-        PriceRuleProduct::factory()->create([
+        PriceRuleDigitalProduct::factory()->create([
             'price_rule_id' => $priceRule1->id,
-            'product_id' => $product->id,
+            'digital_product_id' => $digitalProduct->id,
         ]);
-        PriceRuleProduct::factory()->create([
+        PriceRuleDigitalProduct::factory()->create([
             'price_rule_id' => $priceRule2->id,
-            'product_id' => $product->id,
+            'digital_product_id' => $digitalProduct->id,
         ]);
 
-        $response = $this->actingAs($this->user)->getJson("/api/price-rules/{$priceRule1->id}/products");
+        $response = $this->actingAs($this->user)->getJson("/api/price-rules/{$priceRule1->id}/digital-products");
 
         $response->assertStatus(200);
         $this->assertCount(1, $response['data']['data']);
         $this->assertEquals($priceRule1->id, $response['data']['data'][0]['price_rule_id']);
     }
 
-    public function test_post_view_product_returns_404_for_nonexistent_rule(): void
+    public function test_post_view_digital_products_returns_404_for_nonexistent_rule(): void
     {
-        $response = $this->actingAs($this->user)->getJson('/api/price-rules/999/products');
+        $response = $this->actingAs($this->user)->getJson('/api/price-rules/999/digital-products');
 
         $response->assertStatus(404);
     }
 
-    public function test_post_view_product_returns_paginated_results(): void
+    public function test_post_view_digital_products_returns_paginated_results(): void
     {
         $priceRule = PriceRule::factory()->create();
 
-        PriceRuleProduct::factory()->count(20)->create([
+        PriceRuleDigitalProduct::factory()->count(20)->create([
             'price_rule_id' => $priceRule->id,
         ]);
 
-        $response = $this->actingAs($this->user)->getJson("/api/price-rules/{$priceRule->id}/products");
+        $response = $this->actingAs($this->user)->getJson("/api/price-rules/{$priceRule->id}/digital-products");
 
         $response->assertStatus(200);
         $this->assertEquals(15, $response['data']['per_page']);
