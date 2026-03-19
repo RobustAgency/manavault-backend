@@ -56,6 +56,7 @@ class SyncDigitalProduct
                         'sku' => $item['sku'],
                         'brand' => $item['brand'] ?? null,
                         'description' => $item['description'] ?? null,
+                        'face_value' => $item['faceValue'] ?? 0,
                         'cost_price' => $item['prices'][0]['price'] ?? 0,
                         'currency' => strtolower($item['currency'] ?? 'usd'),
                         'metadata' => $item,

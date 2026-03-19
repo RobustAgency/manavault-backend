@@ -8,8 +8,8 @@ use App\Http\Controllers\Controller;
 use App\Services\PricingRuleService;
 use App\Http\Resources\PriceRuleResource;
 use App\Repositories\PriceRuleRepository;
-use App\Repositories\PriceRuleProductRepository;
 use App\Http\Requests\PriceRule\ListPriceRuleRequest;
+use App\Repositories\PriceRuleDigitalProductRepository;
 use App\Http\Requests\PriceRule\StorePriceRuleController;
 
 class PriceRuleController extends Controller
@@ -17,7 +17,7 @@ class PriceRuleController extends Controller
     public function __construct(
         private PricingRuleService $pricingRuleService,
         private PriceRuleRepository $priceRuleRepository,
-        private PriceRuleProductRepository $priceRuleProductRepository,
+        private PriceRuleDigitalProductRepository $priceRuleDigitalProductRepository,
     ) {}
 
     public function index(ListPriceRuleRequest $request): JsonResponse
@@ -89,14 +89,14 @@ class PriceRuleController extends Controller
         ]);
     }
 
-    public function postViewProduct(PriceRule $priceRule): JsonResponse
+    public function postViewDigitalProducts(PriceRule $priceRule): JsonResponse
     {
-        $products = $this->priceRuleProductRepository->getByPriceRule($priceRule->id);
+        $digitalProducts = $this->priceRuleDigitalProductRepository->getByPriceRule($priceRule->id);
 
         return response()->json([
             'error' => false,
-            'data' => $products,
-            'message' => 'Price rule products retrieved successfully.',
+            'data' => $digitalProducts,
+            'message' => 'Price rule digital products retrieved successfully.',
         ]);
     }
 }

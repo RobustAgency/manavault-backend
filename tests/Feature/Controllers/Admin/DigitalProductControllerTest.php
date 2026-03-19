@@ -48,6 +48,7 @@ class DigitalProductControllerTest extends TestCase
                     'tags' => ['software', 'productivity'],
                     'currency' => 'usd',
                     'region' => 'US',
+                    'face_value' => 175.00,
                     'cost_price' => 149.99,
                     'selling_price' => 199.99,
                     'metadata' => ['external_id' => 'ext-123'],
@@ -105,6 +106,7 @@ class DigitalProductControllerTest extends TestCase
                     'name' => 'Product 1',
                     'sku' => 'SKU-001',
                     'brand' => 'Brand A',
+                    'face_value' => 12.00,
                     'cost_price' => 10.00,
                     'selling_price' => 15.00,
                     'currency' => 'usd',
@@ -114,6 +116,7 @@ class DigitalProductControllerTest extends TestCase
                     'name' => 'Product 2',
                     'sku' => 'SKU-002',
                     'brand' => 'Brand B',
+                    'face_value' => 25.00,
                     'cost_price' => 20.00,
                     'selling_price' => 30.00,
                     'currency' => 'usd',
@@ -123,6 +126,7 @@ class DigitalProductControllerTest extends TestCase
                     'name' => 'Product 3',
                     'sku' => 'SKU-003',
                     'brand' => 'Brand C',
+                    'face_value' => 40.00,
                     'cost_price' => 30.00,
                     'selling_price' => 45.00,
                     'currency' => 'eur',
@@ -160,7 +164,95 @@ class DigitalProductControllerTest extends TestCase
                 'products.0.supplier_id',
                 'products.0.sku',
                 'products.0.cost_price',
+                'products.0.face_value',
             ]);
+    }
+
+    public function test_admin_create_digital_product_fails_without_face_value(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create();
+
+        $data = [
+            'products' => [
+                [
+                    'supplier_id' => $supplier->id,
+                    'name' => 'No Face Value Product',
+                    'sku' => 'SKU-NOFV-001',
+                    'brand' => 'Test Brand',
+                    'cost_price' => 50.00,
+                    'selling_price' => 75.00,
+                    'currency' => 'usd',
+                    // face_value intentionally omitted
+                ],
+            ],
+        ];
+
+        $response = $this->postJson('/api/digital-products', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['products.0.face_value']);
+
+        $this->assertDatabaseMissing('digital_products', ['sku' => 'SKU-NOFV-001']);
+    }
+
+    public function test_admin_create_digital_product_fails_when_face_value_is_zero(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create();
+
+        $data = [
+            'products' => [
+                [
+                    'supplier_id' => $supplier->id,
+                    'name' => 'Zero Face Value Product',
+                    'sku' => 'SKU-ZFV-001',
+                    'brand' => 'Test Brand',
+                    'cost_price' => 50.00,
+                    'face_value' => 0,
+                    'selling_price' => 75.00,
+                    'currency' => 'usd',
+                ],
+            ],
+        ];
+
+        $response = $this->postJson('/api/digital-products', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['products.0.face_value']);
+
+        $this->assertDatabaseMissing('digital_products', ['sku' => 'SKU-ZFV-001']);
+    }
+
+    public function test_admin_create_digital_product_fails_when_face_value_is_negative(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create();
+
+        $data = [
+            'products' => [
+                [
+                    'supplier_id' => $supplier->id,
+                    'name' => 'Negative Face Value Product',
+                    'sku' => 'SKU-NFV-001',
+                    'brand' => 'Test Brand',
+                    'cost_price' => 50.00,
+                    'face_value' => -10.00,
+                    'selling_price' => 75.00,
+                    'currency' => 'usd',
+                ],
+            ],
+        ];
+
+        $response = $this->postJson('/api/digital-products', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['products.0.face_value']);
+
+        $this->assertDatabaseMissing('digital_products', ['sku' => 'SKU-NFV-001']);
     }
 
     public function test_admin_create_digital_product_fails_when_selling_price_is_zero(): void
@@ -176,6 +268,7 @@ class DigitalProductControllerTest extends TestCase
                     'name' => 'Zero Price Product',
                     'sku' => 'SKU-ZERO-001',
                     'brand' => 'Test Brand',
+                    'face_value' => 10.00,
                     'cost_price' => 10.00,
                     'selling_price' => 0,
                     'currency' => 'usd',

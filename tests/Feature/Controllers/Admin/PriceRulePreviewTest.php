@@ -4,8 +4,8 @@ namespace Tests\Feature\Controllers\Admin;
 
 use Tests\TestCase;
 use App\Models\User;
-use App\Models\Brand;
-use App\Models\Product;
+use App\Models\Supplier;
+use App\Models\DigitalProduct;
 use App\Enums\PriceRule\ActionMode;
 use App\Enums\PriceRule\ActionOperator;
 use App\Enums\PriceRuleCondition\Operator;
@@ -17,32 +17,36 @@ class PriceRulePreviewTest extends TestCase
 
     private User $adminUser;
 
+    private Supplier $supplier;
+
     private string $endpoint = '/api/price-rules/preview';
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->actingAsAdmin();
+        $this->supplier = Supplier::factory()->create();
     }
 
     private function actingAsAdmin(): void
     {
-        $this->adminUser = User::factory()->create(['role' => 'super_admin']);
+        $this->adminUser = User::factory()->create(['role' => 'super_admin', 'is_approved' => true]);
         $this->actingAs($this->adminUser);
     }
 
     public function test_preview_shows_products_affected_by_percentage_increase(): void
     {
-        $brand = Brand::factory()->create(['name' => 'Sony']);
-        $product1 = Product::factory()->create([
-            'brand_id' => $brand->id,
+        $dp1 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
             'name' => 'PlayStation 5',
+            'brand' => 'Sony',
             'face_value' => 100.00,
             'selling_price' => 100.00,
         ]);
-        $product2 = Product::factory()->create([
-            'brand_id' => $brand->id,
+        $dp2 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
             'name' => 'PlayStation Gift Card',
+            'brand' => 'Sony',
             'face_value' => 50.00,
             'selling_price' => 50.00,
         ]);
@@ -57,9 +61,9 @@ class PriceRulePreviewTest extends TestCase
             'status' => 'active',
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $brand->id,
+                    'value' => 'Sony',
                 ],
             ],
         ];
@@ -75,23 +79,23 @@ class PriceRulePreviewTest extends TestCase
         $preview = $response->json('data');
         $this->assertCount(2, $preview);
 
-        // Verify product 1 calculation: 100 + (100 * 0.1) = 110
-        $product1Preview = collect($preview)->firstWhere('product_id', $product1->id);
-        $this->assertEquals(110.00, $product1Preview['new_selling_price']);
-        $this->assertEquals(100.00, $product1Preview['current_selling_price']);
+        // Verify digital product 1 calculation: 100 + (100 * 0.1) = 110
+        $dp1Preview = collect($preview)->firstWhere('digital_product_id', $dp1->id);
+        $this->assertEquals(110.00, $dp1Preview['new_selling_price']);
+        $this->assertEquals(100.00, $dp1Preview['current_selling_price']);
 
-        // Verify product 2 calculation: 50 + (50 * 0.1) = 55
-        $product2Preview = collect($preview)->firstWhere('product_id', $product2->id);
-        $this->assertEquals(55.00, $product2Preview['new_selling_price']);
-        $this->assertEquals(50.00, $product2Preview['current_selling_price']);
+        // Verify digital product 2 calculation: 50 + (50 * 0.1) = 55
+        $dp2Preview = collect($preview)->firstWhere('digital_product_id', $dp2->id);
+        $this->assertEquals(55.00, $dp2Preview['new_selling_price']);
+        $this->assertEquals(50.00, $dp2Preview['current_selling_price']);
     }
 
     public function test_preview_shows_products_affected_by_percentage_decrease(): void
     {
-        $brand = Brand::factory()->create(['name' => 'Microsoft']);
-        $product = Product::factory()->create([
-            'brand_id' => $brand->id,
+        $dp = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
             'name' => 'Xbox Gift Card',
+            'brand' => 'Microsoft',
             'face_value' => 100.00,
             'selling_price' => 100.00,
         ]);
@@ -106,9 +110,9 @@ class PriceRulePreviewTest extends TestCase
             'status' => 'active',
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $brand->id,
+                    'value' => 'Microsoft',
                 ],
             ],
         ];
@@ -119,16 +123,16 @@ class PriceRulePreviewTest extends TestCase
         $preview = $response->json('data');
 
         // Verify calculation: 100 - (100 * 0.2) = 80
-        $productPreview = collect($preview)->firstWhere('product_id', $product->id);
-        $this->assertEquals(80.00, $productPreview['new_selling_price']);
+        $dpPreview = collect($preview)->firstWhere('digital_product_id', $dp->id);
+        $this->assertEquals(80.00, $dpPreview['new_selling_price']);
     }
 
     public function test_preview_shows_products_affected_by_absolute_increase(): void
     {
-        $brand = Brand::factory()->create(['name' => 'Apple']);
-        $product = Product::factory()->create([
-            'brand_id' => $brand->id,
+        $dp = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
             'name' => 'Apple Gift Card',
+            'brand' => 'Apple',
             'face_value' => 50.00,
             'selling_price' => 50.00,
         ]);
@@ -143,9 +147,9 @@ class PriceRulePreviewTest extends TestCase
             'status' => 'active',
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $brand->id,
+                    'value' => 'Apple',
                 ],
             ],
         ];
@@ -156,16 +160,16 @@ class PriceRulePreviewTest extends TestCase
         $preview = $response->json('data');
 
         // Verify calculation: 50 + 15 = 65
-        $productPreview = collect($preview)->firstWhere('product_id', $product->id);
-        $this->assertEquals(65.00, $productPreview['new_selling_price']);
+        $dpPreview = collect($preview)->firstWhere('digital_product_id', $dp->id);
+        $this->assertEquals(65.00, $dpPreview['new_selling_price']);
     }
 
     public function test_preview_shows_products_affected_by_absolute_decrease(): void
     {
-        $brand = Brand::factory()->create(['name' => 'Google']);
-        $product = Product::factory()->create([
-            'brand_id' => $brand->id,
+        $dp = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
             'name' => 'Google Play Card',
+            'brand' => 'Google',
             'face_value' => 30.00,
             'selling_price' => 30.00,
         ]);
@@ -180,9 +184,9 @@ class PriceRulePreviewTest extends TestCase
             'status' => 'active',
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $brand->id,
+                    'value' => 'Google',
                 ],
             ],
         ];
@@ -193,26 +197,25 @@ class PriceRulePreviewTest extends TestCase
         $preview = $response->json('data');
 
         // Verify calculation: 30 - 10 = 20
-        $productPreview = collect($preview)->firstWhere('product_id', $product->id);
-        $this->assertEquals(20.00, $productPreview['new_selling_price']);
+        $dpPreview = collect($preview)->firstWhere('digital_product_id', $dp->id);
+        $this->assertEquals(20.00, $dpPreview['new_selling_price']);
     }
 
     public function test_preview_with_multiple_conditions_all_match(): void
     {
-        $brand = Brand::factory()->create(['name' => 'Nintendo']);
-        $product1 = Product::factory()->create([
-            'brand_id' => $brand->id,
+        $dp1 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
             'name' => 'Nintendo Switch Game',
+            'brand' => 'Nintendo',
             'face_value' => 60.00,
             'selling_price' => 60.00,
-            'status' => 'active',
         ]);
-        $product2 = Product::factory()->create([
-            'brand_id' => $brand->id,
+        $dp2 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
             'name' => 'Nintendo Inactive Game',
+            'brand' => 'Nintendo',
             'face_value' => 60.00,
             'selling_price' => 60.00,
-            'status' => 'inactive',
         ]);
 
         $payload = [
@@ -225,9 +228,9 @@ class PriceRulePreviewTest extends TestCase
             'status' => 'active',
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $brand->id,
+                    'value' => 'Nintendo',
                 ],
                 [
                     'field' => 'selling_price',
@@ -242,31 +245,31 @@ class PriceRulePreviewTest extends TestCase
         $response->assertStatus(200);
         $preview = $response->json('data');
 
-        // Should only return product1 as product2 has status = 0
+        // Both digital products match all conditions
         $this->assertCount(2, $preview);
-        $this->assertEquals($product1->id, $preview[0]['product_id']);
         $this->assertEquals(63.00, $preview[0]['new_selling_price']);
     }
 
     public function test_preview_with_multiple_conditions_any_match(): void
     {
-        $brand1 = Brand::factory()->create(['name' => 'Samsung']);
-        $brand2 = Brand::factory()->create(['name' => 'LG']);
-        $product1 = Product::factory()->create([
-            'brand_id' => $brand1->id,
+        $dp1 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
             'name' => 'Samsung TV',
+            'brand' => 'Samsung',
             'face_value' => 500.00,
             'selling_price' => 500.00,
         ]);
-        $product2 = Product::factory()->create([
-            'brand_id' => $brand2->id,
+        $dp2 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
             'name' => 'LG TV',
+            'brand' => 'LG',
             'face_value' => 400.00,
             'selling_price' => 400.00,
         ]);
-        $product3 = Product::factory()->create([
-            'brand_id' => Brand::factory()->create(['name' => 'Other'])->id,
+        $dp3 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
             'name' => 'Other TV',
+            'brand' => 'Other',
             'face_value' => 300.00,
             'selling_price' => 300.00,
         ]);
@@ -281,14 +284,14 @@ class PriceRulePreviewTest extends TestCase
             'status' => 'active',
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $brand1->id,
+                    'value' => 'Samsung',
                 ],
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $brand2->id,
+                    'value' => 'LG',
                 ],
             ],
         ];
@@ -298,18 +301,16 @@ class PriceRulePreviewTest extends TestCase
         $response->assertStatus(200);
         $preview = $response->json('data');
 
-        // Should return product1 and product2
+        // Should return dp1 and dp2
         $this->assertCount(2, $preview);
-        $ids = array_column($preview, 'product_id');
-        $this->assertContains($product1->id, $ids);
-        $this->assertContains($product2->id, $ids);
-        $this->assertNotContains($product3->id, $ids);
+        $ids = array_column($preview, 'digital_product_id');
+        $this->assertContains($dp1->id, $ids);
+        $this->assertContains($dp2->id, $ids);
+        $this->assertNotContains($dp3->id, $ids);
     }
 
     public function test_preview_returns_empty_when_no_products_match(): void
     {
-        $brand = Brand::factory()->create(['name' => 'NonExistent']);
-
         $payload = [
             'name' => 'Test Empty',
             'description' => 'Preview test empty',
@@ -320,9 +321,9 @@ class PriceRulePreviewTest extends TestCase
             'status' => 'active',
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $brand->id,
+                    'value' => 'NonExistentBrand',
                 ],
             ],
         ];
@@ -337,15 +338,15 @@ class PriceRulePreviewTest extends TestCase
 
     public function test_preview_does_not_update_database(): void
     {
-        $brand = Brand::factory()->create(['name' => 'Test Brand']);
-        $product = Product::factory()->create([
-            'brand_id' => $brand->id,
+        $dp = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
             'name' => 'Test Product',
+            'brand' => 'Test Brand',
             'face_value' => 100.00,
             'selling_price' => 100.00,
         ]);
 
-        $originalPrice = $product->selling_price;
+        $originalPrice = $dp->selling_price;
 
         $payload = [
             'name' => 'Test No Update',
@@ -357,26 +358,26 @@ class PriceRulePreviewTest extends TestCase
             'status' => 'active',
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $brand->id,
+                    'value' => 'Test Brand',
                 ],
             ],
         ];
 
         $this->postJson($this->endpoint, $payload);
 
-        // Verify the product's actual price in database hasn't changed
-        $product->refresh();
-        $this->assertEquals($originalPrice, $product->selling_price);
+        // Verify the digital product's actual price in database hasn't changed
+        $dp->refresh();
+        $this->assertEquals($originalPrice, $dp->selling_price);
     }
 
     public function test_preview_includes_all_required_fields(): void
     {
-        $brand = Brand::factory()->create(['name' => 'Complete']);
-        $product = Product::factory()->create([
-            'brand_id' => $brand->id,
+        $dp = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
             'name' => 'Complete Product',
+            'brand' => 'Complete',
             'face_value' => 100.00,
             'selling_price' => 100.00,
         ]);
@@ -391,9 +392,9 @@ class PriceRulePreviewTest extends TestCase
             'status' => 'active',
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $brand->id,
+                    'value' => 'Complete',
                 ],
             ],
         ];
@@ -405,8 +406,8 @@ class PriceRulePreviewTest extends TestCase
 
         $this->assertCount(1, $preview);
         $item = $preview[0];
-        $this->assertArrayHasKey('product_id', $item);
-        $this->assertArrayHasKey('product_name', $item);
+        $this->assertArrayHasKey('digital_product_id', $item);
+        $this->assertArrayHasKey('digital_product_name', $item);
         $this->assertArrayHasKey('face_value', $item);
         $this->assertArrayHasKey('current_selling_price', $item);
         $this->assertArrayHasKey('new_selling_price', $item);

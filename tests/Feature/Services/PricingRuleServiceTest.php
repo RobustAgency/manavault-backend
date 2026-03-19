@@ -4,12 +4,14 @@ namespace Tests\Feature\Services;
 
 use Tests\TestCase;
 use App\Models\Brand;
-use App\Models\Product;
+use App\Models\Supplier;
 use App\Models\PriceRule;
+use App\Models\DigitalProduct;
 use App\Enums\PriceRule\Status;
 use App\Enums\PriceRule\ActionMode;
 use App\Services\PricingRuleService;
 use App\Enums\PriceRule\ActionOperator;
+use App\Models\PriceRuleDigitalProduct;
 use App\Enums\PriceRuleCondition\Operator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -19,21 +21,22 @@ class PricingRuleServiceTest extends TestCase
 
     private PricingRuleService $service;
 
-    private Brand $brand;
+    private Supplier $supplier;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->service = app(PricingRuleService::class);
-        $this->brand = Brand::factory()->create();
+        $this->supplier = Supplier::factory()->create();
     }
 
     public function test_create_price_rule_with_conditions(): void
     {
-        $product = Product::factory()->create([
-            'brand_id' => $this->brand->id,
+        $digitalProduct = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
             'face_value' => 100.00,
             'selling_price' => 100.00,
+            'brand' => 'TestBrand',
         ]);
 
         $data = [
@@ -46,9 +49,9 @@ class PricingRuleServiceTest extends TestCase
             'status' => Status::ACTIVE->value,
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => $this->brand->id,
+                    'value' => 'TestBrand',
                 ],
             ],
         ];
@@ -62,29 +65,33 @@ class PricingRuleServiceTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('price_rule_conditions', [
-            'field' => 'brand_id',
+            'field' => 'brand',
             'operator' => Operator::EQUAL->value,
         ]);
 
-        $product->refresh();
         // Price should be reduced by 10%: 100 - (100 * 0.10) = 90
-        $this->assertDatabaseHas('price_rule_product', [
-            'product_id' => $product->id,
+        $this->assertDatabaseHas('price_rule_digital_product', [
+            'digital_product_id' => $digitalProduct->id,
             'final_selling_price' => 90.00,
         ]);
+
+        // Digital product selling_price should be updated
+        $digitalProduct->refresh();
+        $this->assertEquals(90.00, (float) $digitalProduct->selling_price);
     }
 
     public function test_create_price_rule_with_percentage_addition(): void
     {
-        $product = Product::factory()->create([
-            'brand_id' => $this->brand->id,
+        $digitalProduct = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
             'face_value' => 100.00,
             'selling_price' => 100.00,
+            'brand' => 'TestBrand',
         ]);
 
         $data = [
             'name' => 'Markup Rule',
-            'description' => 'Add markup to products',
+            'description' => 'Add markup to digital products',
             'match_type' => 'all',
             'action_operator' => ActionOperator::ADDITION->value,
             'action_mode' => ActionMode::PERCENTAGE->value,
@@ -92,29 +99,32 @@ class PricingRuleServiceTest extends TestCase
             'status' => Status::ACTIVE->value,
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $this->brand->id,
+                    'value' => 'TestBrand',
                 ],
             ],
         ];
 
         $this->service->createPriceRuleWithConditions($data);
 
-        $product->refresh();
         // Price should be increased by 20%: 100 + (100 * 0.20) = 120
-        $this->assertDatabaseHas('price_rule_product', [
-            'product_id' => $product->id,
+        $this->assertDatabaseHas('price_rule_digital_product', [
+            'digital_product_id' => $digitalProduct->id,
             'final_selling_price' => 120.00,
         ]);
+
+        $digitalProduct->refresh();
+        $this->assertEquals(120.00, (float) $digitalProduct->selling_price);
     }
 
     public function test_create_price_rule_with_absolute_value(): void
     {
-        $product = Product::factory()->create([
-            'brand_id' => $this->brand->id,
+        $digitalProduct = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
             'face_value' => 100.00,
             'selling_price' => 100.00,
+            'brand' => 'TestBrand',
         ]);
 
         $data = [
@@ -127,45 +137,49 @@ class PricingRuleServiceTest extends TestCase
             'status' => Status::ACTIVE->value,
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $this->brand->id,
+                    'value' => 'TestBrand',
                 ],
             ],
         ];
 
         $this->service->createPriceRuleWithConditions($data);
 
-        $product->refresh();
         // Price should be reduced by fixed amount: 100 - 15 = 85
-        $this->assertDatabaseHas('price_rule_product', [
-            'product_id' => $product->id,
+        $this->assertDatabaseHas('price_rule_digital_product', [
+            'digital_product_id' => $digitalProduct->id,
             'final_selling_price' => 85.00,
         ]);
+
+        $digitalProduct->refresh();
+        $this->assertEquals(85.00, (float) $digitalProduct->selling_price);
     }
 
     public function test_create_price_rule_with_multiple_conditions_all(): void
     {
-        $brand2 = Brand::factory()->create();
-        $product1 = Product::factory()->create([
-            'brand_id' => $this->brand->id,
+        $dp1 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
+            'brand' => 'BrandA',
             'selling_price' => 50.00,
             'face_value' => 50.00,
         ]);
-        $product2 = Product::factory()->create([
-            'brand_id' => $this->brand->id,
+        $dp2 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
+            'brand' => 'BrandA',
             'selling_price' => 150.00,
             'face_value' => 150.00,
         ]);
-        $product3 = Product::factory()->create([
-            'brand_id' => $brand2->id,
+        $dp3 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
+            'brand' => 'BrandB',
             'selling_price' => 150.00,
             'face_value' => 150.00,
         ]);
 
         $data = [
             'name' => 'Premium Brand Discount',
-            'description' => 'Discount for premium products of specific brand',
+            'description' => 'Discount for premium digital products of specific brand',
             'match_type' => 'all',
             'action_operator' => ActionOperator::SUBTRACTION->value,
             'action_mode' => ActionMode::PERCENTAGE->value,
@@ -173,9 +187,9 @@ class PricingRuleServiceTest extends TestCase
             'status' => Status::ACTIVE->value,
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $this->brand->id,
+                    'value' => 'BrandA',
                 ],
                 [
                     'field' => 'selling_price',
@@ -187,34 +201,32 @@ class PricingRuleServiceTest extends TestCase
 
         $this->service->createPriceRuleWithConditions($data);
 
-        $product1->refresh();
-        $product2->refresh();
-        $product3->refresh();
-
-        // Only product2 should be discounted (brand matches AND price >= 100)
-        $this->assertDatabaseMissing('price_rule_product', ['product_id' => $product1->id]); // Not changed
-        $this->assertDatabaseHas('price_rule_product', [
-            'product_id' => $product2->id,
+        // Only dp2 should be discounted (brand matches AND price >= 100)
+        $this->assertDatabaseMissing('price_rule_digital_product', ['digital_product_id' => $dp1->id]);
+        $this->assertDatabaseHas('price_rule_digital_product', [
+            'digital_product_id' => $dp2->id,
             'final_selling_price' => 135.00, // 150 - (150 * 0.10) = 135
         ]);
-        $this->assertDatabaseMissing('price_rule_product', ['product_id' => $product3->id]); // Not changed (different brand)
+        $this->assertDatabaseMissing('price_rule_digital_product', ['digital_product_id' => $dp3->id]);
     }
 
     public function test_create_price_rule_with_multiple_conditions_any(): void
     {
-        $brand2 = Brand::factory()->create();
-        $product1 = Product::factory()->create([
-            'brand_id' => $this->brand->id,
+        $dp1 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
+            'brand' => 'BrandA',
             'selling_price' => 50.00,
             'face_value' => 50.00,
         ]);
-        $product2 = Product::factory()->create([
-            'brand_id' => $brand2->id,
+        $dp2 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
+            'brand' => 'BrandB',
             'selling_price' => 50.00,
             'face_value' => 50.00,
         ]);
-        $product3 = Product::factory()->create([
-            'brand_id' => $brand2->id,
+        $dp3 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
+            'brand' => 'BrandB',
             'selling_price' => 150.00,
             'face_value' => 150.00,
         ]);
@@ -229,9 +241,9 @@ class PricingRuleServiceTest extends TestCase
             'status' => Status::ACTIVE->value,
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $this->brand->id,
+                    'value' => 'BrandA',
                 ],
                 [
                     'field' => 'selling_price',
@@ -243,18 +255,14 @@ class PricingRuleServiceTest extends TestCase
 
         $this->service->createPriceRuleWithConditions($data);
 
-        $product1->refresh();
-        $product2->refresh();
-        $product3->refresh();
-
-        // product1 matches brand condition, product3 matches price condition
-        $this->assertDatabaseHas('price_rule_product', [
-            'product_id' => $product1->id,
+        // dp1 matches brand condition, dp3 matches price condition
+        $this->assertDatabaseHas('price_rule_digital_product', [
+            'digital_product_id' => $dp1->id,
             'final_selling_price' => 47.50, // 50 - (50 * 0.05) = 47.5
         ]);
-        $this->assertDatabaseMissing('price_rule_product', ['product_id' => $product2->id]); // Not changed
-        $this->assertDatabaseHas('price_rule_product', [
-            'product_id' => $product3->id,
+        $this->assertDatabaseMissing('price_rule_digital_product', ['digital_product_id' => $dp2->id]);
+        $this->assertDatabaseHas('price_rule_digital_product', [
+            'digital_product_id' => $dp3->id,
             'final_selling_price' => 142.50, // 150 - (150 * 0.05) = 142.5
         ]);
     }
@@ -268,10 +276,11 @@ class PricingRuleServiceTest extends TestCase
             'action_operator' => ActionOperator::SUBTRACTION->value,
         ]);
 
-        $product = Product::factory()->create([
-            'brand_id' => $this->brand->id,
+        $digitalProduct = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
             'face_value' => 100.00,
             'selling_price' => 100.00,
+            'brand' => 'TestBrand',
         ]);
 
         $updateData = [
@@ -281,9 +290,9 @@ class PricingRuleServiceTest extends TestCase
             'action_operator' => ActionOperator::SUBTRACTION->value,
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $this->brand->id,
+                    'value' => 'TestBrand',
                 ],
             ],
         ];
@@ -296,16 +305,18 @@ class PricingRuleServiceTest extends TestCase
             'action_value' => 15,
         ]);
 
-        $product->refresh();
         // Price should be reduced by 15%: 100 - (100 * 0.15) = 85
-        $this->assertDatabaseHas('price_rule_product', [
-            'product_id' => $product->id,
+        $this->assertDatabaseHas('price_rule_digital_product', [
+            'digital_product_id' => $digitalProduct->id,
             'price_rule_id' => $priceRule->id,
             'final_selling_price' => 85.00,
         ]);
+
+        $digitalProduct->refresh();
+        $this->assertEquals(85.00, (float) $digitalProduct->selling_price);
     }
 
-    public function test_update_does_not_stack_price_rule_product_records(): void
+    public function test_update_does_not_stack_price_rule_digital_product_records(): void
     {
         $priceRule = PriceRule::factory()->create([
             'name' => 'Rule',
@@ -316,10 +327,11 @@ class PricingRuleServiceTest extends TestCase
             'status' => Status::ACTIVE->value,
         ]);
 
-        $product = Product::factory()->create([
-            'brand_id' => $this->brand->id,
+        $digitalProduct = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
             'face_value' => 100.00,
             'selling_price' => 100.00,
+            'brand' => 'TestBrand',
         ]);
 
         $updateData = [
@@ -331,9 +343,9 @@ class PricingRuleServiceTest extends TestCase
             'status' => Status::ACTIVE->value,
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $this->brand->id,
+                    'value' => 'TestBrand',
                 ],
             ],
         ];
@@ -342,34 +354,42 @@ class PricingRuleServiceTest extends TestCase
         $this->service->updatePriceRuleWithConditions($priceRule, $updateData);
         $this->service->updatePriceRuleWithConditions($priceRule, $updateData);
 
-        // There must be exactly 1 record per product, not stacked duplicates
-        $count = \App\Models\PriceRuleProduct::where('price_rule_id', $priceRule->id)
-            ->where('product_id', $product->id)
+        // There must be exactly 1 record per digital product, not stacked duplicates
+        $count = PriceRuleDigitalProduct::where('price_rule_id', $priceRule->id)
+            ->where('digital_product_id', $digitalProduct->id)
             ->count();
 
         $this->assertEquals(1, $count);
 
         // And the price should reflect the latest update: 100 - 20% = 80
-        $this->assertDatabaseHas('price_rule_product', [
-            'product_id' => $product->id,
+        $this->assertDatabaseHas('price_rule_digital_product', [
+            'digital_product_id' => $digitalProduct->id,
             'price_rule_id' => $priceRule->id,
             'final_selling_price' => 80.00,
         ]);
     }
 
-    public function test_update_clears_stale_products_when_conditions_change(): void
+    public function test_update_clears_stale_digital_products_when_conditions_change(): void
     {
-        $brand2 = Brand::factory()->create();
-
-        $product1 = Product::factory()->create([
-            'brand_id' => $this->brand->id,
+        $dp1 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
             'face_value' => 100.00,
             'selling_price' => 100.00,
+            'brand' => 'BrandA',
         ]);
-        $product2 = Product::factory()->create([
-            'brand_id' => $brand2->id,
+        $dp2 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
             'face_value' => 100.00,
             'selling_price' => 100.00,
+            'brand' => 'BrandB',
+        ]);
+
+        $priceRule = PriceRule::factory()->create([
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 10,
+            'status' => Status::ACTIVE->value,
         ]);
 
         $initialData = [
@@ -381,28 +401,20 @@ class PricingRuleServiceTest extends TestCase
             'status' => Status::ACTIVE->value,
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $this->brand->id,
+                    'value' => 'BrandA',
                 ],
             ],
         ];
 
-        $priceRule = \App\Models\PriceRule::factory()->create([
-            'match_type' => 'all',
-            'action_operator' => ActionOperator::SUBTRACTION->value,
-            'action_mode' => ActionMode::PERCENTAGE->value,
-            'action_value' => 10,
-            'status' => Status::ACTIVE->value,
-        ]);
-
         $this->service->updatePriceRuleWithConditions($priceRule, $initialData);
 
-        // product1 should be in price_rule_product, product2 should not
-        $this->assertDatabaseHas('price_rule_product', ['product_id' => $product1->id, 'price_rule_id' => $priceRule->id]);
-        $this->assertDatabaseMissing('price_rule_product', ['product_id' => $product2->id, 'price_rule_id' => $priceRule->id]);
+        // dp1 should be in price_rule_digital_product, dp2 should not
+        $this->assertDatabaseHas('price_rule_digital_product', ['digital_product_id' => $dp1->id, 'price_rule_id' => $priceRule->id]);
+        $this->assertDatabaseMissing('price_rule_digital_product', ['digital_product_id' => $dp2->id, 'price_rule_id' => $priceRule->id]);
 
-        // Now update to target brand2 instead
+        // Now update to target BrandB instead
         $updatedData = [
             'name' => 'Rule',
             'match_type' => 'all',
@@ -412,34 +424,35 @@ class PricingRuleServiceTest extends TestCase
             'status' => Status::ACTIVE->value,
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $brand2->id,
+                    'value' => 'BrandB',
                 ],
             ],
         ];
 
         $this->service->updatePriceRuleWithConditions($priceRule, $updatedData);
 
-        // product1's old record must be gone, product2's new record must exist
-        $this->assertDatabaseMissing('price_rule_product', ['product_id' => $product1->id, 'price_rule_id' => $priceRule->id]);
-        $this->assertDatabaseHas('price_rule_product', ['product_id' => $product2->id, 'price_rule_id' => $priceRule->id]);
+        // dp1's old record must be gone, dp2's new record must exist
+        $this->assertDatabaseMissing('price_rule_digital_product', ['digital_product_id' => $dp1->id, 'price_rule_id' => $priceRule->id]);
+        $this->assertDatabaseHas('price_rule_digital_product', ['digital_product_id' => $dp2->id, 'price_rule_id' => $priceRule->id]);
     }
 
     public function test_update_price_rule_replaces_conditions(): void
     {
         $priceRule = PriceRule::factory()->create();
-        $brand2 = Brand::factory()->create();
 
-        $product1 = Product::factory()->create([
-            'brand_id' => $this->brand->id,
+        $dp1 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
             'face_value' => 100.00,
             'selling_price' => 100.00,
+            'brand' => 'BrandA',
         ]);
-        $product2 = Product::factory()->create([
-            'brand_id' => $brand2->id,
+        $dp2 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
             'face_value' => 100.00,
             'selling_price' => 100.00,
+            'brand' => 'BrandB',
         ]);
 
         // Create initial conditions
@@ -452,9 +465,9 @@ class PricingRuleServiceTest extends TestCase
             'status' => Status::ACTIVE->value,
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $this->brand->id,
+                    'value' => 'BrandA',
                 ],
             ],
         ];
@@ -467,9 +480,9 @@ class PricingRuleServiceTest extends TestCase
             'action_value' => 20,
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $brand2->id,
+                    'value' => 'BrandB',
                 ],
             ],
         ];
@@ -479,23 +492,24 @@ class PricingRuleServiceTest extends TestCase
         // Old condition should be deleted, new one should exist
         $this->assertDatabaseMissing('price_rule_conditions', [
             'price_rule_id' => $priceRule->id,
-            'field' => 'brand_id',
-            'value' => (string) $this->brand->id,
+            'field' => 'brand',
+            'value' => 'BrandA',
         ]);
 
         $this->assertDatabaseHas('price_rule_conditions', [
             'price_rule_id' => $priceRule->id,
-            'field' => 'brand_id',
-            'value' => (string) $brand2->id,
+            'field' => 'brand',
+            'value' => 'BrandB',
         ]);
     }
 
     public function test_selling_price_cannot_be_negative(): void
     {
-        $product = Product::factory()->create([
-            'brand_id' => $this->brand->id,
+        $digitalProduct = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
             'face_value' => 50.00,
             'selling_price' => 50.00,
+            'brand' => 'TestBrand',
         ]);
 
         $data = [
@@ -504,39 +518,41 @@ class PricingRuleServiceTest extends TestCase
             'match_type' => 'all',
             'action_operator' => ActionOperator::SUBTRACTION->value,
             'action_mode' => ActionMode::ABSOLUTE->value,
-            'action_value' => 100, // More than the product price
+            'action_value' => 100, // More than the digital product price
             'status' => Status::ACTIVE->value,
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $this->brand->id,
+                    'value' => 'TestBrand',
                 ],
             ],
         ];
 
         $this->service->createPriceRuleWithConditions($data);
 
-        $product->refresh();
         // Price should be 0 minimum, not negative
-        $this->assertDatabaseHas('price_rule_product', [
-            'product_id' => $product->id,
+        $this->assertDatabaseHas('price_rule_digital_product', [
+            'digital_product_id' => $digitalProduct->id,
             'final_selling_price' => 0.00,
         ]);
+
+        $digitalProduct->refresh();
+        $this->assertEquals(0.00, (float) $digitalProduct->selling_price);
     }
 
-    public function test_create_rule_with_no_matching_products(): void
+    public function test_create_rule_with_no_matching_digital_products(): void
     {
-        $other_brand = Brand::factory()->create();
-        Product::factory()->create([
-            'brand_id' => $other_brand->id,
+        DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
             'face_value' => 100.00,
             'selling_price' => 100.00,
+            'brand' => 'OtherBrand',
         ]);
 
         $data = [
             'name' => 'No Match Rule',
-            'description' => 'Rule that matches no products',
+            'description' => 'Rule that matches no digital products',
             'match_type' => 'all',
             'action_operator' => ActionOperator::SUBTRACTION->value,
             'action_mode' => ActionMode::PERCENTAGE->value,
@@ -544,9 +560,9 @@ class PricingRuleServiceTest extends TestCase
             'status' => Status::ACTIVE->value,
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $this->brand->id,
+                    'value' => 'NonExistentBrand',
                 ],
             ],
         ];
@@ -560,20 +576,21 @@ class PricingRuleServiceTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
-    // Product::getSellingPriceAttribute – automation applied tests
+    // Digital product selling_price updated after rule application
     // -------------------------------------------------------------------------
 
-    public function test_selling_price_accessor_returns_final_selling_price_from_active_rule(): void
+    public function test_digital_product_selling_price_updated_after_percentage_subtraction(): void
     {
-        $product = Product::factory()->create([
-            'brand_id' => $this->brand->id,
+        $digitalProduct = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
             'face_value' => 100.00,
             'selling_price' => 100.00,
+            'brand' => 'TestBrand',
         ]);
 
         $data = [
-            'name' => 'Accessor Test Rule',
-            'description' => 'Test accessor returns discounted price',
+            'name' => 'Selling Price Update Test',
+            'description' => 'Test selling price is persisted',
             'match_type' => 'all',
             'action_operator' => ActionOperator::SUBTRACTION->value,
             'action_mode' => ActionMode::PERCENTAGE->value,
@@ -581,95 +598,28 @@ class PricingRuleServiceTest extends TestCase
             'status' => Status::ACTIVE->value,
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $this->brand->id,
+                    'value' => 'TestBrand',
                 ],
             ],
         ];
 
         $this->service->createPriceRuleWithConditions($data);
 
-        $product->refresh();
+        $digitalProduct->refresh();
 
-        // Accessor must return 90.00 (100 - 10%), not the raw 100.00
-        $this->assertEquals(90.00, $product->selling_price);
+        // selling_price must be 90.00 (100 - 10%)
+        $this->assertEquals(90.00, (float) $digitalProduct->selling_price);
     }
 
-    public function test_selling_price_accessor_returns_original_when_no_active_rule(): void
+    public function test_digital_product_selling_price_updated_after_rule_update(): void
     {
-        $product = Product::factory()->create([
-            'brand_id' => $this->brand->id,
-            'face_value' => 100.00,
-            'selling_price' => 75.00,
-        ]);
-
-        // No PriceRuleProduct records exist for this product
-        $this->assertEquals(75.00, $product->selling_price);
-    }
-
-    public function test_selling_price_accessor_returns_original_when_rule_is_inactive(): void
-    {
-        $product = Product::factory()->create([
-            'brand_id' => $this->brand->id,
+        $digitalProduct = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
             'face_value' => 100.00,
             'selling_price' => 100.00,
-        ]);
-
-        $inactiveRule = PriceRule::factory()->create([
-            'status' => Status::INACTIVE->value,
-        ]);
-
-        \App\Models\PriceRuleProduct::factory()->create([
-            'product_id' => $product->id,
-            'price_rule_id' => $inactiveRule->id,
-            'final_selling_price' => 50.00,
-        ]);
-
-        $product->refresh();
-
-        // Inactive rule must be ignored; original price returned
-        $this->assertEquals(100.00, $product->selling_price);
-    }
-
-    public function test_selling_price_accessor_returns_latest_when_multiple_active_rules_applied(): void
-    {
-        $product = Product::factory()->create([
-            'brand_id' => $this->brand->id,
-            'face_value' => 100.00,
-            'selling_price' => 100.00,
-        ]);
-
-        $activeRule = PriceRule::factory()->create(['status' => Status::ACTIVE->value]);
-
-        // Older record
-        \App\Models\PriceRuleProduct::factory()->create([
-            'product_id' => $product->id,
-            'price_rule_id' => $activeRule->id,
-            'final_selling_price' => 80.00,
-            'updated_at' => now()->subMinutes(10),
-        ]);
-
-        // Latest record
-        \App\Models\PriceRuleProduct::factory()->create([
-            'product_id' => $product->id,
-            'price_rule_id' => $activeRule->id,
-            'final_selling_price' => 90.00,
-            'updated_at' => now(),
-        ]);
-
-        $product->refresh();
-
-        // Must return the latest record's final_selling_price
-        $this->assertEquals(90.00, $product->selling_price);
-    }
-
-    public function test_selling_price_accessor_returns_correct_price_after_rule_update(): void
-    {
-        $product = Product::factory()->create([
-            'brand_id' => $this->brand->id,
-            'face_value' => 100.00,
-            'selling_price' => 100.00,
+            'brand' => 'TestBrand',
         ]);
 
         $priceRule = PriceRule::factory()->create([
@@ -689,31 +639,33 @@ class PricingRuleServiceTest extends TestCase
             'status' => Status::ACTIVE->value,
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $this->brand->id,
+                    'value' => 'TestBrand',
                 ],
             ],
         ];
 
         // Apply initial rule: 100 - 10% = 90
         $this->service->updatePriceRuleWithConditions($priceRule, $updateData);
-        $product->refresh();
-        $this->assertEquals(90.00, $product->selling_price);
+        $digitalProduct->refresh();
+        $this->assertEquals(90.00, (float) $digitalProduct->selling_price);
 
         // Update rule to 20% discount: 100 - 20% = 80
+        // Note: face_value remains 100, so recalculation uses face_value as base
         $updateData['action_value'] = 20;
         $this->service->updatePriceRuleWithConditions($priceRule, $updateData);
-        $product->refresh();
-        $this->assertEquals(80.00, $product->selling_price);
+        $digitalProduct->refresh();
+        $this->assertEquals(80.00, (float) $digitalProduct->selling_price);
     }
 
-    public function test_selling_price_accessor_with_absolute_addition_rule(): void
+    public function test_digital_product_selling_price_updated_with_absolute_addition(): void
     {
-        $product = Product::factory()->create([
-            'brand_id' => $this->brand->id,
+        $digitalProduct = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
             'face_value' => 100.00,
             'selling_price' => 100.00,
+            'brand' => 'TestBrand',
         ]);
 
         $data = [
@@ -726,18 +678,246 @@ class PricingRuleServiceTest extends TestCase
             'status' => Status::ACTIVE->value,
             'conditions' => [
                 [
-                    'field' => 'brand_id',
+                    'field' => 'brand',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $this->brand->id,
+                    'value' => 'TestBrand',
                 ],
             ],
         ];
 
         $this->service->createPriceRuleWithConditions($data);
 
-        $product->refresh();
+        $digitalProduct->refresh();
 
         // 100 + 25 = 125
-        $this->assertEquals(125.00, $product->selling_price);
+        $this->assertEquals(125.00, (float) $digitalProduct->selling_price);
+    }
+
+    public function test_face_value_is_used_as_base_for_calculations_not_cost_price(): void
+    {
+        $digitalProduct = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
+            'face_value' => 100.00,
+            'cost_price' => 60.00,
+            'selling_price' => 80.00,
+            'brand' => 'TestBrand',
+        ]);
+
+        $data = [
+            'name' => 'Face Value Base Test',
+            'description' => 'Verify face_value is the calculation base',
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 10,
+            'status' => Status::ACTIVE->value,
+            'conditions' => [
+                [
+                    'field' => 'brand',
+                    'operator' => Operator::EQUAL->value,
+                    'value' => 'TestBrand',
+                ],
+            ],
+        ];
+
+        $this->service->createPriceRuleWithConditions($data);
+
+        // Base is face_value (100), NOT cost_price (60): 100 - 10% = 90
+        $this->assertDatabaseHas('price_rule_digital_product', [
+            'digital_product_id' => $digitalProduct->id,
+            'base_value' => 100.00,
+            'final_selling_price' => 90.00,
+        ]);
+
+        $digitalProduct->refresh();
+        $this->assertEquals(90.00, (float) $digitalProduct->selling_price);
+    }
+
+    public function test_conditions_filter_by_supplier_id(): void
+    {
+        $supplier2 = Supplier::factory()->create();
+
+        $dp1 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
+            'face_value' => 100.00,
+            'selling_price' => 100.00,
+        ]);
+        $dp2 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier2->id,
+            'face_value' => 100.00,
+            'selling_price' => 100.00,
+        ]);
+
+        $data = [
+            'name' => 'Supplier Filter Rule',
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 10,
+            'status' => Status::ACTIVE->value,
+            'conditions' => [
+                [
+                    'field' => 'supplier_id',
+                    'operator' => Operator::EQUAL->value,
+                    'value' => (string) $this->supplier->id,
+                ],
+            ],
+        ];
+
+        $this->service->createPriceRuleWithConditions($data);
+
+        $this->assertDatabaseHas('price_rule_digital_product', ['digital_product_id' => $dp1->id]);
+        $this->assertDatabaseMissing('price_rule_digital_product', ['digital_product_id' => $dp2->id]);
+    }
+
+    public function test_conditions_filter_by_currency(): void
+    {
+        $dp1 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
+            'face_value' => 100.00,
+            'selling_price' => 100.00,
+            'currency' => 'usd',
+        ]);
+        $dp2 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
+            'face_value' => 100.00,
+            'selling_price' => 100.00,
+            'currency' => 'eur',
+        ]);
+
+        $data = [
+            'name' => 'Currency Filter Rule',
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 5,
+            'status' => Status::ACTIVE->value,
+            'conditions' => [
+                [
+                    'field' => 'currency',
+                    'operator' => Operator::EQUAL->value,
+                    'value' => 'usd',
+                ],
+            ],
+        ];
+
+        $this->service->createPriceRuleWithConditions($data);
+
+        $this->assertDatabaseHas('price_rule_digital_product', ['digital_product_id' => $dp1->id]);
+        $this->assertDatabaseMissing('price_rule_digital_product', ['digital_product_id' => $dp2->id]);
+    }
+
+    public function test_conditions_filter_by_region(): void
+    {
+        $dp1 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
+            'face_value' => 100.00,
+            'selling_price' => 100.00,
+            'region' => 'US',
+        ]);
+        $dp2 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
+            'face_value' => 100.00,
+            'selling_price' => 100.00,
+            'region' => 'EU',
+        ]);
+
+        $data = [
+            'name' => 'Region Filter Rule',
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 5,
+            'status' => Status::ACTIVE->value,
+            'conditions' => [
+                [
+                    'field' => 'region',
+                    'operator' => Operator::EQUAL->value,
+                    'value' => 'US',
+                ],
+            ],
+        ];
+
+        $this->service->createPriceRuleWithConditions($data);
+
+        $this->assertDatabaseHas('price_rule_digital_product', ['digital_product_id' => $dp1->id]);
+        $this->assertDatabaseMissing('price_rule_digital_product', ['digital_product_id' => $dp2->id]);
+    }
+
+    public function test_conditions_filter_by_face_value(): void
+    {
+        $dp1 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
+            'face_value' => 50.00,
+            'selling_price' => 50.00,
+            'brand' => 'TestBrand',
+        ]);
+        $dp2 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
+            'face_value' => 150.00,
+            'selling_price' => 150.00,
+            'brand' => 'TestBrand',
+        ]);
+
+        $data = [
+            'name' => 'Face Value Filter Rule',
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 10,
+            'status' => Status::ACTIVE->value,
+            'conditions' => [
+                [
+                    'field' => 'face_value',
+                    'operator' => Operator::GREATER_THAN_OR_EQUAL->value,
+                    'value' => '100',
+                ],
+            ],
+        ];
+
+        $this->service->createPriceRuleWithConditions($data);
+
+        $this->assertDatabaseMissing('price_rule_digital_product', ['digital_product_id' => $dp1->id]);
+        $this->assertDatabaseHas('price_rule_digital_product', [
+            'digital_product_id' => $dp2->id,
+            'final_selling_price' => 135.00, // 150 - (150 * 0.10) = 135
+        ]);
+    }
+
+    public function test_conditions_filter_by_cost_price(): void
+    {
+        $dp1 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
+            'face_value' => 50.00,
+            'cost_price' => 30.00,
+            'selling_price' => 50.00,
+        ]);
+        $dp2 = DigitalProduct::factory()->create([
+            'supplier_id' => $this->supplier->id,
+            'face_value' => 150.00,
+            'cost_price' => 120.00,
+            'selling_price' => 150.00,
+        ]);
+
+        $data = [
+            'name' => 'Cost Price Filter Rule',
+            'match_type' => 'all',
+            'action_operator' => ActionOperator::SUBTRACTION->value,
+            'action_mode' => ActionMode::PERCENTAGE->value,
+            'action_value' => 10,
+            'status' => Status::ACTIVE->value,
+            'conditions' => [
+                [
+                    'field' => 'cost_price',
+                    'operator' => Operator::GREATER_THAN_OR_EQUAL->value,
+                    'value' => '100',
+                ],
+            ],
+        ];
+
+        $this->service->createPriceRuleWithConditions($data);
+
+        $this->assertDatabaseMissing('price_rule_digital_product', ['digital_product_id' => $dp1->id]);
+        $this->assertDatabaseHas('price_rule_digital_product', ['digital_product_id' => $dp2->id]);
     }
 }

@@ -5,7 +5,9 @@ namespace App\Repositories;
 use App\Models\DigitalProduct;
 use Illuminate\Support\Collection;
 use App\Services\ImageUploadService;
+use App\Enums\PriceRuleCondition\Operator;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 class DigitalProductRepository
 {
@@ -168,5 +170,50 @@ class DigitalProductRepository
             ->whereNotIn('sku', $activeSKUs)
             ->where('is_active', true)
             ->update(['is_active' => false]);
+    }
+
+    /**
+     * Get digital products that match dynamic conditions (used by pricing rules).
+     *
+     * Supports direct digital_products columns (supplier_id, brand, cost_price, face_value,
+     * selling_price, currency, region) and cross-table fields (brand_id, brand_name)
+     * resolved via the product_supplier pivot → products table.
+     *
+     * @return EloquentCollection<int, DigitalProduct>
+     */
+    public function getDigitalProductsByConditions(array $conditions, string $matchType = 'all'): EloquentCollection
+    {
+        $query = DigitalProduct::query();
+
+        $applyCondition = function ($q, array $condition) {
+            $field = $condition['field'];
+            $operator = $condition['operator'];
+            $value = $condition['value'];
+
+            match ($operator) {
+                Operator::EQUAL->value => $q->where($field, $value),
+                Operator::NOT_EQUAL->value => $q->where($field, '!=', $value),
+                Operator::GREATER_THAN->value => $q->where($field, '>', $value),
+                Operator::LESS_THAN->value => $q->where($field, '<', $value),
+                Operator::GREATER_THAN_OR_EQUAL->value => $q->where($field, '>=', $value),
+                Operator::LESS_THAN_OR_EQUAL->value => $q->where($field, '<=', $value),
+                Operator::CONTAINS->value => $q->where($field, 'LIKE', "%{$value}%"),
+                default => null,
+            };
+        };
+
+        if ($matchType === 'any') {
+            $query->where(function ($q) use ($conditions, $applyCondition) {
+                foreach ($conditions as $condition) {
+                    $q->orWhere(fn ($sub) => $applyCondition($sub, $condition));
+                }
+            });
+        } else {
+            foreach ($conditions as $condition) {
+                $applyCondition($query, $condition);
+            }
+        }
+
+        return $query->get();
     }
 }
