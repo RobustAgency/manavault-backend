@@ -33,6 +33,10 @@ class DigitalProductAllocationService
                 ->getAvailableVouchersForDigitalProduct($digitalProduct->id);
 
             foreach ($vouchers as $voucher) {
+                if ($remaining <= 0) {
+                    break;
+                }
+
                 $this->voucherAllocationService->allocateVoucher(
                     $item->id,
                     $digitalProduct,

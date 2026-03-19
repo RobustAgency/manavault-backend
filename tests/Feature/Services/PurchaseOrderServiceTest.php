@@ -6,8 +6,9 @@ use Tests\TestCase;
 use App\Models\Supplier;
 use App\Models\PurchaseOrder;
 use App\Models\DigitalProduct;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use App\Services\PurchaseOrderService;
+use App\Jobs\PlaceExternalPurchaseOrderJob;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -25,6 +26,8 @@ class PurchaseOrderServiceTest extends TestCase
 
     public function test_create_purchase_order_with_gift2games_supplier(): void
     {
+        Queue::fake();
+
         $supplier = Supplier::factory()->create([
             'name' => 'Gift2Games',
             'slug' => 'gift2games',
@@ -34,32 +37,6 @@ class PurchaseOrderServiceTest extends TestCase
         $digitalProduct = DigitalProduct::factory()->create([
             'sku' => '12345',
             'cost_price' => 10.00,
-        ]);
-
-        Http::fake([
-            '*/create_order' => Http::sequence()
-                ->push([
-                    'status' => 'success',
-                    'data' => [
-                        'referenceNumber' => 'PO-20251117-TEST',
-                        'productId' => 12345,
-                        'code' => 'VOUCHER-CODE-001',
-                        'pin' => '1234',
-                        'serial' => 'SERIAL-001',
-                        'expiryDate' => '2025-12-31',
-                    ],
-                ], 200)
-                ->push([
-                    'status' => 'success',
-                    'data' => [
-                        'referenceNumber' => 'PO-20251117-TEST',
-                        'productId' => 12345,
-                        'code' => 'VOUCHER-CODE-002',
-                        'pin' => '5678',
-                        'serial' => 'SERIAL-002',
-                        'expiryDate' => '2025-12-31',
-                    ],
-                ], 200),
         ]);
 
         $data = [
@@ -75,18 +52,15 @@ class PurchaseOrderServiceTest extends TestCase
         $purchaseOrder = $this->service->createPurchaseOrder($data);
 
         $this->assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
-        $this->assertEquals('completed', $purchaseOrder->status);
         $this->assertCount(1, $purchaseOrder->items);
-        $this->assertEquals(2, $purchaseOrder->vouchers()->count());
 
-        Http::assertSent(function ($request) {
-            return str_contains($request->url(), '/create_order') &&
-                   $request->method() === 'POST';
-        });
+        Queue::assertPushed(PlaceExternalPurchaseOrderJob::class, 1);
     }
 
     public function test_create_purchase_order_with_ezcards_supplier(): void
     {
+        Queue::fake();
+
         $supplier = Supplier::factory()->create([
             'name' => 'EzCards',
             'slug' => 'ez_cards',
@@ -96,30 +70,6 @@ class PurchaseOrderServiceTest extends TestCase
         $digitalProduct = DigitalProduct::factory()->create([
             'sku' => 'AAU-QB-Q1J',
             'cost_price' => 22.88,
-        ]);
-
-        Http::fake([
-            '*/v2/orders' => Http::response([
-                'requestId' => 'test-request-id',
-                'data' => [
-                    'transactionId' => '1234',
-                    'clientOrderNumber' => 'PO-20251117-TEST',
-                    'status' => 'PROCESSING',
-                    'grandTotal' => [
-                        'amount' => '68.64',
-                        'currency' => 'USD',
-                    ],
-                    'products' => [
-                        [
-                            'sku' => 'AAU-QB-Q1J',
-                            'quantity' => 3,
-                            'unitPrice' => ['amount' => '22.88', 'currency' => 'USD'],
-                            'totalPrice' => ['amount' => '68.64', 'currency' => 'USD'],
-                            'status' => 'PROCESSING',
-                        ],
-                    ],
-                ],
-            ], 200),
         ]);
 
         $data = [
@@ -135,13 +85,9 @@ class PurchaseOrderServiceTest extends TestCase
         $purchaseOrder = $this->service->createPurchaseOrder($data);
 
         $this->assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
-        $this->assertEquals('processing', $purchaseOrder->status);
         $this->assertCount(1, $purchaseOrder->items);
 
-        Http::assertSent(function ($request) {
-            return str_contains($request->url(), '/v2/orders') &&
-                   $request->method() === 'POST';
-        });
+        Queue::assertPushed(PlaceExternalPurchaseOrderJob::class, 1);
     }
 
     public function test_create_purchase_order_with_internal_supplier(): void
@@ -177,6 +123,8 @@ class PurchaseOrderServiceTest extends TestCase
 
     public function test_create_purchase_order_with_multiple_items(): void
     {
+        Queue::fake();
+
         $supplier = Supplier::factory()->create([
             'name' => 'EzCards',
             'slug' => 'ez_cards',
@@ -191,33 +139,6 @@ class PurchaseOrderServiceTest extends TestCase
         $digitalProduct2 = DigitalProduct::factory()->create([
             'sku' => 'SMS-1B-I4A',
             'cost_price' => 45.50,
-        ]);
-
-        Http::fake([
-            '*/v2/orders' => Http::response([
-                'requestId' => 'test-request-id',
-                'data' => [
-                    'transactionId' => '5678',
-                    'clientOrderNumber' => 'PO-20251117-MULTI',
-                    'status' => 'PROCESSING',
-                    'grandTotal' => [
-                        'amount' => '182.26',
-                        'currency' => 'USD',
-                    ],
-                    'products' => [
-                        [
-                            'sku' => 'AAU-QB-Q1J',
-                            'quantity' => 2,
-                            'status' => 'PROCESSING',
-                        ],
-                        [
-                            'sku' => 'SMS-1B-I4A',
-                            'quantity' => 3,
-                            'status' => 'PROCESSING',
-                        ],
-                    ],
-                ],
-            ], 200),
         ]);
 
         $data = [
@@ -238,19 +159,16 @@ class PurchaseOrderServiceTest extends TestCase
         $purchaseOrder = $this->service->createPurchaseOrder($data);
 
         $this->assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
-        $this->assertEquals('processing', $purchaseOrder->status);
         $this->assertCount(2, $purchaseOrder->items);
         $this->assertEquals(182.26, $purchaseOrder->total_price);
 
-        Http::assertSent(function ($request) {
-            return str_contains($request->url(), '/v2/orders') &&
-                   $request->method() === 'POST' &&
-                   count($request['products']) === 2;
-        });
+        Queue::assertPushed(PlaceExternalPurchaseOrderJob::class, 1);
     }
 
     public function test_failed_external_supplier_does_not_affect_other_suppliers(): void
     {
+        Queue::fake();
+
         $externalSupplier = Supplier::factory()->create([
             'name' => 'EzCards',
             'slug' => 'ez_cards',
@@ -273,11 +191,6 @@ class PurchaseOrderServiceTest extends TestCase
             'cost_price' => 10.00,
         ]);
 
-        // EzCards API fails
-        Http::fake([
-            '*/v2/orders' => Http::response(['error' => 'Service unavailable'], 503),
-        ]);
-
         $data = [
             'items' => [
                 [
@@ -295,28 +208,27 @@ class PurchaseOrderServiceTest extends TestCase
 
         $purchaseOrder = $this->service->createPurchaseOrder($data);
 
-        // The overall PO is still created and returned
+        // The overall PO is created and returned
         $this->assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
 
-        // Overall PO status stays PROCESSING — one supplier failed, one is still processing
+        // Overall PO status is PROCESSING (job not yet run)
         $purchaseOrder->refresh();
         $this->assertEquals('processing', $purchaseOrder->status);
 
-        // The failed external supplier is marked FAILED
+        // Both supplier rows are created in PROCESSING state (job hasn't run yet)
         $this->assertDatabaseHas('purchase_order_suppliers', [
             'purchase_order_id' => $purchaseOrder->id,
             'supplier_id' => $externalSupplier->id,
-            'status' => 'failed',
+            'status' => 'processing',
         ]);
 
-        // The internal supplier is still in PROCESSING (not failed)
         $this->assertDatabaseHas('purchase_order_suppliers', [
             'purchase_order_id' => $purchaseOrder->id,
             'supplier_id' => $internalSupplier->id,
             'status' => 'processing',
         ]);
 
-        // Internal supplier items ARE persisted
+        // Both supplier items ARE persisted by the service
         $this->assertDatabaseHas('purchase_order_items', [
             'purchase_order_id' => $purchaseOrder->id,
             'supplier_id' => $internalSupplier->id,
@@ -324,13 +236,17 @@ class PurchaseOrderServiceTest extends TestCase
             'quantity' => 3,
         ]);
 
-        // Failed external supplier items are NOT persisted (early return before item creation)
-        $this->assertDatabaseMissing('purchase_order_items', [
+        $this->assertDatabaseHas('purchase_order_items', [
             'purchase_order_id' => $purchaseOrder->id,
             'supplier_id' => $externalSupplier->id,
+            'digital_product_id' => $externalProduct->id,
+            'quantity' => 2,
         ]);
 
-        // Total price reflects only the internal supplier's items
-        $this->assertEquals(30.00, $purchaseOrder->total_price);
+        // Total price reflects both suppliers' items (40 + 30 = 70)
+        $this->assertEquals(70.00, $purchaseOrder->total_price);
+
+        // The external supplier job was dispatched (but not run)
+        Queue::assertPushed(PlaceExternalPurchaseOrderJob::class, 1);
     }
 }
