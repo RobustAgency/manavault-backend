@@ -106,7 +106,7 @@ Route::middleware(['auth:supabase', 'user.approved'])->group(function () {
         Route::post('', 'store')->middleware('permission:create_price_rule');
         Route::post('/preview', 'preview')->middleware('permission:view_price_rule');
         Route::get('/{priceRule}', 'show')->middleware('permission:view_price_rule');
-        Route::get('/{priceRule}/products', 'postViewProduct')->middleware('permission:view_price_rule');
+        Route::get('/{priceRule}/digital-products', 'postViewDigitalProducts')->middleware('permission:view_price_rule');
         Route::post('/{priceRule}', 'update')->middleware('permission:edit_price_rule');
         Route::delete('/{priceRule}', 'destroy')->middleware('permission:delete_price_rule');
     });
