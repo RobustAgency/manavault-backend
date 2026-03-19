@@ -101,8 +101,6 @@ class PricingRuleService
             'applied_at' => now(),
         ]);
 
-        // Persist the final selling price to the digital product
-        $digitalProduct->update(['selling_price' => $applicationData['final_selling_price']]);
     }
 
     /**

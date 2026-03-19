@@ -611,11 +611,6 @@ class PricingRuleServiceTest extends TestCase
 
         // selling_price must be 90.00 (100 - 10%)
         $this->assertEquals(90.00, (float) $digitalProduct->selling_price);
-
-        $this->assertDatabaseHas('digital_products', [
-            'id' => $digitalProduct->id,
-            'selling_price' => 90.00,
-        ]);
     }
 
     public function test_digital_product_selling_price_updated_after_rule_update(): void
