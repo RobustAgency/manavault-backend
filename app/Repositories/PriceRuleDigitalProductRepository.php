@@ -80,6 +80,18 @@ class PriceRuleDigitalProductRepository
     }
 
     /**
+     * Get all digital product IDs for a specific price rule.
+     *
+     * @return array<int>
+     */
+    public function getDigitalProductIdsByPriceRuleId(int $priceRuleId): array
+    {
+        return PriceRuleDigitalProduct::where('price_rule_id', $priceRuleId)
+            ->pluck('digital_product_id')
+            ->all();
+    }
+
+    /**
      * Find a single application by ID.
      */
     public function findById(int $id): ?PriceRuleDigitalProduct
