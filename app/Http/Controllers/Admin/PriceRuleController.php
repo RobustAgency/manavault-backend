@@ -68,7 +68,7 @@ class PriceRuleController extends Controller
 
     public function destroy(PriceRule $priceRule): JsonResponse
     {
-        $this->priceRuleRepository->deletePriceRule($priceRule);
+        $this->pricingRuleService->deletePriceRuleWithSync($priceRule);
 
         return response()->json([
             'error' => false,

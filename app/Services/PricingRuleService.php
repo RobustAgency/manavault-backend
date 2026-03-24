@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\PriceRule;
 use App\Models\DigitalProduct;
+use App\Events\PriceRuleApplied;
 use App\Enums\PriceRule\ActionMode;
 use App\Enums\PriceRule\ActionOperator;
 use App\Repositories\PriceRuleRepository;
@@ -46,10 +47,15 @@ class PricingRuleService
 
         $products = $this->digitalProductRepository->getDigitalProductsByConditions($data['conditions'], $data['match_type']);
 
+        $affectedDigitalProductIds = [];
         foreach ($products as $digitalProduct) {
             $this->applyAction($digitalProduct, $priceRule);
+            $affectedDigitalProductIds[] = $digitalProduct->id;
         }
 
+        if (! empty($affectedDigitalProductIds)) {
+            event(new PriceRuleApplied($affectedDigitalProductIds));
+        }
     }
 
     public function updatePriceRuleWithConditions(PriceRule $priceRule, array $data): void
@@ -74,8 +80,27 @@ class PricingRuleService
         // Reapply actions to digital products
         $this->priceRuleDigitalProductRepository->deleteByPriceRuleId($priceRule->id);
         $digitalProducts = $this->digitalProductRepository->getDigitalProductsByConditions($data['conditions'], $updatedPriceRule->match_type);
+        $affectedDigitalProductIds = [];
         foreach ($digitalProducts as $digitalProduct) {
             $this->applyAction($digitalProduct, $updatedPriceRule);
+            $affectedDigitalProductIds[] = $digitalProduct->id;
+        }
+
+        if (! empty($affectedDigitalProductIds)) {
+            event(new PriceRuleApplied($affectedDigitalProductIds));
+        }
+    }
+
+    public function deletePriceRuleWithSync(PriceRule $priceRule): void
+    {
+        $affectedDigitalProductIds = $this->priceRuleDigitalProductRepository
+            ->getDigitalProductIdsByPriceRuleId($priceRule->id);
+
+        $this->priceRuleDigitalProductRepository->deleteByPriceRuleId($priceRule->id);
+        $this->priceRuleRepository->deletePriceRule($priceRule);
+
+        if (! empty($affectedDigitalProductIds)) {
+            event(new PriceRuleApplied($affectedDigitalProductIds));
         }
     }
 
