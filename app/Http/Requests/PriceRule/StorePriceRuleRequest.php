@@ -10,7 +10,7 @@ use App\Enums\PriceRule\ActionOperator;
 use App\Enums\PriceRuleCondition\Operator;
 use Illuminate\Foundation\Http\FormRequest;
 
-class StorePriceRuleController extends FormRequest
+class StorePriceRuleRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.

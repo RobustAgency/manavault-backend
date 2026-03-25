@@ -87,14 +87,6 @@ class DigitalStockRepository
             DB::raw('COALESCE(available_vouchers.available_quantity, 0) as quantity'),
         ]);
 
-        $query->where(function (Builder $query) {
-            $query->where('suppliers.type', 'internal')
-                ->orWhere(function (Builder $subQuery) {
-                    $subQuery->where('suppliers.type', 'external')
-                        ->whereRaw('COALESCE(available_vouchers.available_quantity, 0) > 0');
-                });
-        });
-
         // Apply filters
         if (isset($filters['supplier_id'])) {
             $query->where('digital_products.supplier_id', $filters['supplier_id']);

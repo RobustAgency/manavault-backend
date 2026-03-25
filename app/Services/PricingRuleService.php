@@ -9,6 +9,7 @@ use App\Enums\PriceRule\ActionMode;
 use App\Enums\PriceRule\ActionOperator;
 use App\Repositories\PriceRuleRepository;
 use App\Repositories\DigitalProductRepository;
+use Illuminate\Pagination\LengthAwarePaginator;
 use App\Repositories\PriceRuleConditionRepository;
 use App\Repositories\PriceRuleDigitalProductRepository;
 
@@ -131,12 +132,23 @@ class PricingRuleService
     /**
      * Preview products and their new prices without applying the rule to the database.
      */
-    public function previewPriceRuleEffect(array $data): array
+    /**
+     * @return LengthAwarePaginator<int, array<string, mixed>>
+     */
+    public function previewPriceRuleEffect(array $data): LengthAwarePaginator
     {
-        $digitalProducts = $this->digitalProductRepository->getDigitalProductsByConditions($data['conditions'], $data['match_type']);
+        $perPage = $data['per_page'] ?? 15;
 
-        $preview = [];
-        foreach ($digitalProducts as $digitalProduct) {
+        /** @var LengthAwarePaginator<int, DigitalProduct> $digitalProducts */
+        $digitalProducts = $this->digitalProductRepository
+            ->getDigitalProductsByConditions(
+                $data['conditions'],
+                $data['match_type'],
+                $perPage
+            );
+
+        $digitalProducts->getCollection()->transform(function ($digitalProduct) use ($data) {
+
             $applicationData = $this->buildApplicationData(
                 $digitalProduct,
                 $data['action_mode'],
@@ -144,16 +156,17 @@ class PricingRuleService
                 $data['action_value'],
             );
 
-            $preview[] = [
+            return [
                 'digital_product_id' => $applicationData['digital_product_id'],
                 'digital_product_name' => $applicationData['digital_product_name'],
                 'face_value' => $applicationData['base_value'],
                 'current_selling_price' => $applicationData['current_selling_price'],
                 'new_selling_price' => $applicationData['new_selling_price'],
             ];
-        }
+        });
 
-        return $preview;
+        /** @var LengthAwarePaginator<int, array<string, mixed>> */
+        return $digitalProducts;
     }
 
     /**
