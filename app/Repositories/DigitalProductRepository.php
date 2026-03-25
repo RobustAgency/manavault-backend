@@ -181,7 +181,10 @@ class DigitalProductRepository
      *
      * @return EloquentCollection<int, DigitalProduct>
      */
-    public function getDigitalProductsByConditions(array $conditions, string $matchType = 'all'): EloquentCollection
+    /**
+     * @return EloquentCollection<int, DigitalProduct>|LengthAwarePaginator<int, DigitalProduct>
+     */
+    public function getDigitalProductsByConditions(array $conditions, string $matchType = 'all', ?int $perPage = null): EloquentCollection|LengthAwarePaginator
     {
         $query = DigitalProduct::query();
 
@@ -212,6 +215,10 @@ class DigitalProductRepository
             foreach ($conditions as $condition) {
                 $applyCondition($query, $condition);
             }
+        }
+
+        if ($perPage) {
+            return $query->paginate($perPage);
         }
 
         return $query->get();
