@@ -52,4 +52,9 @@ class SupplierRepository
     {
         return $supplier->delete();
     }
+
+    public function getSupplierByName(string $name): ?Supplier
+    {
+        return Supplier::where('name', $name)->first();
+    }
 }

@@ -9,8 +9,9 @@ use App\Services\PricingRuleService;
 use App\Http\Resources\PriceRuleResource;
 use App\Repositories\PriceRuleRepository;
 use App\Http\Requests\PriceRule\ListPriceRuleRequest;
+use App\Http\Requests\PriceRule\StorePriceRuleRequest;
 use App\Repositories\PriceRuleDigitalProductRepository;
-use App\Http\Requests\PriceRule\StorePriceRuleController;
+use App\Http\Requests\PriceRule\PreviewPriceRuleRequest;
 
 class PriceRuleController extends Controller
 {
@@ -31,7 +32,7 @@ class PriceRuleController extends Controller
         ]);
     }
 
-    public function store(StorePriceRuleController $request): JsonResponse
+    public function store(StorePriceRuleRequest $request): JsonResponse
     {
         $data = $request->validated();
         $this->pricingRuleService->createPriceRuleWithConditions($data);
@@ -54,7 +55,7 @@ class PriceRuleController extends Controller
         ]);
     }
 
-    public function update(StorePriceRuleController $request, PriceRule $priceRule): JsonResponse
+    public function update(StorePriceRuleRequest $request, PriceRule $priceRule): JsonResponse
     {
         $data = $request->validated();
         $this->pricingRuleService->updatePriceRuleWithConditions($priceRule, $data);
@@ -77,7 +78,7 @@ class PriceRuleController extends Controller
         ]);
     }
 
-    public function preview(StorePriceRuleController $request): JsonResponse
+    public function preview(PreviewPriceRuleRequest $request): JsonResponse
     {
         $data = $request->validated();
         $preview = $this->pricingRuleService->previewPriceRuleEffect($data);
