@@ -13,6 +13,7 @@ class DigitalProductRepository
 {
     public function __construct(
         private ImageUploadService $imageUploadService,
+        private SupplierRepository $supplierRepository,
     ) {}
 
     /**
@@ -192,6 +193,16 @@ class DigitalProductRepository
             $field = $condition['field'];
             $operator = $condition['operator'];
             $value = $condition['value'];
+
+            if ($field === 'supplier_name') {
+                $supplier = $this->supplierRepository->getSupplierByName($value);
+                if ($supplier) {
+                    $field = 'supplier_id';
+                    $value = (string) $supplier->id;
+                } else {
+                    return;
+                }
+            }
 
             match ($operator) {
                 Operator::EQUAL->value => $q->where($field, $value),
