@@ -31,6 +31,7 @@ class ProductResource extends JsonResource
             'tags' => $this->tags,
             'image' => $this->image,
             'face_value' => $this->face_value,
+            'discounts' => $this->discounts,
             'selling_price' => $this->selling_price,
             'quantity' => $this->getAvailableQuantity(),
             'currency' => $this->currency,

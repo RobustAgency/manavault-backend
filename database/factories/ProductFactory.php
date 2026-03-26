@@ -18,7 +18,9 @@ class ProductFactory extends Factory
      */
     public function definition(): array
     {
-        $sellingPrice = $this->faker->randomFloat(2, 10, 200);
+        $faceValue = $this->faker->randomFloat(2, 10, 200);
+        $discounts = $this->faker->randomFloat(2, 0, $faceValue / 2);
+        $sellingPrice = $faceValue - $discounts;
 
         return [
             'name' => $this->faker->words(3, true),
@@ -29,7 +31,9 @@ class ProductFactory extends Factory
             'long_description' => $this->faker->paragraph(3),
             'tags' => $this->faker->randomElements(['gaming', 'entertainment', 'gift card', 'digital', 'popular'], $this->faker->numberBetween(1, 3)),
             'image' => $this->faker->imageUrl(640, 480, 'products', true),
-            'face_value' => $this->faker->randomFloat(2, 5, $sellingPrice),
+            'face_value' => $faceValue,
+            'discounts' => $discounts,
+            'selling_price' => $sellingPrice,
             'currency' => 'usd',
             'status' => $this->faker->randomElement(array_map(fn ($c) => $c->value, Lifecycle::cases())),
             'regions' => $this->faker->randomElements(['US', 'CA', 'UK', 'EU', 'AU'], $this->faker->numberBetween(1, 3)),

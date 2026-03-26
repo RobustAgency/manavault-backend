@@ -94,7 +94,7 @@ class RolePermissionRouteAccessTest extends TestCase
             'brand_id' => Brand::factory()->create()->id,
             'description' => 'Test description',
             'face_value' => 100,
-            'selling_price' => 120,
+            'discounts' => 20,
             'currency' => 'usd',
             'status' => 'active',
         ]);

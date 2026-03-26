@@ -35,6 +35,7 @@ class StoreProductRequest extends FormRequest
             'tags.*' => ['string'],
             'image' => ['nullable', 'file', 'mimes:jpeg,png,jpg', 'max:2048'],
             'face_value' => ['required', 'numeric', 'gt:0'],
+            'discounts' => ['required', 'numeric', 'gte:0', 'lte:face_value'],
             'currency' => ['required', 'string', Rule::in(array_map(fn ($c) => $c->value, Currency::cases()))],
             'status' => ['required', 'string', Rule::in(array_map(fn ($c) => $c->value, Lifecycle::cases()))],
             'regions' => ['nullable', 'array'],

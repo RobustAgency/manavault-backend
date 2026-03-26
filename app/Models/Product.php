@@ -25,6 +25,8 @@ class Product extends Model
         'tags',
         'image',
         'face_value',
+        'discounts',
+        'selling_price',
         'currency',
         'status',
         'regions',
@@ -36,6 +38,7 @@ class Product extends Model
         'tags' => 'array',
         'regions' => 'array',
         'face_value' => 'decimal:2',
+        'discounts' => 'decimal:2',
         'is_out_of_stock' => 'boolean',
     ];
 
@@ -90,8 +93,12 @@ class Product extends Model
      *
      * @return float The final selling price after applying active price rules.
      */
-    public function getSellingPriceAttribute(): float
+    public function getSellingPriceAttribute(mixed $value): float
     {
+        if (! is_null($value)) {
+            return (float) $value;
+        }
+
         $digitalProduct = $this->digitalProduct();
 
         return $digitalProduct ? (float) $digitalProduct->selling_price : 0.0;
