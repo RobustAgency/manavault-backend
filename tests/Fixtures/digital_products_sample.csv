@@ -1,0 +1,10 @@
+name,sku,brand,description,cost_price,face_value,selling_price,currency,tags,region,metadata
+"PlayStation Plus 12 Month",PSN-PLUS-12M,Sony,"12 month PlayStation Plus subscription",45.00,59.99,54.99,usd,"gaming,subscription,playstation",US,
+"Xbox Game Pass Ultimate 1 Month",XBOX-GPU-1M,Microsoft,"1 month Xbox Game Pass Ultimate code",10.50,14.99,13.49,usd,"gaming,subscription,xbox",US,
+"Steam Wallet $50",STEAM-50,Valve,"$50 Steam Wallet top-up card",42.00,50.00,47.99,usd,"gaming,pc,steam",US,
+"iTunes Gift Card €25",ITUNES-25-EUR,Apple,"€25 iTunes / App Store gift card",21.00,25.00,23.99,eur,"gift card,apple,itunes",EU,
+"Google Play $10",GPLAY-10,Google,"$10 Google Play gift card",8.50,10.00,9.49,usd,"gift card,google,android",US,
+"Netflix Gift Card $30",NFLX-30,Netflix,"$30 Netflix gift card",25.50,30.00,28.99,usd,"streaming,netflix",US,"{""delivery_type"":""email"",""expiry_days"":365}"
+"Spotify Premium 3 Month",SPOT-3M,Spotify,"3 month Spotify Premium subscription",22.00,29.99,26.99,usd,"streaming,music,spotify",US,
+"Nintendo eShop $20",NINT-ESHOP-20,Nintendo,"$20 Nintendo eShop card",16.80,20.00,18.99,usd,"gaming,nintendo",US,
+"Roblox 800 Robux",RBLX-800,Roblox,"800 Robux digital code",8.00,9.99,9.49,usd,"gaming,roblox,kids",US,
