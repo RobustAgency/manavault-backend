@@ -173,15 +173,15 @@ class ProductControllerTest extends TestCase
             'short_description' => 'Short description',
             'long_description' => 'Long description with more details',
             'tags' => ['gaming', 'digital'],
-            'image' => UploadedFile::fake()->image('product.jpg'),
+            'image' => UploadedFile::fake()->create('product.jpg', 100, 'image/jpeg'),
             'face_value' => 120.00,
+            'discounts' => 20.00,
             'currency' => 'usd',
             'status' => 'active',
             'regions' => ['US', 'CA'],
         ];
 
         $response = $this->postJson('/api/products', $data);
-
         $response->assertStatus(201)
             ->assertJsonStructure([
                 'error',
@@ -196,6 +196,7 @@ class ProductControllerTest extends TestCase
                     'tags',
                     'image',
                     'face_value',
+                    'discounts',
                     'selling_price',
                     'currency',
                     'status',
@@ -211,13 +212,18 @@ class ProductControllerTest extends TestCase
                 'data' => [
                     'name' => 'New Product',
                     'description' => 'Product description',
-                    'status' => 'in_active',
+                    'discounts' => 20,
+                    'selling_price' => 100,
+                    'status' => 'active',
+                    'regions' => ['US', 'CA'],
                 ],
             ]);
 
         $this->assertDatabaseHas('products', [
             'name' => 'New Product',
             'description' => 'Product description',
+            'discounts' => 20,
+            'selling_price' => 100,
             'currency' => 'usd',
         ]);
     }
@@ -255,6 +261,7 @@ class ProductControllerTest extends TestCase
                     'tags',
                     'image',
                     'face_value',
+                    'discounts',
                     'selling_price',
                     'currency',
                     'status',
@@ -279,6 +286,47 @@ class ProductControllerTest extends TestCase
             'name' => 'Updated Name',
             'description' => 'Updated description',
         ]);
+    }
+
+    public function test_admin_update_product_recalculates_selling_price_when_discounts_updated(): void
+    {
+        $this->actingAs($this->admin);
+
+        $product = Product::factory()->create([
+            'face_value' => 120.00,
+            'discounts' => 10.00,
+            'selling_price' => 110.00,
+        ]);
+
+        $response = $this->postJson("/api/products/{$product->id}", [
+            'discounts' => 20.00,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('error', false)
+            ->assertJsonPath('data.discounts', '20.00')
+            ->assertJsonPath('data.selling_price', 100);
+
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'face_value' => 120,
+            'discounts' => 20,
+            'selling_price' => 100,
+        ]);
+    }
+
+    public function test_admin_update_product_validates_discounts_must_be_non_negative(): void
+    {
+        $this->actingAs($this->admin);
+
+        $product = Product::factory()->create();
+
+        $response = $this->postJson("/api/products/{$product->id}", [
+            'discounts' => -1,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['discounts']);
     }
 
     public function test_admin_delete_product(): void

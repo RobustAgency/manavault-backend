@@ -48,6 +48,8 @@ class ProductRepository
 
     public function createProduct(array $data): Product
     {
+        $data = $this->preparePricingFields($data);
+
         $image = $data['image'] ?? null;
         if ($image instanceof UploadedFile) {
             $data['image'] = $this->imageUploadService->upload($image, 'uploads/products');
@@ -58,6 +60,8 @@ class ProductRepository
 
     public function updateProduct(Product $product, array $data): Product
     {
+        $data = $this->preparePricingFields($data, $product);
+
         $image = $data['image'] ?? null;
         if ($image instanceof UploadedFile) {
             $oldImage = $product->image;
@@ -190,5 +194,25 @@ class ProductRepository
     public function getProductsByBrandId(int $brandId): Collection
     {
         return Product::where('brand_id', $brandId)->get();
+    }
+
+    /**
+     * Normalize discounts and calculate product selling price.
+     */
+    private function preparePricingFields(array $data, ?Product $product = null): array
+    {
+        $shouldRecalculate = array_key_exists('face_value', $data) || array_key_exists('discounts', $data);
+
+        if (! $shouldRecalculate) {
+            return $data;
+        }
+
+        $faceValue = (float) ($data['face_value'] ?? ($product ? $product->face_value : 0));
+        $discounts = (float) ($data['discounts'] ?? ($product ? $product->discounts : 0));
+
+        $data['discounts'] = $discounts;
+        $data['selling_price'] = max($faceValue - $discounts, 0);
+
+        return $data;
     }
 }
