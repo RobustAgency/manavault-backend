@@ -6,6 +6,7 @@ use Tests\TestCase;
 use App\Models\User;
 use App\Models\Brand;
 use App\Models\Product;
+use App\Models\Supplier;
 use App\Models\DigitalProduct;
 use Illuminate\Http\UploadedFile;
 use App\Enums\Product\FulfillmentMode;
@@ -50,6 +51,9 @@ class ProductControllerTest extends TestCase
                             'long_description',
                             'tags',
                             'image',
+                            'discounts',
+                            'cost_price',
+                            'supplier',
                             'selling_price',
                             'currency',
                             'status',
@@ -69,6 +73,59 @@ class ProductControllerTest extends TestCase
             ]);
     }
 
+    public function test_admin_list_products_includes_discounts_and_persisted_selling_price(): void
+    {
+        $this->actingAs($this->admin);
+
+        Product::factory()->create([
+            'name' => 'Persisted Price Product',
+            'face_value' => 10.00,
+            'discounts' => 1.10,
+            'selling_price' => 8.90,
+        ]);
+
+        $response = $this->getJson('/api/products?page=1&per_page=10');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('error', false)
+            ->assertJsonPath('data.data.0.discounts', '1.10')
+            ->assertJsonPath('data.data.0.cost_price', null)
+            ->assertJsonPath('data.data.0.supplier', null)
+            ->assertJsonPath('data.data.0.selling_price', 8.9);
+    }
+
+    public function test_admin_list_products_includes_cost_price_and_supplier_from_digital_stock(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create(['name' => 'Digital Stock Supplier']);
+        $product = Product::factory()->create([
+            'name' => 'Product With Digital Stock',
+            'currency' => 'usd',
+            'selling_price' => null,
+        ]);
+
+        $digitalProduct = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier->id,
+            'currency' => 'usd',
+            'cost_price' => 6.25,
+            'selling_price' => 9.50,
+            'is_active' => true,
+            'in_stock' => true,
+        ]);
+
+        $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
+
+        $response = $this->getJson('/api/products?page=1&per_page=10');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('error', false)
+            ->assertJsonPath('data.data.0.name', 'Product With Digital Stock')
+            ->assertJsonPath('data.data.0.cost_price', 6.25)
+            ->assertJsonPath('data.data.0.supplier.id', $supplier->id)
+            ->assertJsonPath('data.data.0.supplier.name', 'Digital Stock Supplier');
+    }
+
     public function test_admin_list_products_with_status_filter(): void
     {
         $this->actingAs($this->admin);
@@ -80,6 +137,23 @@ class ProductControllerTest extends TestCase
 
         $response->assertStatus(200);
         $this->assertCount(3, $response->json('data.data'));
+    }
+
+    public function test_admin_list_products_with_region_filter(): void
+    {
+        $this->actingAs($this->admin);
+
+        Product::factory()->create(['name' => 'US Product 1', 'regions' => ['US', 'CA']]);
+        Product::factory()->create(['name' => 'US Product 2', 'regions' => ['US']]);
+        Product::factory()->create(['name' => 'EU Product', 'regions' => ['EU']]);
+
+        $response = $this->getJson('/api/products?region=US');
+
+        $response->assertStatus(200);
+        $this->assertCount(2, $response->json('data.data'));
+
+        $names = collect($response->json('data.data'))->pluck('name')->all();
+        $this->assertEqualsCanonicalizing(['US Product 1', 'US Product 2'], $names);
     }
 
     public function test_admin_list_products_with_pagination(): void
@@ -104,6 +178,7 @@ class ProductControllerTest extends TestCase
         $product = Product::factory()->create([
             'name' => 'Test Product',
             'face_value' => 100.00,
+            'selling_price' => null,
         ]);
 
         $digitalProduct = DigitalProduct::factory()->create([
