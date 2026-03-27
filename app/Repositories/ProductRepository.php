@@ -41,6 +41,10 @@ class ProductRepository
             $query->where('currency', $filters['currency']);
         }
 
+        if (isset($filters['region'])) {
+            $query->whereJsonContains('regions', $filters['region']);
+        }
+
         $per_page = $filters['per_page'] ?? 10;
 
         return $query->orderBy('created_at', 'desc')->paginate($per_page);

@@ -59,7 +59,11 @@ class ProductControllerTest extends TestCase
                             'name',
                             'brand_id',
                             'face_value',
+                            'cost_price',
                             'selling_price',
+                            'quantity',
+                            'supplier',
+                            'brand',
                             'status',
                         ],
                     ],
@@ -105,7 +109,12 @@ class ProductControllerTest extends TestCase
         $this->assertNotNull($product['id']);
         $this->assertEquals('PlayStation 5', $product['name']);
         $this->assertEquals(100.00, (float) $product['face_value']);
+        $this->assertEquals(90.00, (float) $product['cost_price']);
         $this->assertEquals(110.00, (float) $product['selling_price']);
+        $this->assertEquals(0, (int) $product['quantity']);
+        $this->assertEquals($supplier->id, $product['supplier']['id']);
+        $this->assertEquals($brand->id, $product['brand']['id']);
+        $this->assertEquals('Sony', $product['brand']['name']);
         $this->assertEquals(1, $product['status']);
     }
 
@@ -164,7 +173,11 @@ class ProductControllerTest extends TestCase
         $this->assertArrayHasKey('name', $data);
         $this->assertArrayHasKey('brand_id', $data);
         $this->assertArrayHasKey('face_value', $data);
+        $this->assertArrayHasKey('cost_price', $data);
         $this->assertArrayHasKey('selling_price', $data);
+        $this->assertArrayHasKey('quantity', $data);
+        $this->assertArrayHasKey('supplier', $data);
+        $this->assertArrayHasKey('brand', $data);
         $this->assertArrayHasKey('status', $data);
     }
 
@@ -448,7 +461,10 @@ class ProductControllerTest extends TestCase
                             'name',
                             'brand_id',
                             'face_value',
+                            'cost_price',
                             'selling_price',
+                            'quantity',
+                            'supplier',
                             'status',
                         ],
                     ],

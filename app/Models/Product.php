@@ -43,8 +43,13 @@ class Product extends Model
     ];
 
     protected $appends = [
-        'selling_price',
+        'cost_price',
+        'supplier',
     ];
+
+    private bool $preferredDigitalProductResolved = false;
+
+    private ?DigitalProduct $preferredDigitalProductCache = null;
 
     /**
      * @return BelongsToMany<DigitalProduct, $this, ProductSupplier>
@@ -99,9 +104,50 @@ class Product extends Model
             return (float) $value;
         }
 
-        $digitalProduct = $this->digitalProduct();
+        $digitalProduct = $this->preferredDigitalProduct();
 
         return $digitalProduct ? (float) $digitalProduct->selling_price : 0.0;
+    }
+
+    public function getCostPriceAttribute(): ?float
+    {
+        $digitalProduct = $this->preferredDigitalProduct();
+
+        return $digitalProduct ? (float) $digitalProduct->cost_price : null;
+    }
+
+    /**
+     * @return array{id:int,name:string}|null
+     */
+    public function getSupplierAttribute(): ?array
+    {
+        $digitalProduct = $this->preferredDigitalProduct();
+
+        if (! $digitalProduct || ! $digitalProduct->supplier) {
+            return null;
+        }
+
+        return [
+            'id' => $digitalProduct->supplier->id,
+            'name' => $digitalProduct->supplier->name,
+        ];
+    }
+
+    private function preferredDigitalProduct(): ?DigitalProduct
+    {
+        if ($this->preferredDigitalProductResolved) {
+            return $this->preferredDigitalProductCache;
+        }
+
+        $query = $this->digitalProducts()->with('supplier');
+
+        $this->preferredDigitalProductCache = $this->fulfillment_mode === FulfillmentMode::MANUAL->value
+            ? $query->orderByPivot('priority')->first()
+            : $query->orderBy('digital_products.cost_price')->first();
+
+        $this->preferredDigitalProductResolved = true;
+
+        return $this->preferredDigitalProductCache;
     }
 
     public function getStatusAttribute(?string $value): string
