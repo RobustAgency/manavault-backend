@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Api\Manastore\V1;
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\ProductResource;
 use App\Repositories\ProductRepository;
 use App\Http\Requests\Api\Manastore\V1\ListProductRequest;
+use App\Http\Resources\ManaStore\V1\ProductResource;
 
 class ProductController extends Controller
 {
@@ -18,6 +18,13 @@ class ProductController extends Controller
         $validated = $request->validated();
         $productIds = $validated['ids'] ?? [];
         $products = $this->productRepository->getAllProducts($productIds);
+        $products->getCollection()->load('brand');
+
+        $products->setCollection(
+            $products->getCollection()->map(
+                fn (Product $product) => ProductResource::make($product)->resolve($request)
+            )
+        );
 
         logger()->info('Products retrieved', ['ids' => $products->pluck('id')->toArray()]);
 
