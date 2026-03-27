@@ -58,6 +58,14 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
 
             $this->purchaseOrderSupplier->update(['transaction_id' => $transactionId]);
 
+            if ($this->isGift2GamesSupplier()) {
+                $gift2GamesVoucherService->storeVouchers($this->purchaseOrder, $externalOrderResponse);
+            }
+
+            $this->purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
+
+            $purchaseOrderStatusService->updateStatus($this->purchaseOrder->refresh());
+
             Log::info('External order placed successfully', [
                 'supplier_slug' => $this->supplier->slug,
                 'supplier_id' => $this->supplier->id,
@@ -75,18 +83,6 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
 
             $purchaseOrderStatusService->updateStatus($this->purchaseOrder->refresh());
         }
-
-        if ($this->isGift2GamesSupplier()) {
-            $gift2GamesVoucherService->storeVouchers($this->purchaseOrder, $externalOrderResponse);
-            $this->purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
-        } elseif ($this->supplier->slug === 'ez_cards') {
-            Log::info('EzCards order created, vouchers will be fetched separately', [
-                'purchase_order_id' => $this->purchaseOrder->id,
-                'transaction_id' => $transactionId,
-            ]);
-        }
-
-        $purchaseOrderStatusService->updateStatus($this->purchaseOrder->refresh());
     }
 
     private function isGift2GamesSupplier(): bool
