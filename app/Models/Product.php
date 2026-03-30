@@ -99,7 +99,7 @@ class Product extends Model
 
     public function getStatusAttribute(?string $value): string
     {
-        if ($this->selling_price <= 0.0) {
+        if ($this->getSellingPriceAttribute() <= 0.0) {
             return Lifecycle::IN_ACTIVE->value;
         }
 
