@@ -8,16 +8,17 @@ use App\Http\Controllers\Controller;
 use App\Services\PricingRuleService;
 use App\Http\Resources\PriceRuleResource;
 use App\Repositories\PriceRuleRepository;
-use App\Repositories\PriceRuleProductRepository;
 use App\Http\Requests\PriceRule\ListPriceRuleRequest;
-use App\Http\Requests\PriceRule\StorePriceRuleController;
+use App\Http\Requests\PriceRule\StorePriceRuleRequest;
+use App\Repositories\PriceRuleDigitalProductRepository;
+use App\Http\Requests\PriceRule\PreviewPriceRuleRequest;
 
 class PriceRuleController extends Controller
 {
     public function __construct(
         private PricingRuleService $pricingRuleService,
         private PriceRuleRepository $priceRuleRepository,
-        private PriceRuleProductRepository $priceRuleProductRepository,
+        private PriceRuleDigitalProductRepository $priceRuleDigitalProductRepository,
     ) {}
 
     public function index(ListPriceRuleRequest $request): JsonResponse
@@ -31,7 +32,7 @@ class PriceRuleController extends Controller
         ]);
     }
 
-    public function store(StorePriceRuleController $request): JsonResponse
+    public function store(StorePriceRuleRequest $request): JsonResponse
     {
         $data = $request->validated();
         $this->pricingRuleService->createPriceRuleWithConditions($data);
@@ -54,7 +55,7 @@ class PriceRuleController extends Controller
         ]);
     }
 
-    public function update(StorePriceRuleController $request, PriceRule $priceRule): JsonResponse
+    public function update(StorePriceRuleRequest $request, PriceRule $priceRule): JsonResponse
     {
         $data = $request->validated();
         $this->pricingRuleService->updatePriceRuleWithConditions($priceRule, $data);
@@ -68,7 +69,7 @@ class PriceRuleController extends Controller
 
     public function destroy(PriceRule $priceRule): JsonResponse
     {
-        $this->priceRuleRepository->deletePriceRule($priceRule);
+        $this->pricingRuleService->deletePriceRuleWithSync($priceRule);
 
         return response()->json([
             'error' => false,
@@ -77,7 +78,7 @@ class PriceRuleController extends Controller
         ]);
     }
 
-    public function preview(StorePriceRuleController $request): JsonResponse
+    public function preview(PreviewPriceRuleRequest $request): JsonResponse
     {
         $data = $request->validated();
         $preview = $this->pricingRuleService->previewPriceRuleEffect($data);
@@ -89,14 +90,14 @@ class PriceRuleController extends Controller
         ]);
     }
 
-    public function postViewProduct(PriceRule $priceRule): JsonResponse
+    public function postViewDigitalProducts(PriceRule $priceRule): JsonResponse
     {
-        $products = $this->priceRuleProductRepository->getByPriceRule($priceRule->id);
+        $digitalProducts = $this->priceRuleDigitalProductRepository->getByPriceRule($priceRule->id);
 
         return response()->json([
             'error' => false,
-            'data' => $products,
-            'message' => 'Price rule products retrieved successfully.',
+            'data' => $digitalProducts,
+            'message' => 'Price rule digital products retrieved successfully.',
         ]);
     }
 }

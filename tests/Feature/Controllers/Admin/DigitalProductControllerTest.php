@@ -48,6 +48,7 @@ class DigitalProductControllerTest extends TestCase
                     'tags' => ['software', 'productivity'],
                     'currency' => 'usd',
                     'region' => 'US',
+                    'face_value' => 175.00,
                     'cost_price' => 149.99,
                     'selling_price' => 199.99,
                     'metadata' => ['external_id' => 'ext-123'],
@@ -71,7 +72,11 @@ class DigitalProductControllerTest extends TestCase
                         'tags',
                         'region',
                         'cost_price',
+                        'face_value',
                         'selling_price',
+                        'selling_discount',
+                        'cost_price_discount',
+                        'profit_margin',
                         'currency',
                     ],
                 ],
@@ -105,6 +110,7 @@ class DigitalProductControllerTest extends TestCase
                     'name' => 'Product 1',
                     'sku' => 'SKU-001',
                     'brand' => 'Brand A',
+                    'face_value' => 12.00,
                     'cost_price' => 10.00,
                     'selling_price' => 15.00,
                     'currency' => 'usd',
@@ -114,6 +120,7 @@ class DigitalProductControllerTest extends TestCase
                     'name' => 'Product 2',
                     'sku' => 'SKU-002',
                     'brand' => 'Brand B',
+                    'face_value' => 25.00,
                     'cost_price' => 20.00,
                     'selling_price' => 30.00,
                     'currency' => 'usd',
@@ -123,6 +130,7 @@ class DigitalProductControllerTest extends TestCase
                     'name' => 'Product 3',
                     'sku' => 'SKU-003',
                     'brand' => 'Brand C',
+                    'face_value' => 40.00,
                     'cost_price' => 30.00,
                     'selling_price' => 45.00,
                     'currency' => 'eur',
@@ -160,7 +168,95 @@ class DigitalProductControllerTest extends TestCase
                 'products.0.supplier_id',
                 'products.0.sku',
                 'products.0.cost_price',
+                'products.0.face_value',
             ]);
+    }
+
+    public function test_admin_create_digital_product_fails_without_face_value(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create();
+
+        $data = [
+            'products' => [
+                [
+                    'supplier_id' => $supplier->id,
+                    'name' => 'No Face Value Product',
+                    'sku' => 'SKU-NOFV-001',
+                    'brand' => 'Test Brand',
+                    'cost_price' => 50.00,
+                    'selling_price' => 75.00,
+                    'currency' => 'usd',
+                    // face_value intentionally omitted
+                ],
+            ],
+        ];
+
+        $response = $this->postJson('/api/digital-products', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['products.0.face_value']);
+
+        $this->assertDatabaseMissing('digital_products', ['sku' => 'SKU-NOFV-001']);
+    }
+
+    public function test_admin_create_digital_product_fails_when_face_value_is_zero(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create();
+
+        $data = [
+            'products' => [
+                [
+                    'supplier_id' => $supplier->id,
+                    'name' => 'Zero Face Value Product',
+                    'sku' => 'SKU-ZFV-001',
+                    'brand' => 'Test Brand',
+                    'cost_price' => 50.00,
+                    'face_value' => 0,
+                    'selling_price' => 75.00,
+                    'currency' => 'usd',
+                ],
+            ],
+        ];
+
+        $response = $this->postJson('/api/digital-products', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['products.0.face_value']);
+
+        $this->assertDatabaseMissing('digital_products', ['sku' => 'SKU-ZFV-001']);
+    }
+
+    public function test_admin_create_digital_product_fails_when_face_value_is_negative(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create();
+
+        $data = [
+            'products' => [
+                [
+                    'supplier_id' => $supplier->id,
+                    'name' => 'Negative Face Value Product',
+                    'sku' => 'SKU-NFV-001',
+                    'brand' => 'Test Brand',
+                    'cost_price' => 50.00,
+                    'face_value' => -10.00,
+                    'selling_price' => 75.00,
+                    'currency' => 'usd',
+                ],
+            ],
+        ];
+
+        $response = $this->postJson('/api/digital-products', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['products.0.face_value']);
+
+        $this->assertDatabaseMissing('digital_products', ['sku' => 'SKU-NFV-001']);
     }
 
     public function test_admin_create_digital_product_fails_when_selling_price_is_zero(): void
@@ -176,6 +272,7 @@ class DigitalProductControllerTest extends TestCase
                     'name' => 'Zero Price Product',
                     'sku' => 'SKU-ZERO-001',
                     'brand' => 'Test Brand',
+                    'face_value' => 10.00,
                     'cost_price' => 10.00,
                     'selling_price' => 0,
                     'currency' => 'usd',
@@ -216,6 +313,11 @@ class DigitalProductControllerTest extends TestCase
                     'name',
                     'brand',
                     'cost_price',
+                    'face_value',
+                    'selling_price',
+                    'selling_discount',
+                    'cost_price_discount',
+                    'profit_margin',
                 ],
                 'message',
             ])
@@ -290,10 +392,10 @@ class DigitalProductControllerTest extends TestCase
 
         $supplier = Supplier::factory()->create();
 
-        $csvContent = "name,sku,brand,description,cost_price,currency,region,tags,metadata\n";
-        $csvContent .= "Gaming Card,SKU-GAMING-001,Nintendo,Nintendo Switch gift card,50.00,usd,US,gaming|cards,\n";
-        $csvContent .= "Movie Voucher,SKU-MOVIE-001,Disney,Disney movie theater voucher,25.00,eur,EU,movies|entertainment,\n";
-        $csvContent .= "Amazon Gift Card,SKU-AMAZON-001,Amazon,Amazon $100 gift card,100.00,eur,UK,shopping|cards,\n";
+        $csvContent = "name,sku,brand,description,cost_price,face_value,selling_price,currency,region,tags,metadata\n";
+        $csvContent .= "Gaming Card,SKU-GAMING-001,Nintendo,Nintendo Switch gift card,50.00,60.00,55.00,usd,US,gaming|cards,\n";
+        $csvContent .= "Movie Voucher,SKU-MOVIE-001,Disney,Disney movie theater voucher,25.00,30.00,28.00,eur,EU,movies|entertainment,\n";
+        $csvContent .= "Amazon Gift Card,SKU-AMAZON-001,Amazon,Amazon $100 gift card,100.00,120.00,110.00,eur,UK,shopping|cards,\n";
 
         $tempFile = $this->createTempFile($csvContent, 'csv');
 
@@ -359,8 +461,8 @@ class DigitalProductControllerTest extends TestCase
 
         $supplier = Supplier::factory()->create();
 
-        $csvContent = "name,sku,brand,description,cost_price,currency,region,tags,metadata\n";
-        $csvContent .= "Test Card,SKU-TEST,Test Brand,Test description,50.00,invalid_currency,US,test,\n";
+        $csvContent = "name,sku,brand,description,cost_price,face_value,currency,selling_price,region,tags,metadata\n";
+        $csvContent .= "Test Card,SKU-TEST,Test Brand,Test description,50.00,60.00,invalid_currency,55.00,US,test,\n";
 
         $file = \Illuminate\Http\UploadedFile::fake()->createWithContent('products.csv', $csvContent);
 
@@ -429,6 +531,256 @@ class DigitalProductControllerTest extends TestCase
         ]);
 
         $response->assertStatus(401);
+    }
+
+    public function test_admin_create_digital_product_with_selling_discount(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create();
+
+        // Test case 1: Create product with 20% selling discount
+        $data = [
+            'products' => [
+                [
+                    'supplier_id' => $supplier->id,
+                    'name' => 'Discounted Digital Product',
+                    'sku' => 'SKU-DISCOUNT-001',
+                    'brand' => 'Test Brand',
+                    'face_value' => 100.00,
+                    'cost_price' => 50.00,
+                    'selling_price' => 100.00,
+                    'selling_discount' => 20,  // 20% discount
+                    'currency' => 'usd',
+                    'region' => 'US',
+                ],
+            ],
+        ];
+
+        $response = $this->postJson('/api/digital-products', $data);
+
+        $response->assertStatus(201)
+            ->assertJsonStructure([
+                'error',
+                'data' => [
+                    '*' => [
+                        'id',
+                        'selling_price',
+                        'selling_discount',
+                        'cost_price_discount',
+                        'profit_margin',
+                    ],
+                ],
+                'message',
+            ]);
+
+        // Verify the selling price is calculated correctly with discount
+        // Expected: 100.00 * (1 - 20/100) = 100.00 * 0.8 = 80.00
+        $response->assertJson([
+            'error' => false,
+            'data' => [
+                [
+                    'selling_price' => 80.00,
+                    'selling_discount' => 20,
+                    'cost_price_discount' => 50.0,  // (100 - 50) / 100 * 100 = 50%
+                    'profit_margin' => 37.5,  // (80 - 50) / 80 * 100 = 37.5%
+                ],
+            ],
+            'message' => 'Digital products created successfully.',
+        ]);
+
+        $this->assertDatabaseHas('digital_products', [
+            'name' => 'Discounted Digital Product',
+            'sku' => 'SKU-DISCOUNT-001',
+            'selling_discount' => 20,
+            'selling_price' => 100.00,  // Stored as base price
+        ]);
+    }
+
+    public function test_admin_update_digital_product_with_selling_discount(): void
+    {
+        $this->actingAs($this->admin);
+
+        $digitalProduct = DigitalProduct::factory()->create([
+            'name' => 'Original Product',
+            'selling_price' => 100.00,
+            'face_value' => 100.00,
+            'cost_price' => 50.00,
+            'selling_discount' => 0,
+        ]);
+
+        $updateData = [
+            'selling_discount' => 25,  // Add 25% discount
+        ];
+
+        $response = $this->postJson("/api/digital-products/{$digitalProduct->id}", $updateData);
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'error',
+                'data' => [
+                    'id',
+                    'selling_price',
+                    'selling_discount',
+                    'profit_margin',
+                ],
+                'message',
+            ]);
+
+        // Verify the selling price is calculated correctly with new discount
+        // Expected: 100.00 * (1 - 25/100) = 100.00 * 0.75 = 75.00
+        $response->assertJson([
+            'error' => false,
+            'data' => [
+                'id' => $digitalProduct->id,
+                'selling_price' => 75.00,
+                'selling_discount' => 25,
+                'profit_margin' => 33.33,  // (75 - 50) / 75 * 100 = 33.33%
+            ],
+            'message' => 'Digital product updated successfully.',
+        ]);
+
+        $this->assertDatabaseHas('digital_products', [
+            'id' => $digitalProduct->id,
+            'selling_discount' => 25,
+        ]);
+    }
+
+    public function test_admin_create_digital_product_with_zero_selling_discount(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create();
+
+        // Test with 0% discount (no discount)
+        $data = [
+            'products' => [
+                [
+                    'supplier_id' => $supplier->id,
+                    'name' => 'No Discount Product',
+                    'sku' => 'SKU-NODISCOUNT-001',
+                    'brand' => 'Test Brand',
+                    'face_value' => 100.00,
+                    'cost_price' => 70.00,
+                    'selling_price' => 100.00,
+                    'selling_discount' => 0,
+                    'currency' => 'usd',
+                ],
+            ],
+        ];
+
+        $response = $this->postJson('/api/digital-products', $data);
+
+        $response->assertStatus(201);
+
+        // With 0% discount, selling price should remain as base price
+        $response->assertJson([
+            'error' => false,
+            'data' => [
+                [
+                    'selling_price' => 100.00,
+                    'selling_discount' => 0,
+                    'profit_margin' => 30.0,  // (100 - 70) / 100 * 100 = 30%
+                ],
+            ],
+        ]);
+    }
+
+    public function test_admin_create_digital_product_with_max_selling_discount(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create();
+
+        // Test with 100% discount (maximum allowed)
+        $data = [
+            'products' => [
+                [
+                    'supplier_id' => $supplier->id,
+                    'name' => 'Max Discount Product',
+                    'sku' => 'SKU-MAXDISCOUNT-001',
+                    'brand' => 'Test Brand',
+                    'face_value' => 100.00,
+                    'cost_price' => 50.00,
+                    'selling_price' => 100.00,
+                    'selling_discount' => 100,
+                    'currency' => 'usd',
+                ],
+            ],
+        ];
+
+        $response = $this->postJson('/api/digital-products', $data);
+
+        $response->assertStatus(201);
+
+        // With 100% discount, effective selling price should be 0
+        $response->assertJson([
+            'error' => false,
+            'data' => [
+                [
+                    'selling_price' => 0.0,
+                    'selling_discount' => 100,
+                ],
+            ],
+        ]);
+    }
+
+    public function test_admin_create_digital_product_fails_with_invalid_selling_discount(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create();
+
+        // Test with selling_discount > 100
+        $data = [
+            'products' => [
+                [
+                    'supplier_id' => $supplier->id,
+                    'name' => 'Invalid Discount Product',
+                    'sku' => 'SKU-INVALIDDISCOUNT-001',
+                    'brand' => 'Test Brand',
+                    'face_value' => 100.00,
+                    'cost_price' => 50.00,
+                    'selling_price' => 100.00,
+                    'selling_discount' => 150,  // Invalid: > 100
+                    'currency' => 'usd',
+                ],
+            ],
+        ];
+
+        $response = $this->postJson('/api/digital-products', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['products.0.selling_discount']);
+    }
+
+    public function test_admin_create_digital_product_fails_with_negative_selling_discount(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create();
+
+        // Test with negative selling_discount
+        $data = [
+            'products' => [
+                [
+                    'supplier_id' => $supplier->id,
+                    'name' => 'Negative Discount Product',
+                    'sku' => 'SKU-NEGATIVEDISCOUNT-001',
+                    'brand' => 'Test Brand',
+                    'face_value' => 100.00,
+                    'cost_price' => 50.00,
+                    'selling_price' => 100.00,
+                    'selling_discount' => -10,  // Invalid: negative
+                    'currency' => 'usd',
+                ],
+            ],
+        ];
+
+        $response = $this->postJson('/api/digital-products', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['products.0.selling_discount']);
     }
 
     /**

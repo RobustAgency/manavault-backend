@@ -5,7 +5,6 @@ namespace App\Services\PurchaseOrder;
 use App\Enums\SupplierType;
 use App\Models\PurchaseOrder;
 use App\Enums\PurchaseOrderStatus;
-use App\Events\PurchaseOrderFulfill;
 use App\Enums\PurchaseOrderSupplierStatus;
 
 class PurchaseOrderStatusService
@@ -48,7 +47,6 @@ class PurchaseOrderStatusService
             $purchaseOrder->update(['status' => PurchaseOrderStatus::COMPLETED->value]);
         }
 
-        event(new PurchaseOrderFulfill($purchaseOrder));
     }
 
     public function updateInternalSuppliersStatusToCompleted(PurchaseOrder $purchaseOrder): void

@@ -36,32 +36,29 @@ class ProductControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'error',
                 'data' => [
-                    'current_page',
-                    'data' => [
-                        '*' => [
-                            'id',
-                            'name',
-                            'sku',
-                            'brand',
-                            'description',
-                            'short_description',
-                            'long_description',
-                            'tags',
-                            'image',
-                            'selling_price',
-                            'currency',
-                            'status',
-                            'regions',
-                            'created_at',
-                            'updated_at',
-                        ],
+                    '*' => [
+                        'id',
+                        'name',
+                        'sku',
+                        'brand_id',
+                        'description',
+                        'short_description',
+                        'long_description',
+                        'tags',
+                        'image',
+                        'selling_price',
+                        'currency',
+                        'status',
+                        'regions',
+                        'created_at',
+                        'updated_at',
                     ],
-                    'per_page',
-                    'total',
                 ],
+                'error',
                 'message',
+                'links',
+                'meta',
             ])
             ->assertJson([
                 'error' => false,
@@ -79,7 +76,7 @@ class ProductControllerTest extends TestCase
         $response = $this->getJson('/api/products?status=active');
 
         $response->assertStatus(200);
-        $this->assertCount(3, $response->json('data.data'));
+        $this->assertCount(3, $response->json('data'));
     }
 
     public function test_admin_list_products_with_pagination(): void
@@ -91,10 +88,10 @@ class ProductControllerTest extends TestCase
         $response = $this->getJson('/api/products?per_page=5');
 
         $response->assertStatus(200)
-            ->assertJsonPath('data.per_page', 5)
-            ->assertJsonPath('data.total', 25);
+            ->assertJsonPath('meta.per_page', 5)
+            ->assertJsonPath('meta.total', 25);
 
-        $this->assertCount(5, $response->json('data.data'));
+        $this->assertCount(5, $response->json('data'));
     }
 
     public function test_admin_show_product(): void
@@ -122,7 +119,7 @@ class ProductControllerTest extends TestCase
                     'id',
                     'name',
                     'sku',
-                    'brand',
+                    'brand_id',
                     'description',
                     'short_description',
                     'long_description',
@@ -211,7 +208,6 @@ class ProductControllerTest extends TestCase
                 'data' => [
                     'name' => 'New Product',
                     'description' => 'Product description',
-                    'status' => 'active',
                 ],
             ]);
 

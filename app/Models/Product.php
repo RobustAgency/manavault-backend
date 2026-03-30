@@ -55,6 +55,15 @@ class Product extends Model
             ->where('digital_products.in_stock', true);
     }
 
+    public function digitalProduct(): ?DigitalProduct
+    {
+        $query = $this->digitalProducts();
+
+        return $this->fulfillment_mode === FulfillmentMode::MANUAL->value
+            ? $query->orderByPivot('priority')->first()
+            : $query->orderBy('digital_products.cost_price')->first();
+    }
+
     /**
      * Get the brand that owns the product.
      *
@@ -83,18 +92,14 @@ class Product extends Model
      */
     public function getSellingPriceAttribute(): float
     {
-        $query = $this->digitalProducts();
-
-        $digitalProduct = $this->fulfillment_mode === FulfillmentMode::MANUAL->value
-            ? $query->orderByPivot('priority')->first()
-            : $query->orderBy('digital_products.cost_price')->first();
+        $digitalProduct = $this->digitalProduct();
 
         return $digitalProduct ? (float) $digitalProduct->selling_price : 0.0;
     }
 
     public function getStatusAttribute(?string $value): string
     {
-        if ($this->selling_price <= 0.0) {
+        if ($this->getSellingPriceAttribute() <= 0.0) {
             return Lifecycle::IN_ACTIVE->value;
         }
 

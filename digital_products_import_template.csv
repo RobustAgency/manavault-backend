@@ -1,0 +1,6 @@
+name,sku,brand,description,cost_price,currency,region,metadata,tags
+"PlayStation Plus 12 Months",PSN-PLUS-12M,PlayStation,"12 month PlayStation Plus subscription",49.99,usd,US,,
+"Xbox Game Pass Ultimate 1 Month",XBOX-GPU-1M,Xbox,"1 month Xbox Game Pass Ultimate",14.99,usd,US,,
+"Steam Wallet $50",STEAM-50,Steam,"Steam Wallet card worth $50",45.00,usd,Global,,
+"Nintendo eShop $20",NIN-ESHOP-20,Nintendo,"Nintendo eShop gift card $20",18.50,usd,US,,
+"iTunes Gift Card €25",ITUNES-25-EUR,Apple,"iTunes gift card worth €25",23.00,eur,EU,,

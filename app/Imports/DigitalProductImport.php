@@ -27,11 +27,29 @@ class DigitalProductImport implements ToCollection, WithHeadingRow
     {
         DB::transaction(function () use ($collection) {
             foreach ($collection as $index => $row) {
+
                 if ($row->filter()->isEmpty()) {
                     continue;
                 }
 
                 $rowData = $row->toArray();
+
+                // Normalize data
+                $rowData['name'] = isset($rowData['name']) ? trim($rowData['name']) : null;
+                $rowData['sku'] = isset($rowData['sku']) ? trim($rowData['sku']) : null;
+                $rowData['currency'] = isset($rowData['currency'])
+                    ? strtolower(trim($rowData['currency']))
+                    : null;
+
+                // Handle tags (comma separated → array)
+                $rowData['tags'] = isset($rowData['tags']) && $rowData['tags'] !== ''
+                    ? array_map('trim', explode(',', $rowData['tags']))
+                    : null;
+
+                // Handle metadata (JSON string → array)
+                $rowData['metadata'] = isset($rowData['metadata']) && $rowData['metadata'] !== ''
+                    ? json_decode($rowData['metadata'], true)
+                    : null;
 
                 $this->validateRow($rowData, $index + 2);
 
@@ -42,9 +60,11 @@ class DigitalProductImport implements ToCollection, WithHeadingRow
                     'brand' => $rowData['brand'] ?? null,
                     'description' => $rowData['description'] ?? null,
                     'cost_price' => $rowData['cost_price'],
+                    'face_value' => $rowData['face_value'],
+                    'selling_price' => $rowData['selling_price'],
                     'currency' => $rowData['currency'],
-                    'metadata' => $rowData['metadata'] ?? null,
-                    'tags' => $rowData['tags'] ?? null,
+                    'metadata' => $rowData['metadata'],
+                    'tags' => $rowData['tags'],
                     'region' => $rowData['region'] ?? null,
                     'last_synced_at' => now(),
                     'source' => 'csv_import',
@@ -59,6 +79,7 @@ class DigitalProductImport implements ToCollection, WithHeadingRow
     {
         $validator = Validator::make($row, [
             'name' => ['required', 'string', 'max:255'],
+
             'sku' => [
                 'required',
                 'string',
@@ -66,17 +87,33 @@ class DigitalProductImport implements ToCollection, WithHeadingRow
                 'unique:digital_products,sku',
                 Rule::notIn($this->importedSkus),
             ],
+
             'brand' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
+
             'cost_price' => ['required', 'numeric', 'min:0'],
+            'face_value' => ['required', 'numeric', 'gt:0'],
+            'selling_price' => ['required', 'numeric', 'gt:0'],
+
             'currency' => [
                 'required',
                 Rule::in(array_map(fn ($c) => $c->value, Currency::cases())),
             ],
+
+            'metadata' => ['nullable', 'array'],
+
+            'tags' => ['nullable', 'array'],
+            'tags.*' => ['string', 'max:255'],
+
             'region' => ['nullable', 'string', 'max:255'],
+
         ], [], [
-            'sku' => "SKU (row {$rowNumber})",
             'name' => "Name (row {$rowNumber})",
+            'sku' => "SKU (row {$rowNumber})",
+            'cost_price' => "Cost Price (row {$rowNumber})",
+            'face_value' => "Face Value (row {$rowNumber})",
+            'selling_price' => "Selling Price (row {$rowNumber})",
+            'currency' => "Currency (row {$rowNumber})",
         ]);
 
         if ($validator->fails()) {

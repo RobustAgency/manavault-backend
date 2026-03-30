@@ -17,14 +17,13 @@ class VoucherAllocationService
     ) {}
 
     /**
-     * @param  int  $quantity  Number of vouchers to fetch
      * @return Collection<int, Voucher>
      *
      * @throws \Exception If insufficient vouchers available
      */
-    public function getAvailableVouchersForDigitalProduct(int $digitalProductId, int $quantity): Collection
+    public function getAvailableVouchersForDigitalProduct(int $digitalProductId): Collection
     {
-        return $this->voucherRepository->getAvailableVouchersForDigitalProduct($digitalProductId, $quantity);
+        return $this->voucherRepository->getAvailableVouchersForDigitalProduct($digitalProductId);
     }
 
     /**

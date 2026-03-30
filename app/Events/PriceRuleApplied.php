@@ -2,19 +2,18 @@
 
 namespace App\Events;
 
-use App\Models\PurchaseOrder;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Broadcasting\InteractsWithSockets;
 
-class PurchaseOrderFulfill
+class PriceRuleApplied
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     /**
-     * Create a new event instance.
+     * The IDs of the digital products affected by the price rule.
+     *
+     * @param  array<int>  $digitalProductIds
      */
-    public function __construct(
-        public PurchaseOrder $purchaseOrder
-    ) {}
+    public function __construct(public array $digitalProductIds) {}
 }

@@ -23,7 +23,7 @@ class ProductRepository
      */
     public function getFilteredProducts(array $filters = []): LengthAwarePaginator
     {
-        $query = Product::with('brand');
+        $query = Product::with(['digitalProducts.supplier', 'brand']);
 
         if (isset($filters['name'])) {
             $query->where('name', 'like', '%'.$filters['name'].'%');

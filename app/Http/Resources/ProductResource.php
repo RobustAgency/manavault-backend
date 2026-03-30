@@ -20,6 +20,8 @@ class ProductResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $digitalProduct = $this->resolveDigitalProduct();
+
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -41,8 +43,23 @@ class ProductResource extends JsonResource
             'created_at' => $this->created_at->toDateTimeString(),
             'updated_at' => $this->updated_at->toDateTimeString(),
             'digital_products' => DigitalProductResource::collection($this->whenLoaded('digitalProducts')),
+            'digital_product' => $digitalProduct ? new DigitalProductResource($digitalProduct) : null,
             'brand' => new BrandResource($this->whenLoaded('brand')),
         ];
+    }
+
+    /**
+     * Resolve the single digital product based on fulfillment mode from the eager-loaded collection.
+     */
+    private function resolveDigitalProduct(): ?\App\Models\DigitalProduct
+    {
+        if (! $this->relationLoaded('digitalProducts')) {
+            return $this->resource->digitalProduct();
+        }
+
+        return $this->fulfillment_mode === FulfillmentMode::MANUAL->value
+            ? $this->digitalProducts->sortBy('pivot.priority')->first()
+            : $this->digitalProducts->sortBy('cost_price')->first();
     }
 
     private function getAvailableQuantity(): int
