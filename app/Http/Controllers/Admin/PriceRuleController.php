@@ -85,7 +85,7 @@ class PriceRuleController extends Controller
 
         return response()->json([
             'error' => false,
-            'data' => $preview,
+            'data' => $preview->items(),
             'message' => 'Price rule preview retrieved successfully.',
         ]);
     }

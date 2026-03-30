@@ -26,9 +26,9 @@ class DigitalProductImportServiceTest extends TestCase
     public function test_successfully_import_valid_csv_file(): void
     {
         // Create a valid CSV file
-        $csvContent = "name,sku,brand,description,cost_price,currency,region,tags,metadata\n";
-        $csvContent .= 'Gaming Card,SKU-001,Nintendo,Nintendo gift card,50.00,usd,US,["gaming", "monster"]'."\n";
-        $csvContent .= 'Movie Voucher,SKU-002,Disney,Disney movie voucher,25.00,eur,EU,["movies", "boat"]'."\n";
+        $csvContent = "name,sku,brand,description,cost_price,face_value,selling_price,currency,region,tags,metadata\n";
+        $csvContent .= 'Gaming Card,SKU-001,Nintendo,Nintendo gift card,50.00,60.00,55.00,usd,US,["gaming", "monster"]'."\n";
+        $csvContent .= 'Movie Voucher,SKU-002,Disney,Disney movie voucher,25.00,30.00,28.00,eur,EU,["movies", "boat"]'."\n";
 
         $tempFile = $this->createTempFile($csvContent, 'csv');
 
@@ -134,7 +134,7 @@ class DigitalProductImportServiceTest extends TestCase
 
         // Verify header row
         $header = str_getcsv($lines[0]);
-        $expectedHeaders = ['name', 'sku', 'brand', 'description', 'cost_price', 'currency', 'region', 'tags', 'metadata'];
+        $expectedHeaders = ['name', 'sku', 'brand', 'description', 'cost_price', 'face_value', 'selling_price', 'currency', 'region', 'tags', 'metadata'];
         $this->assertEquals($expectedHeaders, $header, 'CSV headers do not match expected format');
 
         // Verify data rows have valid structure
@@ -146,17 +146,25 @@ class DigitalProductImportServiceTest extends TestCase
             $this->assertNotEmpty($row[0], "Row {$i}: name is empty");
             $this->assertNotEmpty($row[1], "Row {$i}: sku is empty");
             $this->assertNotEmpty($row[4], "Row {$i}: cost_price is empty");
-            $this->assertNotEmpty($row[5], "Row {$i}: currency is empty");
+            $this->assertNotEmpty($row[5], "Row {$i}: face_value is empty");
+            $this->assertNotEmpty($row[6], "Row {$i}: selling_price is empty");
+            $this->assertNotEmpty($row[7], "Row {$i}: currency is empty");
 
             // Verify cost_price is numeric
             $this->assertTrue(is_numeric($row[4]), "Row {$i}: cost_price '{$row[4]}' is not numeric");
 
+            // Verify face_value is numeric
+            $this->assertTrue(is_numeric($row[5]), "Row {$i}: face_value '{$row[5]}' is not numeric");
+
+            // Verify selling_price is numeric
+            $this->assertTrue(is_numeric($row[6]), "Row {$i}: selling_price '{$row[6]}' is not numeric");
+
             // Verify currency is valid (usd, eur, gbp, aud, cad, etc.)
             $validCurrencies = ['usd', 'eur', 'gbp', 'aud', 'cad', 'jpy', 'inr', 'mxn'];
             $this->assertContains(
-                strtolower($row[5]),
+                strtolower($row[7]),
                 $validCurrencies,
-                "Row {$i}: currency '{$row[5]}' is not in the expected list"
+                "Row {$i}: currency '{$row[7]}' is not in the expected list"
             );
         }
     }
