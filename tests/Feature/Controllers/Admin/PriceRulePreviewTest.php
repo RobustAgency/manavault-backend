@@ -76,7 +76,7 @@ class PriceRulePreviewTest extends TestCase
             'message' => 'Price rule preview retrieved successfully.',
         ]);
 
-        $preview = $response->json('data');
+        $preview = $response->json('data.data');
         $this->assertCount(2, $preview);
 
         // Verify digital product 1 calculation: 100 + (100 * 0.1) = 110
@@ -120,7 +120,7 @@ class PriceRulePreviewTest extends TestCase
         $response = $this->postJson($this->endpoint, $payload);
 
         $response->assertStatus(200);
-        $preview = $response->json('data');
+        $preview = $response->json('data.data');
 
         // Verify calculation: 100 - (100 * 0.2) = 80
         $dpPreview = collect($preview)->firstWhere('digital_product_id', $dp->id);
@@ -157,7 +157,7 @@ class PriceRulePreviewTest extends TestCase
         $response = $this->postJson($this->endpoint, $payload);
 
         $response->assertStatus(200);
-        $preview = $response->json('data');
+        $preview = $response->json('data.data');
 
         // Verify calculation: 50 + 15 = 65
         $dpPreview = collect($preview)->firstWhere('digital_product_id', $dp->id);
@@ -194,7 +194,7 @@ class PriceRulePreviewTest extends TestCase
         $response = $this->postJson($this->endpoint, $payload);
 
         $response->assertStatus(200);
-        $preview = $response->json('data');
+        $preview = $response->json('data.data');
 
         // Verify calculation: 30 - 10 = 20
         $dpPreview = collect($preview)->firstWhere('digital_product_id', $dp->id);
@@ -243,7 +243,7 @@ class PriceRulePreviewTest extends TestCase
         $response = $this->postJson($this->endpoint, $payload);
 
         $response->assertStatus(200);
-        $preview = $response->json('data');
+        $preview = $response->json('data.data');
 
         // Both digital products match all conditions
         $this->assertCount(2, $preview);
@@ -299,7 +299,7 @@ class PriceRulePreviewTest extends TestCase
         $response = $this->postJson($this->endpoint, $payload);
 
         $response->assertStatus(200);
-        $preview = $response->json('data');
+        $preview = $response->json('data.data');
 
         // Should return dp1 and dp2
         $this->assertCount(2, $preview);
@@ -331,7 +331,7 @@ class PriceRulePreviewTest extends TestCase
         $response = $this->postJson($this->endpoint, $payload);
 
         $response->assertStatus(200);
-        $preview = $response->json('data');
+        $preview = $response->json('data.data');
 
         $this->assertEmpty($preview);
     }
@@ -402,7 +402,7 @@ class PriceRulePreviewTest extends TestCase
         $response = $this->postJson($this->endpoint, $payload);
 
         $response->assertStatus(200);
-        $preview = $response->json('data');
+        $preview = $response->json('data.data');
 
         $this->assertCount(1, $preview);
         $item = $preview[0];
