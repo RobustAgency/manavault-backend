@@ -1,4 +1,4 @@
-@servers(['staging' => 'dev@144.126.254.193', 'production' => 'dev@68.183.187.79']);
+@servers(['staging' => 'dev@144.126.254.193', 'production' => 'app-user@68.183.187.79']);
 
 @setup
     $env = isset($env) ? $env : 'staging';
