@@ -24,26 +24,17 @@ class ProductController extends Controller
     {
         $products = $this->repository->getFilteredProducts($request->validated());
 
-        return response()->json([
-            'error' => false,
-            'data' => $products,
-            'message' => 'Products retrieved successfully.',
-        ]);
+        return ProductResource::collection($products)
+            ->additional([
+                'error' => false,
+                'message' => 'Products retrieved successfully.',
+            ])
+            ->response();
     }
 
     public function show(Product $product): JsonResponse
     {
-        $product->load([
-            'digitalProducts' => function ($query) use ($product) {
-                if ($product->fulfillment_mode === FulfillmentMode::PRICE->value) {
-                    $query->orderBy('cost_price', 'asc');
-                } else {
-                    $query->orderByPivot('priority', 'asc');
-                }
-            },
-            'digitalProducts.supplier',
-            'brand',
-        ]);
+        $product->load(['digitalProducts.supplier', 'brand']);
 
         return response()->json([
             'error' => false,

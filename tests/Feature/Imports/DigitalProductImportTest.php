@@ -32,9 +32,11 @@ class DigitalProductImportTest extends TestCase
                 'brand' => 'Nintendo',
                 'description' => 'Nintendo gift card',
                 'cost_price' => 50.00,
+                'face_value' => 60.00,
+                'selling_price' => 55.00,
                 'currency' => 'usd',
                 'region' => 'US',
-                'tags' => ['gaming', 'cards'],
+                'tags' => 'gaming,cards',
                 'metadata' => null,
             ]),
         ]);
@@ -64,9 +66,11 @@ class DigitalProductImportTest extends TestCase
                 'brand' => 'Nintendo',
                 'description' => 'Nintendo gift card',
                 'cost_price' => 50.00,
+                'face_value' => 60.00,
+                'selling_price' => 55.00,
                 'currency' => 'usd',
                 'region' => 'US',
-                'tags' => ['gaming'],
+                'tags' => 'gaming',
                 'metadata' => null,
             ]),
             collect([
@@ -75,9 +79,11 @@ class DigitalProductImportTest extends TestCase
                 'brand' => 'Disney',
                 'description' => 'Disney movie voucher',
                 'cost_price' => 25.00,
+                'face_value' => 30.00,
+                'selling_price' => 28.00,
                 'currency' => 'eur',
                 'region' => 'EU',
-                'tags' => ['movies'],
+                'tags' => 'movies',
                 'metadata' => null,
             ]),
             collect([
@@ -86,9 +92,11 @@ class DigitalProductImportTest extends TestCase
                 'brand' => 'Microsoft',
                 'description' => 'Microsoft Office license',
                 'cost_price' => 100.00,
+                'face_value' => 120.00,
+                'selling_price' => 110.00,
                 'currency' => 'usd',
                 'region' => 'US',
-                'tags' => ['software', 'license'],
+                'tags' => 'software,license',
                 'metadata' => null,
             ]),
         ]);
@@ -112,6 +120,8 @@ class DigitalProductImportTest extends TestCase
                 'brand' => null,
                 'description' => null,
                 'cost_price' => 30.00,
+                'face_value' => 40.00,
+                'selling_price' => 35.00,
                 'currency' => 'usd',
                 'region' => null,
                 'tags' => null,
@@ -142,10 +152,12 @@ class DigitalProductImportTest extends TestCase
                 'brand' => 'Brand',
                 'description' => 'Description',
                 'cost_price' => 50.00,
+                'face_value' => 60.00,
+                'selling_price' => 55.00,
                 'currency' => 'usd',
                 'region' => 'US',
-                'tags' => ['tag1'],
-                'metadata' => $metadata,
+                'tags' => 'tag1',
+                'metadata' => json_encode($metadata),
             ]),
         ]);
 
@@ -167,9 +179,11 @@ class DigitalProductImportTest extends TestCase
                 'brand' => 'Brand',
                 'description' => 'Description',
                 'cost_price' => 50.00,
+                'face_value' => 60.00,
+                'selling_price' => 55.00,
                 'currency' => 'usd',
                 'region' => 'US',
-                'tags' => ['tag1'],
+                'tags' => 'tag1',
                 'metadata' => null,
             ]),
             collect([]),
@@ -193,6 +207,8 @@ class DigitalProductImportTest extends TestCase
                 'brand' => 'Brand',
                 'description' => 'Description',
                 'cost_price' => 50.00,
+                'face_value' => 60.00,
+                'selling_price' => 55.00,
                 'currency' => 'usd',
                 'region' => 'US',
                 'tags' => null,
@@ -216,6 +232,8 @@ class DigitalProductImportTest extends TestCase
                 'brand' => 'Brand',
                 'description' => 'Description',
                 'cost_price' => 50.00,
+                'face_value' => 60.00,
+                'selling_price' => 55.00,
                 'currency' => 'usd',
                 'region' => 'US',
                 'tags' => null,
@@ -239,6 +257,8 @@ class DigitalProductImportTest extends TestCase
                 'brand' => 'Brand',
                 'description' => 'Description',
                 'cost_price' => null,
+                'face_value' => 60.00,
+                'selling_price' => 55.00,
                 'currency' => 'usd',
                 'region' => 'US',
                 'tags' => null,
@@ -262,6 +282,8 @@ class DigitalProductImportTest extends TestCase
                 'brand' => 'Brand',
                 'description' => 'Description',
                 'cost_price' => 50.00,
+                'face_value' => 60.00,
+                'selling_price' => 55.00,
                 'currency' => 'INVALID',
                 'region' => 'US',
                 'tags' => null,
@@ -281,6 +303,8 @@ class DigitalProductImportTest extends TestCase
             'brand' => 'Brand',
             'description' => 'Description',
             'cost_price' => 50.00,
+            'face_value' => 60.00,
+            'selling_price' => 55.00,
             'currency' => 'usd',
         ]);
 
@@ -295,6 +319,8 @@ class DigitalProductImportTest extends TestCase
                 'brand' => 'Brand',
                 'description' => 'Description',
                 'cost_price' => 75.00,
+                'face_value' => 80.00,
+                'selling_price' => 78.00,
                 'currency' => 'usd',
                 'region' => 'US',
                 'tags' => null,
@@ -318,6 +344,8 @@ class DigitalProductImportTest extends TestCase
                 'brand' => 'Brand',
                 'description' => 'Description',
                 'cost_price' => 50.00,
+                'face_value' => 60.00,
+                'selling_price' => 55.00,
                 'currency' => 'usd',
                 'region' => 'US',
                 'tags' => null,
@@ -329,6 +357,8 @@ class DigitalProductImportTest extends TestCase
                 'brand' => 'Brand',
                 'description' => 'Description',
                 'cost_price' => 75.00,
+                'face_value' => 80.00,
+                'selling_price' => 78.00,
                 'currency' => 'usd',
                 'region' => 'US',
                 'tags' => null,
@@ -352,6 +382,8 @@ class DigitalProductImportTest extends TestCase
                 'brand' => 'Brand',
                 'description' => 'Description',
                 'cost_price' => 'invalid',
+                'face_value' => 60.00,
+                'selling_price' => 55.00,
                 'currency' => 'usd',
                 'region' => 'US',
                 'tags' => null,
@@ -375,6 +407,8 @@ class DigitalProductImportTest extends TestCase
                 'brand' => 'Brand',
                 'description' => 'Description',
                 'cost_price' => -10.00,
+                'face_value' => 60.00,
+                'selling_price' => 55.00,
                 'currency' => 'usd',
                 'region' => 'US',
                 'tags' => null,
@@ -396,6 +430,8 @@ class DigitalProductImportTest extends TestCase
                 'brand' => 'Brand',
                 'description' => 'Description',
                 'cost_price' => 0.00,
+                'face_value' => 10.00,
+                'selling_price' => 5.00,
                 'currency' => 'usd',
                 'region' => 'US',
                 'tags' => null,
@@ -424,6 +460,8 @@ class DigitalProductImportTest extends TestCase
                 'brand' => 'Brand',
                 'description' => 'Description',
                 'cost_price' => 50.00,
+                'face_value' => 60.00,
+                'selling_price' => 55.00,
                 'currency' => 'usd',
                 'region' => 'US',
                 'tags' => null,
@@ -438,7 +476,7 @@ class DigitalProductImportTest extends TestCase
     {
         $import = new DigitalProductImport($this->supplier->id);
 
-        $tags = ['gaming', 'cards', 'gift'];
+        $tags = 'gaming,cards,gift';
 
         $collection = collect([
             collect([
@@ -447,6 +485,8 @@ class DigitalProductImportTest extends TestCase
                 'brand' => 'Brand',
                 'description' => 'Description',
                 'cost_price' => 50.00,
+                'face_value' => 60.00,
+                'selling_price' => 55.00,
                 'currency' => 'usd',
                 'region' => 'US',
                 'tags' => $tags,
@@ -457,7 +497,7 @@ class DigitalProductImportTest extends TestCase
         $import->collection($collection);
 
         $product = DigitalProduct::where('sku', 'SKU-001')->first();
-        $this->assertEquals($tags, $product->tags);
+        $this->assertEquals(['gaming', 'cards', 'gift'], $product->tags);
     }
 
     public function test_import_transaction_rollback_on_error(): void
@@ -471,6 +511,8 @@ class DigitalProductImportTest extends TestCase
                 'brand' => 'Brand',
                 'description' => 'Description',
                 'cost_price' => 50.00,
+                'face_value' => 60.00,
+                'selling_price' => 55.00,
                 'currency' => 'usd',
                 'region' => 'US',
                 'tags' => null,
@@ -482,6 +524,8 @@ class DigitalProductImportTest extends TestCase
                 'brand' => 'Brand',
                 'description' => 'Description',
                 'cost_price' => 'invalid',
+                'face_value' => 60.00,
+                'selling_price' => 55.00,
                 'currency' => 'usd',
                 'region' => 'US',
                 'tags' => null,
