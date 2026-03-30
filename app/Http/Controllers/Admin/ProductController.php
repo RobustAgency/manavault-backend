@@ -24,12 +24,18 @@ class ProductController extends Controller
     {
         $products = $this->repository->getFilteredProducts($request->validated());
 
-        return ProductResource::collection($products)
-            ->additional([
-                'error' => false,
-                'message' => 'Products retrieved successfully.',
-            ])
-            ->response();
+        return response()->json([
+            'error' => false,
+            'data' => $products,
+            'message' => 'Product retrieved successfully.',
+        ]);
+
+        // return ProductResource::collection($products)
+        //     ->additional([
+        //         'error' => false,
+        //         'message' => 'Products retrieved successfully.',
+        //     ])
+        //     ->response();
     }
 
     public function show(Product $product): JsonResponse
