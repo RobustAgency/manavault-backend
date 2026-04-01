@@ -1,0 +1,6 @@
+name,sku,brand_name,description,short_description,long_description,face_value,currency,status,tags,regions
+Gaming Card,SKU-GAMING-001,Nintendo,Nintendo gift card for gaming,Short gaming description,Comprehensive long description about gaming cards,50.00,usd,active,"[""gaming"", ""cards""]","[""US"", ""EU""]"
+Movie Voucher,SKU-MOVIE-001,Disney,Disney movie theater voucher,Short movie description,Comprehensive long description about movie vouchers,25.00,eur,active,"[""movies"", ""entertainment""]","[""EU"", ""UK""]"
+Amazon Gift Card,SKU-AMAZON-001,Amazon,Amazon $100 gift card,Short shopping description,Comprehensive long description about Amazon gift cards,100.00,eur,active,"[""shopping"", ""cards""]","[""UK"", ""EU""]"
+Spotify Premium,SKU-SPOTIFY-001,Spotify,Spotify Premium monthly subscription,Short music description,Comprehensive long description about Spotify Premium subscriptions,15.99,usd,active,"[""music"", ""subscription""]","[""US"", ""EU""]"
+Netflix Subscription,SKU-NETFLIX-001,Netflix,Netflix monthly subscription,Short streaming description,Comprehensive long description about Netflix subscriptions,12.99,usd,active,"[""streaming"", ""subscription""]","[""US"", ""EU""]"

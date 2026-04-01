@@ -7,18 +7,23 @@ use Illuminate\Http\JsonResponse;
 use App\Events\AssignDigitalProduct;
 use App\Http\Controllers\Controller;
 use App\Enums\Product\FulfillmentMode;
+use App\Services\ProductImportService;
 use App\Http\Resources\ProductResource;
 use App\Repositories\ProductRepository;
 use App\Events\DigitalProductPriorityChange;
 use App\Http\Requests\Product\ListProductRequest;
 use App\Http\Requests\Product\StoreProductRequest;
 use App\Http\Requests\Product\UpdateProductRequest;
+use App\Http\Requests\Product\BatchImportProductRequest;
 use App\Http\Requests\Product\AssignDigitalProductsRequest;
 use App\Http\Requests\Product\UpdateDigitalProductsPriorityRequest;
 
 class ProductController extends Controller
 {
-    public function __construct(private ProductRepository $repository) {}
+    public function __construct(
+        private ProductRepository $repository,
+        private ProductImportService $importService,
+    ) {}
 
     public function index(ListProductRequest $request): JsonResponse
     {
@@ -127,5 +132,28 @@ class ProductController extends Controller
             'data' => new ProductResource($product),
             'message' => 'Digital product priorities updated successfully.',
         ]);
+    }
+
+    /**
+     * Batch import products from a CSV file.
+     */
+    public function batchImport(BatchImportProductRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+        $file = $validated['file'];
+
+        try {
+            $this->importService->importProducts($file);
+
+            return response()->json([
+                'error' => false,
+                'message' => 'Products imported successfully.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => true,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
 }
