@@ -27,6 +27,7 @@ class ListDigitalProductRequest extends FormRequest
             'name' => ['sometimes', 'string', 'max:255'],
             'brand' => ['sometimes', 'string', 'max:255'],
             'supplier_id' => ['sometimes', 'integer', 'exists:suppliers,id'],
+            'region' => ['sometimes', 'string', 'max:255'],
             'currency' => ['sometimes', Rule::enum(Currency::class)],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ];

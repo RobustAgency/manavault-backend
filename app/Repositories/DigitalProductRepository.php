@@ -43,6 +43,11 @@ class DigitalProductRepository
             $query->where('currency', $filters['currency']);
         }
 
+        if (isset($filters['region'])) {
+            $region = strtolower($filters['region']);
+            $query->where('region', $region);
+        }
+
         $per_page = $filters['per_page'] ?? 10;
 
         $query->orderBy('created_at', 'desc');
