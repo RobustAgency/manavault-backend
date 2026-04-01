@@ -44,8 +44,7 @@ class DigitalProductRepository
         }
 
         if (isset($filters['region'])) {
-            $region = strtolower($filters['region']);
-            $query->where('region', $region);
+            $query->where('region', 'like', '%'.$filters['region'].'%');
         }
 
         $per_page = $filters['per_page'] ?? 10;
