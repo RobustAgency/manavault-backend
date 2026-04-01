@@ -44,6 +44,7 @@ class DigitalProduct extends Model
         'metadata' => 'array',
         'cost_price' => 'decimal:2',
         'face_value' => 'decimal:2',
+        'selling_discount' => 'decimal:2',
         'last_synced_at' => 'datetime',
         'is_active' => 'boolean',
         'in_stock' => 'boolean',
