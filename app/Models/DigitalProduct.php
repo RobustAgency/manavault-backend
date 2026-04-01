@@ -151,8 +151,6 @@ class DigitalProduct extends Model
         $costPrice = $this->getAttribute('cost_price');
         $sellingPrice = $this->getSellingPriceAttribute();
 
-        return $sellingPrice > 0
-            ? round((($sellingPrice - $costPrice) / $sellingPrice) * 100, 2)
-            : 0;
+        return round($sellingPrice - $costPrice, 2);
     }
 }
