@@ -71,14 +71,10 @@ class DigitalProductController extends Controller
     public function update(UpdateDigitalProductRequest $request, DigitalProduct $digitalProduct): JsonResponse
     {
         $validated = $request->validated();
-        $sellingPriceChanged = isset($validated['selling_price'])
-            && $validated['selling_price'] != $digitalProduct->selling_price;
 
         $digitalProduct = $this->repository->updateDigitalProduct($digitalProduct, $validated);
 
-        if ($sellingPriceChanged) {
-            event(new DigitalStockUpdate($digitalProduct));
-        }
+        event(new DigitalStockUpdate($digitalProduct));
 
         return response()->json([
             'error' => false,
