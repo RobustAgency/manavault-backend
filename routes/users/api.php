@@ -49,6 +49,7 @@ Route::middleware(['auth:supabase', 'user.approved'])->group(function () {
 
     Route::prefix('/products')->group(function () {
         Route::get('', [ProductController::class, 'index'])->middleware('permission:view_product');
+        Route::get('/export/pdf', [ProductController::class, 'exportToPdf'])->middleware('permission:view_product');
         Route::post('', [ProductController::class, 'store'])->middleware('permission:create_product');
         Route::get('/{product}', [ProductController::class, 'show'])->middleware('permission:view_product');
         Route::post('/{product}', [ProductController::class, 'update'])->middleware('permission:edit_product');

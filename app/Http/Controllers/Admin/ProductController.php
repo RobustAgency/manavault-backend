@@ -9,7 +9,9 @@ use App\Http\Controllers\Controller;
 use App\Enums\Product\FulfillmentMode;
 use App\Http\Resources\ProductResource;
 use App\Repositories\ProductRepository;
+use App\Services\ProductPdfExportService;
 use App\Events\DigitalProductPriorityChange;
+use Symfony\Component\HttpFoundation\Response;
 use App\Http\Requests\Product\ListProductRequest;
 use App\Http\Requests\Product\StoreProductRequest;
 use App\Http\Requests\Product\UpdateProductRequest;
@@ -18,7 +20,10 @@ use App\Http\Requests\Product\UpdateDigitalProductsPriorityRequest;
 
 class ProductController extends Controller
 {
-    public function __construct(private ProductRepository $repository) {}
+    public function __construct(
+        private ProductRepository $repository,
+        private ProductPdfExportService $pdfExportService
+    ) {}
 
     public function index(ListProductRequest $request): JsonResponse
     {
@@ -127,5 +132,16 @@ class ProductController extends Controller
             'data' => new ProductResource($product),
             'message' => 'Digital product priorities updated successfully.',
         ]);
+    }
+
+    /**
+     * Export products list to PDF.
+     */
+    public function exportToPdf(ListProductRequest $request): Response
+    {
+        $filters = $request->validated();
+        $products = $this->repository->getFilteredProducts($filters);
+
+        return $this->pdfExportService->exportFilteredProductsToPdf($products, $filters);
     }
 }
