@@ -21,10 +21,24 @@ class SaleOrderResource extends JsonResource
             'id' => $this->id,
             'order_number' => $this->order_number,
             'source' => $this->source,
+            'currency' => $this->currency,
+            'subtotal' => [
+                'amount' => (string) $this->subtotal,
+                'currency' => $this->currency,
+            ],
+            'conversion_fees' => [
+                'amount' => (string) $this->conversion_fees,
+                'currency' => $this->currency,
+            ],
+            'total' => [
+                'amount' => (string) $this->total,
+                'currency' => $this->currency,
+            ],
             'total_price' => $this->total_price,
             'status' => $this->status,
             'created_at' => $this->created_at->toDateTimeString(),
             'updated_at' => $this->updated_at->toDateTimeString(),
+            'items' => SaleOrderItemResource::collection($this->whenLoaded('items')),
         ];
     }
 }

@@ -25,9 +25,19 @@ class SaleOrderItemFactory extends Factory
         return [
             'sale_order_id' => SaleOrder::factory(),
             'product_id' => Product::factory(),
+            'product_variant_id' => null,
+            'variant_name' => $this->faker->words(3, true),
+            'product_name' => $this->faker->words(3, true),
             'quantity' => $quantity,
             'unit_price' => $unitPrice,
             'subtotal' => $subtotal,
+            'price' => $this->faker->numberBetween(100, 10000),
+            'purchase_price' => $this->faker->numberBetween(100, 10000),
+            'conversion_fee' => 0,
+            'total_price' => $this->faker->numberBetween(100, 10000),
+            'discount_amount' => 0,
+            'currency' => 'USD',
+            'status' => 'pending',
         ];
     }
 

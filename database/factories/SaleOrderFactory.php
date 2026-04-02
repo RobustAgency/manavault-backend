@@ -33,7 +33,11 @@ class SaleOrderFactory extends Factory
                 STR_PAD_LEFT
             ),
             'source' => SaleOrder::MANASTORE,
+            'currency' => 'USD',
             'total_price' => 0,
+            'subtotal' => 0,
+            'conversion_fees' => 0,
+            'total' => 0,
             'status' => Status::PENDING->value,
         ];
     }

@@ -16,12 +16,19 @@ class SaleOrder extends Model
     protected $fillable = [
         'order_number',
         'source',
+        'currency',
         'total_price',
+        'subtotal',
+        'conversion_fees',
+        'total',
         'status',
     ];
 
     protected $casts = [
         'total_price' => 'decimal:2',
+        'subtotal' => 'integer',
+        'conversion_fees' => 'integer',
+        'total' => 'integer',
     ];
 
     /**
