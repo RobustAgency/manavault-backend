@@ -685,4 +685,103 @@ class ProductControllerTest extends TestCase
             'digital_product_id' => $digitalProducts[2]->id,
         ]);
     }
+
+    public function test_admin_batch_import_products_from_csv(): void
+    {
+        $this->actingAs($this->admin);
+
+        $csvContent = "name,sku,brand_id,description,short_description,long_description,face_value,currency,status,tags,regions\n";
+        $csvContent .= 'Gaming Card,SKU-GAMING-001,1,Gaming product,Short desc,Long description,50.00,usd,active,"[""gaming""]","[""US""]"'."\n";
+        $csvContent .= 'Movie Voucher,SKU-MOVIE-001,2,Movie product,Short desc,Long description,25.00,eur,active,"[""movies""]","[""EU""]"'."\n";
+        $csvContent .= 'Amazon Gift Card,SKU-AMAZON-001,3,Amazon gift card,Short desc,Long description,100.00,eur,active,"[""shopping""]","[""UK""]"'."\n";
+
+        $tempFile = $this->createTempFile($csvContent, 'csv');
+
+        $uploadedFile = new UploadedFile($tempFile, 'products.csv', 'text/csv', null, true);
+
+        $response = $this->postJson('/api/products/batch-import', [
+            'file' => $uploadedFile,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'error' => false,
+                'message' => 'Products imported successfully.',
+            ]);
+
+        $this->assertDatabaseCount('products', 3);
+        $this->assertDatabaseHas('products', [
+            'name' => 'Gaming Card',
+            'sku' => 'SKU-GAMING-001',
+            'face_value' => 50.00,
+            'currency' => 'usd',
+        ]);
+
+        $this->assertDatabaseHas('products', [
+            'name' => 'Movie Voucher',
+            'sku' => 'SKU-MOVIE-001',
+            'face_value' => 25.00,
+            'currency' => 'eur',
+        ]);
+
+        $this->assertDatabaseHas('products', [
+            'name' => 'Amazon Gift Card',
+            'sku' => 'SKU-AMAZON-001',
+            'face_value' => 100.00,
+            'currency' => 'eur',
+        ]);
+    }
+
+    public function test_admin_batch_import_products_fails_without_authentication(): void
+    {
+        $csvContent = "name,sku,brand_id,description,short_description,long_description,face_value,currency,status,tags,regions\n";
+        $csvContent .= 'Test Product,SKU-TEST-001,1,Test,Short,Long,50.00,usd,active,,'."\n";
+
+        $tempFile = $this->createTempFile($csvContent, 'csv');
+        $uploadedFile = new UploadedFile($tempFile, 'products.csv', 'text/csv', null, true);
+
+        $response = $this->postJson('/api/products/batch-import', [
+            'file' => $uploadedFile,
+        ]);
+
+        $response->assertStatus(401);
+    }
+
+    public function test_admin_batch_import_products_fails_without_file(): void
+    {
+        $this->actingAs($this->admin);
+
+        $response = $this->postJson('/api/products/batch-import', []);
+
+        $response->assertStatus(422);
+    }
+
+    public function test_admin_batch_import_products_fails_with_invalid_csv_format(): void
+    {
+        $this->actingAs($this->admin);
+
+        $csvContent = "name,sku,brand_id,description,short_description,long_description,face_value,currency,status,tags,regions\n";
+        $csvContent .= 'Invalid Product,SKU-001,,Description,Short,Long,,invalid_currency,active,,'."\n";
+
+        $tempFile = $this->createTempFile($csvContent, 'csv');
+        $uploadedFile = new UploadedFile($tempFile, 'products.csv', 'text/csv', null, true);
+
+        $response = $this->postJson('/api/products/batch-import', [
+            'file' => $uploadedFile,
+        ]);
+
+        $response->assertStatus(500)
+            ->assertJson(['error' => true]);
+    }
+
+    /**
+     * Helper method to create a temporary file with specific content and extension
+     */
+    private function createTempFile(string $content, string $extension): string
+    {
+        $tempFile = tempnam(sys_get_temp_dir(), 'product_test_').'.'.$extension;
+        file_put_contents($tempFile, $content);
+
+        return $tempFile;
+    }
 }
