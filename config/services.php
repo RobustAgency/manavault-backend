@@ -74,4 +74,11 @@ return [
         'api_key' => env('MANASTORE_API_KEY'),
     ],
 
+    'giftery' => [
+        'base_url' => env('GIFTERY_BASE_URL'),
+        'login' => env('GIFTERY_USERNAME'),
+        'password' => env('GIFTERY_PASSWORD'),
+        'secret' => env('GIFTERY_SECRET_KEY'),
+    ],
+
 ];
