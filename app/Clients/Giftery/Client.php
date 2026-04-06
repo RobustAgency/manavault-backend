@@ -162,12 +162,16 @@ class Client
             $payload['fields']
         );
 
+        $reservePayload = array_merge($payload, [
+            'clientTime' => $payload['clientTime'] ?? now()->toIso8601String(),
+        ]);
+
         return $this->getClient()
             ->withHeaders([
                 'time' => $timestamp,
                 'signature' => $signature,
                 'Authorization' => "Bearer {$this->refreshToken()}",
             ])
-            ->post('/operations/reserve', $payload)->json();
+            ->post('/operations/reserve', $reservePayload)->json();
     }
 }
