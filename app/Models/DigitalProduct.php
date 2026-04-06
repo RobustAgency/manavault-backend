@@ -112,7 +112,7 @@ class DigitalProduct extends Model
             return (float) $latestPriceRule->final_selling_price;
         }
 
-        return $basePrice;
+        return (float) ($this->attributes['selling_price'] ?? 0);
     }
 
     /**
