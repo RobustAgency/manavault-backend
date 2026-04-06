@@ -36,6 +36,29 @@ class Client
         return base64_encode(hash_hmac('sha256', (string) $time, self::secret(), true));
     }
 
+    public function generateReserveSignature(int $time, int $itemId, array $fields): string
+    {
+        // Convert to key=value
+        $formatted = array_map(function ($field) {
+            return $field['key'].'='.$field['value'];
+        }, $fields);
+
+        // Sort alphabetically
+        sort($formatted);
+
+        // Join with commas
+        $fieldsString = implode(',', $formatted);
+
+        $message = $time.$itemId.$fieldsString;
+
+        return base64_encode(hash_hmac(
+            'sha256',
+            $message,
+            base64_decode(config('services.giftery.secret')),
+            true
+        ));
+    }
+
     public function authenticate(): string
     {
         $timestamp = time();
@@ -109,5 +132,24 @@ class Client
         ]);
 
         return $response->json();
+    }
+
+    public function reserveOrder(array $payload): array
+    {
+        $timestamp = time();
+
+        $signature = $this->generateReserveSignature(
+            $timestamp,
+            $payload['itemId'],
+            $payload['fields']
+        );
+
+        return $this->getClient()
+            ->withHeaders([
+                'time' => (string) $timestamp,
+                'signature' => $signature,
+                'Authorization' => "Bearer {$this->refreshToken()}",
+            ])
+            ->post('/operations/reserve', $payload)->json();
     }
 }
