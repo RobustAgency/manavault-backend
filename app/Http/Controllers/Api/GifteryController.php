@@ -68,4 +68,23 @@ class GifteryController extends Controller
             ], 500);
         }
     }
+
+    public function testGetAccounts(): JsonResponse
+    {
+        try {
+            $response = $this->gifteryClient->getAccount();
+
+            return response()->json([
+                'error' => false,
+                'data' => $response,
+                'message' => 'Account information retrieved successfully from Giftery.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => true,
+                'data' => null,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

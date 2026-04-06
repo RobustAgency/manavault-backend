@@ -54,7 +54,7 @@ class Client
         return base64_encode(hash_hmac(
             'sha256',
             $message,
-            base64_decode(config('services.giftery.secret')),
+            self::secret(),
             true
         ));
     }
@@ -68,18 +68,24 @@ class Client
 
         $signature = $this->generateAuthSignature($timestamp);
 
+        $payload = [
+            'login' => $login,
+            'password' => $password,
+        ];
+
         $response = $this->getClient()->withHeaders([
             'time' => (string) $timestamp,
             'signature' => $signature,
-        ])->post('/auth', [
-            'login' => $login,
-            'password' => $password,
-        ]);
+        ])->post('/auth', $payload);
 
         $data = $response->json();
 
-        if (($data['statusCode'] ?? null) !== 0) {
-            throw new \Exception($data['message'] ?? 'Giftery auth failed');
+        if (($data['statusCode'] ?? null) == -101) {
+            throw new \Exception($data['message'] ?? 'Giftery auth failed - Bad credentials');
+        }
+
+        if (! isset($data['data']['accessToken']) || ! isset($data['data']['refreshToken'])) {
+            throw new \Exception('Giftery auth failed - No tokens in response: '.json_encode($data));
         }
 
         $accessToken = $data['data']['accessToken'];
@@ -104,11 +110,11 @@ class Client
         $response = $this->getClient()->withHeaders([
             'time' => $timestamp,
             'signature' => $this->generateRefreshTokenSignature($timestamp, $refreshToken),
-        ])->post("/api/v2/auth/refresh/{$refreshToken}");
+        ])->post("/auth/refresh/{$refreshToken}");
 
         $data = $response->json();
 
-        if (($data['statusCode'] ?? null) !== 0) {
+        if ($data['statusCode'] == -103 || $data['statusCode'] == -105) {
             return $this->authenticate();
         }
 
@@ -119,6 +125,18 @@ class Client
         cache()->put('giftery_refresh_token', $newRefreshToken, now()->addDays(7));
 
         return $accessToken;
+    }
+
+    public function getAccount(): array
+    {
+        $time = time();
+        $response = $this->getClient()->withHeaders([
+            'time' => (string) $time,
+            'signature' => $this->generateRequestSignature($time),
+            'Authorization' => "Bearer {$this->refreshToken()}",
+        ])->get('/accounts');
+
+        return $response->json();
     }
 
     public function getProducts(): array
@@ -146,7 +164,7 @@ class Client
 
         return $this->getClient()
             ->withHeaders([
-                'time' => (string) $timestamp,
+                'time' => $timestamp,
                 'signature' => $signature,
                 'Authorization' => "Bearer {$this->refreshToken()}",
             ])

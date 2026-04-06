@@ -14,6 +14,8 @@ Route::post('/login-logs', [LoginLogsController::class, 'store']);
 Route::prefix('/giftery/test')->group(function () {
     Route::post('/reserve-order', [GifteryController::class, 'testReserveOrder']);
     Route::get('/products', [GifteryController::class, 'testGetProducts']);
+    Route::get('/accounts', [GifteryController::class, 'testGetAccounts']);
+
 });
 
 require __DIR__.'/users/api.php';
