@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Brick\Math\BigDecimal;
+use Brick\Math\RoundingMode;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -103,7 +105,15 @@ class DigitalProduct extends Model
         $discount = (float) ($this->attributes['selling_discount'] ?? 0);
 
         if ($discount > 0) {
-            return round($basePrice * (1 - $discount / 100), 2);
+            $base = BigDecimal::of($basePrice);
+            $discountFactor = BigDecimal::of(1)
+                ->minus(BigDecimal::of($discount)->dividedBy(100, 10, RoundingMode::HALF_UP));
+
+            $result = $base
+                ->multipliedBy($discountFactor)
+                ->toScale(2, RoundingMode::HALF_UP);
+
+            return $result->toFloat();
         }
 
         $latestPriceRule = $this->latestPriceRuleDigitalProduct;
