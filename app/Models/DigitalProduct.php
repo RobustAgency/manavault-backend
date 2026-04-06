@@ -2,8 +2,6 @@
 
 namespace App\Models;
 
-use Brick\Math\BigDecimal;
-use Brick\Math\RoundingMode;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -101,27 +99,20 @@ class DigitalProduct extends Model
      */
     public function getSellingPriceAttribute(): float
     {
-        $basePrice = (float) ($this->attributes['face_value'] ?? 0);
+        $basePrice = (float) ($this->attributes['selling_price'] ?? 0);
         $discount = (float) ($this->attributes['selling_discount'] ?? 0);
 
         if ($discount > 0) {
-            $base = BigDecimal::of($basePrice);
-            $discountFactor = BigDecimal::of(1)
-                ->minus(BigDecimal::of($discount)->dividedBy(100, 10, RoundingMode::HALF_UP));
-
-            $result = $base
-                ->multipliedBy($discountFactor)
-                ->toScale(2, RoundingMode::HALF_UP);
-
-            return $result->toFloat();
+            return round($basePrice * (1 - $discount / 100), 2);
         }
 
         $latestPriceRule = $this->latestPriceRuleDigitalProduct;
+
         if ($latestPriceRule !== null) {
             return (float) $latestPriceRule->final_selling_price;
         }
 
-        return (float) ($this->attributes['selling_price'] ?? 0);
+        return $basePrice;
     }
 
     /**
@@ -157,7 +148,7 @@ class DigitalProduct extends Model
 
     public function getProfitMarginAttribute(): float
     {
-        $costPrice = (float) $this->getAttribute('cost_price');
+        $costPrice = $this->getAttribute('cost_price');
         $sellingPrice = $this->getSellingPriceAttribute();
 
         return round($sellingPrice - $costPrice, 2);
