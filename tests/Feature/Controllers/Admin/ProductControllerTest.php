@@ -775,6 +775,295 @@ class ProductControllerTest extends TestCase
     }
 
     /**
+     * Test: Digital products are displayed in correct order with PRICE fulfillment mode (sorted by cost_price ASC)
+     */
+    public function test_digital_products_displayed_in_cost_price_order_on_show(): void
+    {
+        $this->actingAs($this->admin);
+
+        $brand = Brand::factory()->create();
+        $supplier1 = \App\Models\Supplier::factory()->create(['name' => 'Supplier 1']);
+        $supplier2 = \App\Models\Supplier::factory()->create(['name' => 'Supplier 2']);
+        $supplier3 = \App\Models\Supplier::factory()->create(['name' => 'Supplier 3']);
+
+        // Create a product with PRICE fulfillment mode
+        $product = Product::factory()->create([
+            'brand_id' => $brand->id,
+            'name' => 'Multi-Supplier Product',
+            'face_value' => 100.00,
+            'fulfillment_mode' => FulfillmentMode::PRICE->value,
+            'currency' => 'usd',
+        ]);
+
+        // Create digital products with different cost prices
+        // We deliberately create them in reverse order to verify sorting
+        $dp3 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier3->id,
+            'name' => 'Product from Supplier 3',
+            'cost_price' => 85.00,
+            'selling_price' => 95.00,
+            'currency' => 'usd',
+        ]);
+
+        $dp1 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier1->id,
+            'name' => 'Product from Supplier 1',
+            'cost_price' => 50.00,
+            'selling_price' => 70.00,
+            'currency' => 'usd',
+        ]);
+
+        $dp2 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier2->id,
+            'name' => 'Product from Supplier 2',
+            'cost_price' => 70.00,
+            'selling_price' => 85.00,
+            'currency' => 'usd',
+        ]);
+
+        // Attach in random order to test sorting
+        $product->digitalProducts()->attach([$dp3->id, $dp1->id, $dp2->id]);
+
+        $response = $this->getJson("/api/products/{$product->id}");
+
+        $response->assertStatus(200);
+
+        $digitalProducts = $response->json('data.digital_products');
+        $this->assertCount(3, $digitalProducts);
+
+        // Verify digital products are sorted by cost_price ASC
+        $this->assertEquals($dp1->id, $digitalProducts[0]['id']);
+        $this->assertEquals(50.00, $digitalProducts[0]['cost_price']);
+
+        $this->assertEquals($dp2->id, $digitalProducts[1]['id']);
+        $this->assertEquals(70.00, $digitalProducts[1]['cost_price']);
+
+        $this->assertEquals($dp3->id, $digitalProducts[2]['id']);
+        $this->assertEquals(85.00, $digitalProducts[2]['cost_price']);
+    }
+
+    /**
+     * Test: Digital products are displayed in correct order with MANUAL fulfillment mode (sorted by priority)
+     */
+    public function test_digital_products_displayed_in_priority_order_on_show(): void
+    {
+        $this->actingAs($this->admin);
+
+        $brand = Brand::factory()->create();
+        $supplier1 = \App\Models\Supplier::factory()->create(['name' => 'Supplier A']);
+        $supplier2 = \App\Models\Supplier::factory()->create(['name' => 'Supplier B']);
+        $supplier3 = \App\Models\Supplier::factory()->create(['name' => 'Supplier C']);
+
+        // Create a product with MANUAL fulfillment mode
+        $product = Product::factory()->create([
+            'brand_id' => $brand->id,
+            'name' => 'Priority-based Product',
+            'face_value' => 100.00,
+            'fulfillment_mode' => FulfillmentMode::MANUAL->value,
+            'currency' => 'usd',
+        ]);
+
+        // Create digital products
+        $dp1 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier1->id,
+            'name' => 'Priority Product 1',
+            'cost_price' => 50.00,
+            'selling_price' => 70.00,
+            'currency' => 'usd',
+        ]);
+
+        $dp2 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier2->id,
+            'name' => 'Priority Product 2',
+            'cost_price' => 70.00,
+            'selling_price' => 85.00,
+            'currency' => 'usd',
+        ]);
+
+        $dp3 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier3->id,
+            'name' => 'Priority Product 3',
+            'cost_price' => 85.00,
+            'selling_price' => 95.00,
+            'currency' => 'usd',
+        ]);
+
+        // Attach with specific priorities (reverse order to test)
+        $product->digitalProducts()->attach([
+            $dp3->id => ['priority' => 3],
+            $dp1->id => ['priority' => 1],
+            $dp2->id => ['priority' => 2],
+        ]);
+
+        $response = $this->getJson("/api/products/{$product->id}");
+
+        $response->assertStatus(200);
+
+        $digitalProducts = $response->json('data.digital_products');
+        $this->assertCount(3, $digitalProducts);
+
+        // Verify digital products are sorted by priority ASC
+        $this->assertEquals($dp1->id, $digitalProducts[0]['id']);
+        $this->assertEquals(1, $digitalProducts[0]['pivot']['priority']);
+
+        $this->assertEquals($dp2->id, $digitalProducts[1]['id']);
+        $this->assertEquals(2, $digitalProducts[1]['pivot']['priority']);
+
+        $this->assertEquals($dp3->id, $digitalProducts[2]['id']);
+        $this->assertEquals(3, $digitalProducts[2]['pivot']['priority']);
+    }
+
+    /**
+     * Test: Single digital product selected based on PRICE fulfillment mode (lowest cost)
+     */
+    public function test_digital_product_selection_with_price_mode(): void
+    {
+        $this->actingAs($this->admin);
+
+        $brand = Brand::factory()->create();
+        $supplier1 = \App\Models\Supplier::factory()->create();
+        $supplier2 = \App\Models\Supplier::factory()->create();
+        $supplier3 = \App\Models\Supplier::factory()->create();
+
+        $product = Product::factory()->create([
+            'brand_id' => $brand->id,
+            'fulfillment_mode' => FulfillmentMode::PRICE->value,
+            'currency' => 'usd',
+        ]);
+
+        $dp1 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier1->id,
+            'cost_price' => 100.00,
+            'selling_price' => 120.00,
+            'currency' => 'usd',
+        ]);
+
+        $dp2 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier2->id,
+            'cost_price' => 50.00,
+            'selling_price' => 70.00,
+            'currency' => 'usd',
+        ]);
+
+        $dp3 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier3->id,
+            'cost_price' => 75.00,
+            'selling_price' => 90.00,
+            'currency' => 'usd',
+        ]);
+
+        $product->digitalProducts()->attach([$dp1->id, $dp2->id, $dp3->id]);
+
+        $response = $this->getJson("/api/products/{$product->id}");
+
+        $response->assertStatus(200);
+
+        // The single digital_product should be the one with lowest cost_price
+        $selectedDigitalProduct = $response->json('data.digital_product');
+        $this->assertEquals($dp2->id, $selectedDigitalProduct['id']);
+        $this->assertEquals(50.00, $selectedDigitalProduct['cost_price']);
+    }
+
+    /**
+     * Test: Single digital product selected based on MANUAL fulfillment mode (priority 1)
+     */
+    public function test_digital_product_selection_with_manual_mode(): void
+    {
+        $this->actingAs($this->admin);
+
+        $brand = Brand::factory()->create();
+        $supplier1 = \App\Models\Supplier::factory()->create();
+        $supplier2 = \App\Models\Supplier::factory()->create();
+        $supplier3 = \App\Models\Supplier::factory()->create();
+
+        $product = Product::factory()->create([
+            'brand_id' => $brand->id,
+            'fulfillment_mode' => FulfillmentMode::MANUAL->value,
+            'currency' => 'usd',
+        ]);
+
+        $dp1 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier1->id,
+            'cost_price' => 50.00,
+            'selling_price' => 70.00,
+            'currency' => 'usd',
+        ]);
+
+        $dp2 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier2->id,
+            'cost_price' => 100.00,
+            'selling_price' => 120.00,
+            'currency' => 'usd',
+        ]);
+
+        $dp3 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier3->id,
+            'cost_price' => 75.00,
+            'selling_price' => 90.00,
+            'currency' => 'usd',
+        ]);
+
+        // Attach with priorities (not in order)
+        $product->digitalProducts()->attach([
+            $dp3->id => ['priority' => 2],
+            $dp1->id => ['priority' => 3],
+            $dp2->id => ['priority' => 1],
+        ]);
+
+        $response = $this->getJson("/api/products/{$product->id}");
+
+        $response->assertStatus(200);
+
+        // The single digital_product should be the one with priority 1
+        $selectedDigitalProduct = $response->json('data.digital_product');
+        $this->assertEquals($dp2->id, $selectedDigitalProduct['id']);
+        $this->assertEquals(1, $selectedDigitalProduct['pivot']['priority']);
+    }
+
+    /**
+     * Test: Verify selling_price is correctly returned from the selected digital product
+     */
+    public function test_product_selling_price_from_digital_product(): void
+    {
+        $this->actingAs($this->admin);
+
+        $brand = Brand::factory()->create();
+        $supplier1 = \App\Models\Supplier::factory()->create();
+        $supplier2 = \App\Models\Supplier::factory()->create();
+
+        $product = Product::factory()->create([
+            'brand_id' => $brand->id,
+            'fulfillment_mode' => FulfillmentMode::PRICE->value,
+            'currency' => 'usd',
+        ]);
+
+        // Create digital products with different selling prices
+        $dp1 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier1->id,
+            'cost_price' => 100.00,
+            'selling_price' => 150.00,
+            'currency' => 'usd',
+        ]);
+
+        $dp2 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier2->id,
+            'cost_price' => 50.00,
+            'selling_price' => 85.00,
+            'currency' => 'usd',
+        ]);
+
+        $product->digitalProducts()->attach([$dp1->id, $dp2->id]);
+
+        $response = $this->getJson("/api/products/{$product->id}");
+
+        $response->assertStatus(200);
+
+        // Product selling_price should match the selected digital product (lowest cost)
+        $this->assertEquals(85.00, $response->json('data.selling_price'));
+        $this->assertEquals($dp2->id, $response->json('data.digital_product.id'));
+    }
+
+    /**
      * Helper method to create a temporary file with specific content and extension
      */
     private function createTempFile(string $content, string $extension): string

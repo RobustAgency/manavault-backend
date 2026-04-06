@@ -100,6 +100,7 @@ class ProductControllerTest extends TestCase
             ->getJson($this->endpoint);
 
         $response->assertStatus(200);
+
         $product = $response->json('data.data.0');
 
         $this->assertNotNull($product['id']);
