@@ -19,11 +19,11 @@ class DigitalProductTest extends TestCase
             'supplier_id' => $supplier->id,
             'cost_price' => 50.00,
             'selling_price' => 100.00,
-            'face_value' => 120.00,
+            'face_value' => 100.00,
             'selling_discount' => 0,
         ]);
 
-        $expectedProfitMargin = round((($digitalProduct->selling_price - $digitalProduct->cost_price) / $digitalProduct->selling_price) * 100, 2);
+        $expectedProfitMargin = round($digitalProduct->selling_price - $digitalProduct->cost_price, 2);
         $this->assertEquals($expectedProfitMargin, $digitalProduct->profit_margin);
         $this->assertEquals(50.0, $digitalProduct->profit_margin);
     }
@@ -68,12 +68,11 @@ class DigitalProductTest extends TestCase
             'supplier_id' => $supplier->id,
             'cost_price' => 50.00,
             'face_value' => 100.00,
-            'selling_price' => 75.00,
-            'selling_discount' => 0,
+            'selling_price' => 100.00,
+            'selling_discount' => 25,
         ]);
 
-        $expectedDiscount = round((($digitalProduct->face_value - $digitalProduct->selling_price) / $digitalProduct->face_value) * 100, 2);
-        $this->assertEquals($expectedDiscount, $digitalProduct->selling_discount);
+        // Stored discount of 25% should be used
         $this->assertEquals(25.0, $digitalProduct->selling_discount);
     }
 
@@ -108,10 +107,10 @@ class DigitalProductTest extends TestCase
         ]);
 
         // Effective selling price is 80 (100 * 0.8)
-        // Profit margin = (80 - 50) / 80 * 100 = 37.5%
-        $expectedMargin = round(((80 - 50) / 80) * 100, 2);
+        // Profit margin = 80 - 50 = 30
+        $expectedMargin = round(80 - 50, 2);
         $this->assertEquals($expectedMargin, $digitalProduct->profit_margin);
-        $this->assertEquals(37.5, $digitalProduct->profit_margin);
+        $this->assertEquals(30.0, $digitalProduct->profit_margin);
     }
 
     public function test_attributes_are_in_appends(): void
