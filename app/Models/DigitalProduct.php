@@ -99,7 +99,7 @@ class DigitalProduct extends Model
      */
     public function getSellingPriceAttribute(): float
     {
-        $basePrice = (float) ($this->attributes['selling_price'] ?? 0);
+        $basePrice = (float) ($this->attributes['face_value'] ?? 0);
         $discount = (float) ($this->attributes['selling_discount'] ?? 0);
 
         if ($discount > 0) {
