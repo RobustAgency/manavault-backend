@@ -30,7 +30,13 @@ class ProductRepository
         }
 
         if (isset($filters['status'])) {
-            $query->where('status', $filters['status']);
+            $status = $filters['status'];
+            $query->where('status', $status);
+
+            // When filtering by 'active' status, ensure product has at least one digital product assigned
+            if ($status === 'active') {
+                $query->whereHas('digitalProducts');
+            }
         }
 
         if (isset($filters['brand_id'])) {
