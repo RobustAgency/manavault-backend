@@ -580,10 +580,10 @@ class DigitalProductControllerTest extends TestCase
             'error' => false,
             'data' => [
                 [
-                    'selling_price' => 80.00,
+                    'selling_price' => 80,
                     'selling_discount' => 20,
-                    'cost_price_discount' => 50.0,  // (100 - 50) / 100 * 100 = 50%
-                    'profit_margin' => 37.5,  // (80 - 50) / 80 * 100 = 37.5%
+                    'cost_price_discount' => 50,
+                    'profit_margin' => 30,
                 ],
             ],
             'message' => 'Digital products created successfully.',
@@ -633,9 +633,9 @@ class DigitalProductControllerTest extends TestCase
             'error' => false,
             'data' => [
                 'id' => $digitalProduct->id,
-                'selling_price' => 75.00,
+                'selling_price' => 75,
                 'selling_discount' => 25,
-                'profit_margin' => 33.33,  // (75 - 50) / 75 * 100 = 33.33%
+                'profit_margin' => 25,  // (75 - 50)
             ],
             'message' => 'Digital product updated successfully.',
         ]);

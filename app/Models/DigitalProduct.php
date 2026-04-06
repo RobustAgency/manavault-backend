@@ -107,12 +107,11 @@ class DigitalProduct extends Model
         }
 
         $latestPriceRule = $this->latestPriceRuleDigitalProduct;
-
         if ($latestPriceRule !== null) {
             return (float) $latestPriceRule->final_selling_price;
         }
 
-        return $basePrice;
+        return (float) ($this->attributes['selling_price'] ?? 0);
     }
 
     /**

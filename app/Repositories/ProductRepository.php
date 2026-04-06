@@ -149,6 +149,7 @@ class ProductRepository
     public function getAllProducts(array $productIds = []): LengthAwarePaginator
     {
         return Product::query()
+            ->with(['digitalProducts.supplier', 'brand'])
             ->when(
                 ! empty($productIds),
                 fn ($q) => $q->whereIn('id', $productIds)

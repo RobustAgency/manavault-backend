@@ -135,9 +135,9 @@ class PriceRuleControllerTest extends TestCase
             'status' => Status::ACTIVE->value,
             'conditions' => [
                 [
-                    'field' => 'supplier_id',
+                    'field' => 'supplier_name',
                     'operator' => Operator::EQUAL->value,
-                    'value' => (string) $this->supplier->id,
+                    'value' => (string) $this->supplier->name,
                 ],
             ],
         ];
@@ -157,7 +157,7 @@ class PriceRuleControllerTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('price_rule_conditions', [
-            'field' => 'supplier_id',
+            'field' => 'supplier_name',
         ]);
     }
 
