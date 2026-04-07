@@ -187,6 +187,14 @@ class PricingRuleService
         $calculatedPrice = $this->calculateNewPrice($digitalProduct, $actionMode, $actionValue, $actionOperator);
         $finalSellingPrice = (float) max($calculatedPrice, 0);
 
+        $costPrice = (float) $digitalProduct->getAttribute('cost_price');
+
+        if ($finalSellingPrice < $costPrice) {
+            throw new \RuntimeException(
+                "The computed selling price ({$finalSellingPrice}) for digital product \"{$digitalProduct->name}\" (ID: {$digitalProduct->id}) must not be less than its cost price ({$costPrice})."
+            );
+        }
+
         return [
             'digital_product_id' => $digitalProduct->id,
             'digital_product_name' => $digitalProduct->name,
