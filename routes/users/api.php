@@ -115,6 +115,8 @@ Route::middleware(['auth:supabase', 'user.approved'])->group(function () {
     Route::prefix('/sale-orders')->controller(SaleOrderController::class)->group(function () {
         Route::get('', 'index')->middleware('permission:view_sale_order');
         Route::get('/{saleOrder}', 'show')->middleware('permission:view_sale_order');
+        Route::get('/{saleOrder}/codes', 'codes')->middleware('permission:view_sale_order');
+        Route::get('/{saleOrder}/codes/download', 'downloadOrderCodes')->middleware('permission:view_sale_order');
     });
 
     Route::prefix('/roles')->controller(RoleController::class)->group(function () {
