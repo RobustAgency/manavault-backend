@@ -4,6 +4,7 @@ namespace App\Services\PurchaseOrder;
 
 use App\Models\Supplier;
 use App\Services\Ezcards\EzcardsPlaceOrderService;
+use App\Services\Giftery\GifteryPlaceOrderService;
 use App\Services\Gift2Games\Gift2GamesPlaceOrderService;
 
 class PurchaseOrderPlacementService
@@ -11,6 +12,7 @@ class PurchaseOrderPlacementService
     public function __construct(
         private EzcardsPlaceOrderService $ezcardsPlaceOrderService,
         private Gift2GamesPlaceOrderService $gift2GamesPlaceOrderService,
+        private GifteryPlaceOrderService $gifteryPlaceOrderService,
     ) {}
 
     public function placeOrder(Supplier $supplier, array $orderItems, string $orderNumber, string $currency): array
@@ -21,6 +23,10 @@ class PurchaseOrderPlacementService
 
         if ($this->isGift2GamesSupplier($supplier)) {
             return $this->gift2GamesPlaceOrderService->placeOrder($orderItems, $orderNumber, $supplier->slug);
+        }
+
+        if ($supplier->slug === 'giftery-api') {
+            return $this->gifteryPlaceOrderService->placeOrder($orderItems, $orderNumber);
         }
 
         throw new \RuntimeException("Unknown external supplier: {$supplier->slug}");

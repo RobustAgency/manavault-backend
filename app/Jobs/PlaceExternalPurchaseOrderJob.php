@@ -9,6 +9,7 @@ use App\Models\PurchaseOrderSupplier;
 use App\Enums\PurchaseOrderSupplierStatus;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use App\Services\Giftery\GifteryVoucherService;
 use App\Services\Gift2Games\Gift2GamesVoucherService;
 use App\Services\PurchaseOrder\PurchaseOrderStatusService;
 use App\Services\PurchaseOrder\PurchaseOrderPlacementService;
@@ -41,6 +42,7 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
     public function handle(
         PurchaseOrderPlacementService $purchaseOrderPlacementService,
         Gift2GamesVoucherService $gift2GamesVoucherService,
+        GifteryVoucherService $gifteryVoucherService,
         PurchaseOrderStatusService $purchaseOrderStatusService,
     ): void {
         $externalOrderResponse = [];
@@ -77,9 +79,17 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
         }
 
         if ($this->isGift2GamesSupplier()) {
+
             $gift2GamesVoucherService->storeVouchers($this->purchaseOrder, $externalOrderResponse);
             $this->purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
+
+        } elseif ($this->isGifterySupplier()) {
+
+            $gifteryVoucherService->storeVouchers($this->purchaseOrder, $externalOrderResponse);
+            $this->purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
+
         } elseif ($this->supplier->slug === 'ez_cards') {
+
             Log::info('EzCards order created, vouchers will be fetched separately', [
                 'purchase_order_id' => $this->purchaseOrder->id,
                 'transaction_id' => $transactionId,
@@ -93,5 +103,10 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
     {
         return str_starts_with($this->supplier->slug, 'gift2games')
             || str_starts_with($this->supplier->slug, 'gift-2-games');
+    }
+
+    private function isGifterySupplier(): bool
+    {
+        return str_starts_with($this->supplier->slug, 'giftery');
     }
 }

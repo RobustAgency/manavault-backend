@@ -69,6 +69,25 @@ class GifteryController extends Controller
         }
     }
 
+    public function testGetProductDetails(int $productId): JsonResponse
+    {
+        try {
+            $response = $this->gifteryClient->getProductDetails($productId);
+
+            return response()->json([
+                'error' => false,
+                'data' => $response,
+                'message' => 'Product details retrieved successfully from Giftery.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => true,
+                'data' => null,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function testGetAccounts(): JsonResponse
     {
         try {

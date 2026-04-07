@@ -21,13 +21,6 @@ class SyncProducts
         try {
             $response = $this->getProductsAction->execute();
 
-            if ($response['error'] === true) {
-                $errorMessage = isset($response['message']) ? $response['message'] : 'Unknown error';
-                Log::error('Giftery sync failed: '.$errorMessage);
-
-                return;
-            }
-
             $products = $response['data'] ?? [];
 
             if (empty($products)) {

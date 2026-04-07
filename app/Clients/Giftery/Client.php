@@ -59,6 +59,18 @@ class Client
         ));
     }
 
+    public function generateConfirmSignature(int $time, string $uuid): string
+    {
+        $message = $time.$uuid;
+
+        return base64_encode(hash_hmac(
+            'sha256',
+            $message,
+            base64_decode(config('services.giftery.secret')),
+            true
+        ));
+    }
+
     public function authenticate(): string
     {
         $timestamp = time();
@@ -152,6 +164,17 @@ class Client
         return $response->json();
     }
 
+    public function getProductDetails(int $productId): array
+    {
+        $response = $this->getClient()->withHeaders([
+            'time' => (string) time(),
+            'signature' => $this->generateRequestSignature(time()),
+            'Authorization' => "Bearer {$this->refreshToken()}",
+        ])->get("/products/{$productId}");
+
+        return $response->json();
+    }
+
     public function reserveOrder(array $payload): array
     {
         $timestamp = time();
@@ -173,5 +196,63 @@ class Client
                 'Authorization' => "Bearer {$this->refreshToken()}",
             ])
             ->post('/operations/reserve', $reservePayload)->json();
+    }
+
+    public function confirmOrder(string $transactionUUID): array
+    {
+        $timestamp = time();
+
+        $signature = $this->generateConfirmSignature($timestamp, $transactionUUID);
+
+        $response = $this->getClient()
+            ->withHeaders([
+                'time' => (string) $timestamp,
+                'signature' => $signature,
+                'Authorization' => "Bearer {$this->refreshToken()}",
+            ])
+            ->post("/operations/{$transactionUUID}/confirm");
+
+        $data = $response->json();
+
+        if (($data['statusCode'] ?? null) === -102) {
+            $this->refreshToken();
+
+            return $this->confirmOrder($transactionUUID);
+        }
+
+        if (($data['statusCode'] ?? 0) !== 0) {
+            throw new \Exception($data['message'] ?? 'Confirm failed');
+        }
+
+        return $data['data'];
+    }
+
+    public function getOperation(string $transactionUUID): array
+    {
+        $timestamp = time();
+
+        $signature = $this->generateRequestSignature($timestamp);
+
+        $response = $this->getClient()
+            ->withHeaders([
+                'time' => (string) $timestamp,
+                'signature' => $signature,
+                'Authorization' => "Bearer {$this->refreshToken()}",
+            ])
+            ->get("/operations/{$transactionUUID}");
+
+        $data = $response->json();
+
+        if (($data['statusCode'] ?? null) === -102) {
+            $this->refreshToken();
+
+            return $this->getOperation($transactionUUID);
+        }
+
+        if (($data['statusCode'] ?? 0) !== 0) {
+            throw new \Exception($data['message'] ?? 'Get operation failed');
+        }
+
+        return $data['data'];
     }
 }

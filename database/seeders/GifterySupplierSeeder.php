@@ -25,7 +25,7 @@ class GifterySupplierSeeder extends Seeder
 
         // Check if Giftery supplier already exists
         $exists = DB::table('suppliers')
-            ->where('slug', 'giftery')
+            ->where('slug', 'giftery-api')
             ->exists();
 
         if (! $exists) {
