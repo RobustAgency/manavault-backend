@@ -7,11 +7,19 @@ use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\SaleOrderResource;
 use App\Repositories\SaleOrderRepository;
+use App\Services\SaleOrder\ManavaultOrderCodeService;
 use App\Http\Requests\SaleOrder\ListSaleOrderRequest;
+use App\Actions\SaleOrder\DownloadManavaultCodesZipArchive;
+use App\Http\Requests\SaleOrder\ListSaleOrderCodesRequest;
+use App\Http\Requests\SaleOrder\DownloadOrderCodesRequest;
 
 class SaleOrderController extends Controller
 {
-    public function __construct(private SaleOrderRepository $saleOrderRepository) {}
+    public function __construct(
+        private SaleOrderRepository $saleOrderRepository,
+        private ManavaultOrderCodeService $manavaultOrderCodeService,
+        private DownloadManavaultCodesZipArchive $downloadManavaultCodesZipArchive,
+    ) {}
 
     public function index(ListSaleOrderRequest $request): JsonResponse
     {
@@ -33,5 +41,32 @@ class SaleOrderController extends Controller
             'data' => new SaleOrderResource($saleOrder),
             'message' => 'Sale order retrieved successfully.',
         ]);
+    }
+
+    public function codes(SaleOrder $saleOrder, ListSaleOrderCodesRequest $request): JsonResponse
+    {
+        $codes = $this->manavaultOrderCodeService->listOrderCodes($saleOrder);
+
+        return response()->json([
+            'error' => false,
+            'data' => $codes->values(),
+            'message' => 'Sale order codes retrieved successfully.',
+        ]);
+    }
+
+    public function downloadOrderCodes(
+        SaleOrder $saleOrder,
+        DownloadOrderCodesRequest $request,
+    ): JsonResponse|\Symfony\Component\HttpFoundation\StreamedResponse {
+        $codes = $this->manavaultOrderCodeService->listOrderCodes($saleOrder);
+
+        if ($codes->isEmpty()) {
+            return response()->json([
+                'error' => true,
+                'message' => 'No code entries found for this sale order.',
+            ], 404);
+        }
+
+        return $this->downloadManavaultCodesZipArchive->execute($saleOrder, $codes);
     }
 }
