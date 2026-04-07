@@ -10,8 +10,7 @@ use App\Repositories\SaleOrderRepository;
 use App\Services\SaleOrder\ManavaultOrderCodeService;
 use App\Http\Requests\SaleOrder\ListSaleOrderRequest;
 use App\Actions\SaleOrder\DownloadManavaultCodesZipArchive;
-use App\Http\Requests\SaleOrder\ListSaleOrderCodesRequest;
-use App\Http\Requests\SaleOrder\DownloadOrderCodesRequest;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SaleOrderController extends Controller
 {
@@ -43,7 +42,7 @@ class SaleOrderController extends Controller
         ]);
     }
 
-    public function codes(SaleOrder $saleOrder, ListSaleOrderCodesRequest $request): JsonResponse
+    public function codes(SaleOrder $saleOrder): JsonResponse
     {
         $codes = $this->manavaultOrderCodeService->listOrderCodes($saleOrder);
 
@@ -56,8 +55,7 @@ class SaleOrderController extends Controller
 
     public function downloadOrderCodes(
         SaleOrder $saleOrder,
-        DownloadOrderCodesRequest $request,
-    ): JsonResponse|\Symfony\Component\HttpFoundation\StreamedResponse {
+    ): JsonResponse|StreamedResponse {
         $codes = $this->manavaultOrderCodeService->listOrderCodes($saleOrder);
 
         if ($codes->isEmpty()) {
