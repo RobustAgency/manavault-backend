@@ -44,11 +44,11 @@ class SaleOrderController extends Controller
 
     public function codes(SaleOrder $saleOrder): JsonResponse
     {
-        $codes = $this->manavaultOrderCodeService->listOrderCodes($saleOrder);
+        $groupedCodes = $this->manavaultOrderCodeService->listGroupedOrderCodes($saleOrder);
 
         return response()->json([
             'error' => false,
-            'data' => $codes->values(),
+            'data' => $groupedCodes,
             'message' => 'Sale order codes retrieved successfully.',
         ]);
     }
