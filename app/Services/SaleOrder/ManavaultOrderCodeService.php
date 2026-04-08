@@ -52,4 +52,49 @@ class ManavaultOrderCodeService
             })
             ->values();
     }
+
+    /**
+     * @return Collection<int, array<string, mixed>>
+     */
+    public function listGroupedOrderCodes(SaleOrder $saleOrder): Collection
+    {
+        return $this->listOrderCodes($saleOrder)
+            ->groupBy(function (array $code): string {
+                return implode(':', [
+                    $code['sale_order_item_id'],
+                    $code['product_id'],
+                    $code['digital_product_id'],
+                ]);
+            })
+            ->map(function (Collection $group): array {
+                $first = $group->first();
+
+                return [
+                    'sale_order_id' => $first['sale_order_id'],
+                    'sale_order_item_id' => $first['sale_order_item_id'],
+                    'order_number' => $first['order_number'],
+                    'product_id' => $first['product_id'],
+                    'product_name' => $first['product_name'],
+                    'digital_product_id' => $first['digital_product_id'],
+                    'digital_product_name' => $first['digital_product_name'],
+                    'digital_product_sku' => $first['digital_product_sku'],
+                    'digital_product_brand' => $first['digital_product_brand'],
+                    'voucher_codes' => $group
+                        ->map(function (array $code): array {
+                            return [
+                                'id' => $code['id'],
+                                'voucher_id' => $code['voucher_id'],
+                                'code_value' => $code['code_value'],
+                                'pin_code_value' => $code['pin_code_value'],
+                                'voucher_status' => $code['voucher_status'],
+                                'allocated_at' => $code['allocated_at'],
+                                'voucher_created_at' => $code['voucher_created_at'],
+                                'voucher_updated_at' => $code['voucher_updated_at'],
+                            ];
+                        })
+                        ->values(),
+                ];
+            })
+            ->values();
+    }
 }
