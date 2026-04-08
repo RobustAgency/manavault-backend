@@ -41,4 +41,37 @@ class UpdateDigitalProductRequest extends FormRequest
             'image' => ['sometimes', 'nullable', 'file', 'image', 'max:2048'],
         ];
     }
+
+    /**
+     * Configure the validator instance.
+     */
+    public function withValidator(\Illuminate\Validation\Validator $validator): void
+    {
+        $validator->after(function (\Illuminate\Validation\Validator $validator) {
+            /** @var \App\Models\DigitalProduct $digitalProduct */
+            $digitalProduct = $this->route('digitalProduct');
+
+            // Resolve the values to use: prefer incoming request values, fall back to existing model values
+            $costPrice = $this->has('cost_price')
+                ? (float) $this->input('cost_price')
+                : (float) $digitalProduct->getAttribute('cost_price');
+
+            $sellingPrice = $this->has('selling_price')
+                ? (float) $this->input('selling_price')
+                : (float) $digitalProduct->getAttribute('face_value');
+
+            $sellingDiscount = $this->has('selling_discount')
+                ? (float) $this->input('selling_discount')
+                : (float) $digitalProduct->getAttribute('selling_discount');
+
+            $effectiveSellingPrice = round($sellingPrice * (1 - $sellingDiscount / 100), 2);
+
+            if ($effectiveSellingPrice < $costPrice) {
+                $validator->errors()->add(
+                    'selling_price',
+                    "The effective selling price ({$effectiveSellingPrice}) must not be less than the cost price ({$costPrice})."
+                );
+            }
+        });
+    }
 }
