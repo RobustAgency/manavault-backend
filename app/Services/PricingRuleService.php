@@ -114,6 +114,10 @@ class PricingRuleService
             $rule->action_value,
         );
 
+        if ($applicationData === null) {
+            return;
+        }
+
         $this->priceRuleDigitalProductRepository->create([
             'digital_product_id' => $applicationData['digital_product_id'],
             'price_rule_id' => $rule->id,
@@ -147,7 +151,7 @@ class PricingRuleService
                 $perPage
             );
 
-        $digitalProducts->getCollection()->transform(function ($digitalProduct) use ($data) {
+        $transformedCollection = $digitalProducts->getCollection()->transform(function ($digitalProduct) use ($data) {
 
             $applicationData = $this->buildApplicationData(
                 $digitalProduct,
@@ -155,6 +159,10 @@ class PricingRuleService
                 $data['action_operator'],
                 $data['action_value'],
             );
+
+            if ($applicationData === null) {
+                return null;
+            }
 
             return [
                 'digital_product_id' => $applicationData['digital_product_id'],
@@ -165,8 +173,10 @@ class PricingRuleService
             ];
         });
 
-        /** @var LengthAwarePaginator<int, array<string, mixed>> */
-        return $digitalProducts;
+        /** @var LengthAwarePaginator<int, array<string, mixed>> $result */
+        $result = $digitalProducts->setCollection($transformedCollection); // @phpstan-ignore-line
+
+        return $result;
     }
 
     /**
@@ -181,18 +191,20 @@ class PricingRuleService
         string $actionMode,
         string $actionOperator,
         mixed $actionValue,
-    ): array {
+    ): ?array {
         $baseValue = (float) $digitalProduct->face_value;
         $originalSellingPrice = (float) $digitalProduct->selling_price;
         $calculatedPrice = $this->calculateNewPrice($digitalProduct, $actionMode, $actionValue, $actionOperator);
+        $costPrice = (float) ($digitalProduct->getAttribute('cost_price') ?? 0);
+
+        // Never allow the price to go below 0.
         $finalSellingPrice = (float) max($calculatedPrice, 0);
 
-        $costPrice = (float) $digitalProduct->getAttribute('cost_price');
-
+        // If the resulting price would be below cost_price, skip this product entirely.
+        // We don't clamp to cost_price because that would hide the fact that the rule
+        // couldn't be applied — losing traceability of why the price equals cost_price.
         if ($finalSellingPrice < $costPrice) {
-            throw new \RuntimeException(
-                "The computed selling price ({$finalSellingPrice}) for digital product \"{$digitalProduct->name}\" (ID: {$digitalProduct->id}) must not be less than its cost price ({$costPrice})."
-            );
+            return null;
         }
 
         return [

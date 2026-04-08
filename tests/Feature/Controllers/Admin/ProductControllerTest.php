@@ -70,13 +70,18 @@ class ProductControllerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        Product::factory()->count(3)->create(['status' => 'active']);
-        Product::factory()->count(2)->create(['status' => 'inactive']);
+        $digitalProduct = DigitalProduct::factory()->create(['currency' => 'usd']);
+
+        $product1 = Product::factory()->create(['status' => 'active']);
+        $product2 = Product::factory()->create(['status' => 'inactive']);
+
+        $product1->digitalProducts()->syncWithoutDetaching([$digitalProduct->id]);
+        $product2->digitalProducts()->syncWithoutDetaching([$digitalProduct->id]);
 
         $response = $this->getJson('/api/products?status=active');
 
         $response->assertStatus(200);
-        $this->assertCount(3, $response->json('data'));
+        $this->assertCount(1, $response->json('data'));
     }
 
     public function test_admin_list_products_with_pagination(): void

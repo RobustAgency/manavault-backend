@@ -295,12 +295,15 @@ class DigitalProductControllerTest extends TestCase
         $digitalProduct = DigitalProduct::factory()->create([
             'name' => 'Original Name',
             'cost_price' => 100.00,
+            'selling_price' => 150.00,
+            'face_value' => 200.00,
+            'selling_discount' => 0,
         ]);
 
         $updateData = [
             'name' => 'Updated Name',
             'brand' => 'Updated Brand',
-            'cost_price' => 199.99,
+            'cost_price' => 145.25,
         ];
 
         $response = $this->postJson("/api/digital-products/{$digitalProduct->id}", $updateData);
@@ -327,14 +330,14 @@ class DigitalProductControllerTest extends TestCase
                 'data' => [
                     'id' => $digitalProduct->id,
                     'name' => 'Updated Name',
-                    'cost_price' => '199.99',
+                    'cost_price' => '145.25',
                 ],
             ]);
 
         $this->assertDatabaseHas('digital_products', [
             'id' => $digitalProduct->id,
             'name' => 'Updated Name',
-            'cost_price' => 199.99,
+            'cost_price' => 145.25,
         ]);
     }
 
@@ -686,13 +689,14 @@ class DigitalProductControllerTest extends TestCase
         ]);
     }
 
-    public function test_admin_create_digital_product_with_max_selling_discount(): void
+    public function test_admin_create_digital_product_fails_when_discount_makes_selling_price_below_cost_price(): void
     {
         $this->actingAs($this->admin);
 
         $supplier = Supplier::factory()->create();
 
-        // Test with 100% discount (maximum allowed)
+        // A 100% discount makes the effective selling price 0.00,
+        // which is below the cost price of 50.00 — this must be rejected.
         $data = [
             'products' => [
                 [
@@ -703,7 +707,7 @@ class DigitalProductControllerTest extends TestCase
                     'face_value' => 100.00,
                     'cost_price' => 50.00,
                     'selling_price' => 100.00,
-                    'selling_discount' => 100,
+                    'selling_discount' => 100,  // Effective price: 100 * (1 - 100/100) = 0.00 < cost_price 50.00
                     'currency' => 'usd',
                 ],
             ],
@@ -711,18 +715,10 @@ class DigitalProductControllerTest extends TestCase
 
         $response = $this->postJson('/api/digital-products', $data);
 
-        $response->assertStatus(201);
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['products.0.selling_price']);
 
-        // With 100% discount, effective selling price should be 0
-        $response->assertJson([
-            'error' => false,
-            'data' => [
-                [
-                    'selling_price' => 0.0,
-                    'selling_discount' => 100,
-                ],
-            ],
-        ]);
+        $this->assertDatabaseMissing('digital_products', ['sku' => 'SKU-MAXDISCOUNT-001']);
     }
 
     public function test_admin_create_digital_product_fails_with_invalid_selling_discount(): void
