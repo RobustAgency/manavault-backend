@@ -151,7 +151,7 @@ class PricingRuleService
                 $perPage
             );
 
-        $transformedCollection = $digitalProducts->getCollection()->transform(function ($digitalProduct) use ($data) {
+        $transformedCollection = $digitalProducts->getCollection()->map(function ($digitalProduct) use ($data) {
 
             $applicationData = $this->buildApplicationData(
                 $digitalProduct,
@@ -171,7 +171,7 @@ class PricingRuleService
                 'current_selling_price' => $applicationData['current_selling_price'],
                 'new_selling_price' => $applicationData['new_selling_price'],
             ];
-        });
+        })->filter()->values();
 
         /** @var LengthAwarePaginator<int, array<string, mixed>> $result */
         $result = $digitalProducts->setCollection($transformedCollection); // @phpstan-ignore-line
