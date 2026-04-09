@@ -234,10 +234,10 @@ class DigitalProductTest extends TestCase
         $this->assertEquals(20.0, $digitalProduct->selling_discount);
     }
 
-    public function test_discount_wins_when_selling_discount_updated_at_is_null(): void
+    public function test_price_rule_wins_when_selling_discount_updated_at_is_null(): void
     {
-        // When selling_discount_updated_at is null (legacy records), discount always wins
-        // over a price rule (null treated as "no timestamp = discount wins")
+        // When selling_discount_updated_at is null (legacy records), price rule always wins
+        // over a discount (null treated as "no timestamp = price rule wins")
         $supplier = Supplier::factory()->create();
         $priceRule = PriceRule::factory()->create();
 
@@ -261,8 +261,8 @@ class DigitalProductTest extends TestCase
         $digitalProduct->refresh();
 
         // selling_discount_updated_at is null — discount wins (safe default for legacy rows)
-        $this->assertEquals(80.0, $digitalProduct->selling_price);
-        $this->assertEquals(20.0, $digitalProduct->selling_discount);
+        $this->assertEquals(70.0, $digitalProduct->selling_price);
+        $this->assertEquals(30.0, $digitalProduct->selling_discount);
     }
 
     public function test_price_rule_used_when_no_discount_set(): void

@@ -176,7 +176,7 @@ class DigitalProduct extends Model
             $discountUpdatedAt = $this->getAttribute('selling_discount_updated_at');
             $priceRuleAppliedAt = $latestPriceRule->applied_at;
 
-            return ($discountUpdatedAt === null || $discountUpdatedAt >= $priceRuleAppliedAt)
+            return ($discountUpdatedAt !== null && $discountUpdatedAt >= $priceRuleAppliedAt)
                 ? 'discount'
                 : 'rule';
         }
