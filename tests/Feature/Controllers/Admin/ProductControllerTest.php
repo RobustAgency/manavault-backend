@@ -109,8 +109,10 @@ class ProductControllerTest extends TestCase
         ]);
 
         $digitalProduct = DigitalProduct::factory()->create([
-            'selling_price' => 99.99,
+            'face_value' => 100.00,
+            'selling_price' => 99.01,
             'currency' => 'usd',
+            'selling_discount' => 0.99,
         ]);
 
         $product->digitalProducts()->attach($digitalProduct->id);
@@ -145,7 +147,7 @@ class ProductControllerTest extends TestCase
                 'data' => [
                     'id' => $product->id,
                     'name' => 'Test Product',
-                    'selling_price' => 99.99,
+                    'selling_price' => 99.01,
                 ],
             ]);
     }
@@ -1045,15 +1047,18 @@ class ProductControllerTest extends TestCase
         // Create digital products with different selling prices
         $dp1 = DigitalProduct::factory()->create([
             'supplier_id' => $supplier1->id,
-            'cost_price' => 100.00,
+            'face_value' => 160.00,
+            'cost_price' => 140.00,
             'selling_price' => 150.00,
             'currency' => 'usd',
         ]);
 
         $dp2 = DigitalProduct::factory()->create([
             'supplier_id' => $supplier2->id,
-            'cost_price' => 50.00,
+            'face_value' => 100.00,
+            'cost_price' => 80.00,
             'selling_price' => 85.00,
+            'selling_discount' => 15.00,
             'currency' => 'usd',
         ]);
 
