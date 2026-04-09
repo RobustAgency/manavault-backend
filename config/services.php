@@ -74,4 +74,10 @@ return [
         'api_key' => env('MANASTORE_API_KEY'),
     ],
 
+    'irewardify' => [
+        'username' => env('IREWARDIFY_USERNAME'),
+        'password' => env('IREWARDIFY_PASSWORD'),
+        'url' => env('IREWARDIFY_BASE_URL'),
+    ],
+
 ];

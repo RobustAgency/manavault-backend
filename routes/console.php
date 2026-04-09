@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 use App\Console\Commands\SyncEzCardsProductsCommand;
 use App\Console\Commands\SyncGift2GamesProductsCommand;
+use App\Console\Commands\FetchIrewardifyVouchersCommand;
 use App\Console\Commands\AddVoucherCodeForEZCardsCommand;
 
 Artisan::command('inspire', function () {
@@ -12,6 +13,11 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command(AddVoucherCodeForEZCardsCommand::class)
+    ->everyFifteenMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();
+
+Schedule::command(FetchIrewardifyVouchersCommand::class)
     ->everyFifteenMinutes()
     ->withoutOverlapping()
     ->runInBackground();

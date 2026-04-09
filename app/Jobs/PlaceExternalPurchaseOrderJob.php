@@ -84,6 +84,11 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
                 'purchase_order_id' => $this->purchaseOrder->id,
                 'transaction_id' => $transactionId,
             ]);
+        } elseif ($this->supplier->slug === 'irewardify') {
+            Log::info('Irewardify order created, vouchers will be fetched separately via orderId', [
+                'purchase_order_id' => $this->purchaseOrder->id,
+                'order_id' => $transactionId,
+            ]);
         }
 
         $purchaseOrderStatusService->updateStatus($this->purchaseOrder->refresh());
