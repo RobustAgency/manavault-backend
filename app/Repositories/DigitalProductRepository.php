@@ -4,7 +4,9 @@ namespace App\Repositories;
 
 use App\Models\DigitalProduct;
 use Illuminate\Support\Collection;
+use App\Enums\PriceRule\ActionMode;
 use App\Services\ImageUploadService;
+use App\Enums\PriceRule\ActionOperator;
 use App\Enums\PriceRuleCondition\Operator;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -199,8 +201,14 @@ class DigitalProductRepository
     /**
      * @return EloquentCollection<int, DigitalProduct>|LengthAwarePaginator<int, DigitalProduct>
      */
-    public function getDigitalProductsByConditions(array $conditions, string $matchType = 'all', ?int $perPage = null): EloquentCollection|LengthAwarePaginator
-    {
+    public function getDigitalProductsByConditions(
+        array $conditions,
+        string $matchType = 'all',
+        ?int $perPage = null,
+        ?string $actionMode = null,
+        ?string $actionOperator = null,
+        mixed $actionValue = null,
+    ): EloquentCollection|LengthAwarePaginator {
         $query = DigitalProduct::query();
 
         $applyCondition = function ($q, array $condition) {
@@ -239,6 +247,22 @@ class DigitalProductRepository
         } else {
             foreach ($conditions as $condition) {
                 $applyCondition($query, $condition);
+            }
+        }
+
+        if ($actionMode !== null && $actionOperator !== null && $actionValue !== null) {
+            $multiplier = ($actionOperator === ActionOperator::ADDITION->value) ? 1 : -1;
+
+            if ($actionMode === ActionMode::PERCENTAGE->value) {
+                $query->whereRaw(
+                    '(face_value + (face_value * (? / 100) * ?)) >= cost_price',
+                    [$actionValue, $multiplier]
+                );
+            } elseif ($actionMode === ActionMode::ABSOLUTE->value) {
+                $query->whereRaw(
+                    '(face_value + (? * ?)) >= cost_price',
+                    [$actionValue, $multiplier]
+                );
             }
         }
 

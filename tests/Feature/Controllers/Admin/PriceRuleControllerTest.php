@@ -624,7 +624,9 @@ class PriceRuleControllerTest extends TestCase
             'supplier_id' => $this->supplier->id,
             'brand' => 'TestBrand',
             'face_value' => 100.00,
+            'cost_price' => 75.00,
             'selling_price' => 100.00,
+            'selling_discount' => 0.00,
         ]);
 
         $priceRule = PriceRule::factory()->create([
@@ -676,13 +678,17 @@ class PriceRuleControllerTest extends TestCase
             'supplier_id' => $this->supplier->id,
             'brand' => 'BrandA',
             'face_value' => 100.00,
+            'cost_price' => 80.00,
             'selling_price' => 100.00,
+            'selling_discount' => 0.00,
         ]);
         $dp2 = DigitalProduct::factory()->create([
             'supplier_id' => $this->supplier->id,
             'brand' => 'BrandB',
             'face_value' => 100.00,
+            'cost_price' => 80.00,
             'selling_price' => 100.00,
+            'selling_discount' => 0.00,
         ]);
 
         $priceRule = PriceRule::factory()->create([
