@@ -309,4 +309,21 @@ class DigitalProductTest extends TestCase
         $this->assertEquals(85.0, $digitalProduct->selling_price);
         $this->assertEquals(15.0, $digitalProduct->selling_discount);
     }
+
+    public function test_zero_discount_sets_selling_price_to_face_value(): void
+    {
+        $supplier = Supplier::factory()->create();
+
+        $digitalProduct = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier->id,
+            'face_value' => 100.00,
+            'cost_price' => 50.00,
+            'selling_price' => 100.00,
+            'selling_discount' => 0,
+        ]);
+
+        // 0% discount — selling price should equal face value
+        $this->assertEquals(100.0, $digitalProduct->selling_price);
+        $this->assertEquals(0.0, $digitalProduct->selling_discount);
+    }
 }
