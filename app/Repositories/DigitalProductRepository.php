@@ -61,6 +61,11 @@ class DigitalProductRepository
     {
         $data['last_synced_at'] = now();
 
+        // Stamp selling_discount_updated_at if a discount or explicit selling price is provided
+        if (! empty($data['selling_discount']) || array_key_exists('selling_price', $data)) {
+            $data['selling_discount_updated_at'] = now();
+        }
+
         if (! empty($data['image'])) {
             $uploadedImage = $this->imageUploadService->upload($data['image'], 'uploads/digital-products');
             if (is_string($uploadedImage)) {
@@ -123,6 +128,11 @@ class DigitalProductRepository
             }
 
             unset($data['image']);
+        }
+
+        // Stamp selling_discount_updated_at whenever pricing fields are explicitly changed
+        if (array_key_exists('selling_discount', $data) || array_key_exists('selling_price', $data)) {
+            $data['selling_discount_updated_at'] = now();
         }
 
         $digitalProduct->update($data);
