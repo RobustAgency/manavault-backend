@@ -4,7 +4,10 @@ namespace Tests\Unit\Models;
 
 use Tests\TestCase;
 use App\Models\Supplier;
+use App\Models\PriceRule;
 use App\Models\DigitalProduct;
+use Illuminate\Support\Carbon;
+use App\Models\PriceRuleDigitalProduct;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class DigitalProductTest extends TestCase
@@ -128,5 +131,182 @@ class DigitalProductTest extends TestCase
 
         $this->assertContains('cost_price_discount', $appended);
         $this->assertContains('profit_margin', $appended);
+    }
+
+    // -------------------------------------------------------------------------
+    // Priority: latest update wins (discount vs price rule)
+    // -------------------------------------------------------------------------
+
+    public function test_discount_wins_when_updated_after_price_rule(): void
+    {
+        $supplier = Supplier::factory()->create();
+        $priceRule = PriceRule::factory()->create();
+
+        // Price rule applied at an older time
+        $priceRuleAppliedAt = Carbon::now()->subMinutes(10);
+
+        $digitalProduct = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier->id,
+            'face_value' => 100.00,
+            'cost_price' => 50.00,
+            'selling_price' => 100.00,
+            'selling_discount' => 20,
+            'selling_discount_updated_at' => Carbon::now(), // discount updated more recently
+        ]);
+
+        PriceRuleDigitalProduct::factory()->create([
+            'digital_product_id' => $digitalProduct->id,
+            'price_rule_id' => $priceRule->id,
+            'base_value' => 100.00,
+            'final_selling_price' => 70.00, // price rule would give 70
+            'applied_at' => $priceRuleAppliedAt,
+        ]);
+
+        $digitalProduct->refresh();
+
+        // Discount (20%) was applied more recently — expect 80, not 70
+        $this->assertEquals(80.0, $digitalProduct->selling_price);
+        $this->assertEquals(20.0, $digitalProduct->selling_discount);
+    }
+
+    public function test_price_rule_wins_when_applied_after_discount(): void
+    {
+        $supplier = Supplier::factory()->create();
+        $priceRule = PriceRule::factory()->create();
+
+        // Discount was set on the digital product at an older time
+        $discountUpdatedAt = Carbon::now()->subMinutes(10);
+
+        $digitalProduct = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier->id,
+            'face_value' => 100.00,
+            'cost_price' => 50.00,
+            'selling_price' => 100.00,
+            'selling_discount' => 20,
+            'selling_discount_updated_at' => $discountUpdatedAt,
+        ]);
+
+        // Price rule applied more recently
+        PriceRuleDigitalProduct::factory()->create([
+            'digital_product_id' => $digitalProduct->id,
+            'price_rule_id' => $priceRule->id,
+            'base_value' => 100.00,
+            'final_selling_price' => 70.00,
+            'applied_at' => Carbon::now(),
+        ]);
+
+        $digitalProduct->refresh();
+
+        // Price rule was applied more recently — expect 70, not 80
+        $this->assertEquals(70.0, $digitalProduct->selling_price);
+        // Discount should reflect the price rule (30%)
+        $this->assertEquals(30.0, $digitalProduct->selling_discount);
+    }
+
+    public function test_discount_wins_on_tie_when_both_have_same_timestamp(): void
+    {
+        $supplier = Supplier::factory()->create();
+        $priceRule = PriceRule::factory()->create();
+
+        $sameTime = Carbon::now();
+
+        $digitalProduct = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier->id,
+            'face_value' => 100.00,
+            'cost_price' => 50.00,
+            'selling_price' => 100.00,
+            'selling_discount' => 20,
+            'selling_discount_updated_at' => $sameTime,
+        ]);
+
+        PriceRuleDigitalProduct::factory()->create([
+            'digital_product_id' => $digitalProduct->id,
+            'price_rule_id' => $priceRule->id,
+            'base_value' => 100.00,
+            'final_selling_price' => 70.00,
+            'applied_at' => $sameTime,
+        ]);
+
+        $digitalProduct->refresh();
+
+        // On a tie, discount wins — expect 80
+        $this->assertEquals(80.0, $digitalProduct->selling_price);
+        $this->assertEquals(20.0, $digitalProduct->selling_discount);
+    }
+
+    public function test_discount_wins_when_selling_discount_updated_at_is_null(): void
+    {
+        // When selling_discount_updated_at is null (legacy records), discount always wins
+        // over a price rule (null treated as "no timestamp = discount wins")
+        $supplier = Supplier::factory()->create();
+        $priceRule = PriceRule::factory()->create();
+
+        $digitalProduct = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier->id,
+            'face_value' => 100.00,
+            'cost_price' => 50.00,
+            'selling_price' => 100.00,
+            'selling_discount' => 20,
+            'selling_discount_updated_at' => null,
+        ]);
+
+        PriceRuleDigitalProduct::factory()->create([
+            'digital_product_id' => $digitalProduct->id,
+            'price_rule_id' => $priceRule->id,
+            'base_value' => 100.00,
+            'final_selling_price' => 70.00,
+            'applied_at' => Carbon::now(),
+        ]);
+
+        $digitalProduct->refresh();
+
+        // selling_discount_updated_at is null — discount wins (safe default for legacy rows)
+        $this->assertEquals(80.0, $digitalProduct->selling_price);
+        $this->assertEquals(20.0, $digitalProduct->selling_discount);
+    }
+
+    public function test_price_rule_used_when_no_discount_set(): void
+    {
+        $supplier = Supplier::factory()->create();
+        $priceRule = PriceRule::factory()->create();
+
+        $digitalProduct = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier->id,
+            'face_value' => 100.00,
+            'cost_price' => 50.00,
+            'selling_price' => 100.00,
+            'selling_discount' => 0,
+        ]);
+
+        PriceRuleDigitalProduct::factory()->create([
+            'digital_product_id' => $digitalProduct->id,
+            'price_rule_id' => $priceRule->id,
+            'base_value' => 100.00,
+            'final_selling_price' => 85.00,
+            'applied_at' => Carbon::now(),
+        ]);
+
+        $digitalProduct->refresh();
+
+        // No discount set — price rule should apply
+        $this->assertEquals(85.0, $digitalProduct->selling_price);
+        $this->assertEquals(15.0, $digitalProduct->selling_discount);
+    }
+
+    public function test_discount_used_when_no_price_rule_exists(): void
+    {
+        $supplier = Supplier::factory()->create();
+
+        $digitalProduct = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier->id,
+            'face_value' => 100.00,
+            'cost_price' => 50.00,
+            'selling_price' => 100.00,
+            'selling_discount' => 15,
+        ]);
+
+        // No price rule applied
+        $this->assertEquals(85.0, $digitalProduct->selling_price);
+        $this->assertEquals(15.0, $digitalProduct->selling_discount);
     }
 }

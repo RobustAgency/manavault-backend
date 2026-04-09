@@ -2,18 +2,18 @@
 
 namespace Tests\Feature\Controllers\Admin;
 
-use Tests\TestCase;
 use ZipArchive;
+use Tests\TestCase;
 use App\Models\User;
+use App\Enums\UserRole;
+use App\Models\Product;
 use App\Models\Voucher;
 use App\Models\SaleOrder;
-use App\Models\Product;
 use App\Models\PurchaseOrder;
-use App\Models\DigitalProduct;
 use App\Models\SaleOrderItem;
-use App\Enums\UserRole;
-use App\Services\Voucher\VoucherCipherService;
+use App\Models\DigitalProduct;
 use App\Models\SaleOrderItemDigitalProduct;
+use App\Services\Voucher\VoucherCipherService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class SaleOrderCodesControllerTest extends TestCase
@@ -64,7 +64,6 @@ class SaleOrderCodesControllerTest extends TestCase
 
         $response->assertStatus(403);
     }
-
 
     public function test_download_order_codes_downloads_all_codes_for_the_order(): void
     {
