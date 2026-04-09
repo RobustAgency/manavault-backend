@@ -169,7 +169,7 @@ class DigitalProduct extends Model
         $discount = (float) ($this->attributes['selling_discount'] ?? 0);
         $latestPriceRule = $this->latestPriceRuleDigitalProduct;
 
-        $hasDiscount = $discount > 0;
+        $hasDiscount = $discount >= 0;
         $hasPriceRule = $latestPriceRule !== null;
 
         if ($hasDiscount && $hasPriceRule) {
