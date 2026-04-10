@@ -93,10 +93,21 @@ class SaleOrderControllerTest extends TestCase
         $response = $this->manaStoreRequest('postJson', '/v1/sale-orders', [
             'order_number' => 'MS-2026-000001',
             'source' => 'manastore',
+            'currency' => 'USD',
+            'subtotal' => 10000,
+            'conversion_fees' => 0,
+            'total' => 10000,
             'items' => [
                 [
                     'product_id' => $product->id,
+                    'product_name' => 'Test Product',
                     'quantity' => 2,
+                    'price' => 5000,
+                    'purchase_price' => 4000,
+                    'conversion_fee' => 0,
+                    'total_price' => 10000,
+                    'discount_amount' => 0,
+                    'currency' => 'USD',
                 ],
             ],
         ]);
@@ -128,17 +139,28 @@ class SaleOrderControllerTest extends TestCase
         $response = $this->manaStoreRequest('postJson', '/v1/sale-orders', []);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['order_number', 'items']);
+            ->assertJsonValidationErrors(['order_number', 'currency', 'subtotal', 'conversion_fees', 'total', 'items']);
     }
 
     public function test_create_sale_order_validates_product_exists(): void
     {
         $response = $this->manaStoreRequest('postJson', '/v1/sale-orders', [
             'order_number' => 'MS-2026-000002',
+            'currency' => 'USD',
+            'subtotal' => 1000,
+            'conversion_fees' => 0,
+            'total' => 1000,
             'items' => [
                 [
                     'product_id' => 99999,
+                    'product_name' => 'Ghost Product',
                     'quantity' => 1,
+                    'price' => 1000,
+                    'purchase_price' => 800,
+                    'conversion_fee' => 0,
+                    'total_price' => 1000,
+                    'discount_amount' => 0,
+                    'currency' => 'USD',
                 ],
             ],
         ]);

@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('sale_orders', function (Blueprint $table) {
-            $table->string('currency', 3)->default('USD')->change();
+            $table->string('currency')->nullable();
             $table->bigInteger('subtotal')->default(0)->after('source');
             $table->bigInteger('conversion_fees')->default(0)->after('subtotal');
             $table->bigInteger('total')->default(0)->after('conversion_fees');

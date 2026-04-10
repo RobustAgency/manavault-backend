@@ -62,10 +62,21 @@ class SaleOrderServiceTest extends TestCase
         // Requesting more than available → order is created in PROCESSING (not thrown)
         $saleOrder = $this->service->createOrder([
             'order_number' => 'SO-001',
+            'currency' => 'USD',
+            'subtotal' => 30000,
+            'conversion_fees' => 0,
+            'total' => 30000,
             'items' => [
                 [
                     'product_id' => $product->id,
+                    'product_name' => $product->name,
                     'quantity' => 3,
+                    'price' => 10000,
+                    'purchase_price' => 8000,
+                    'conversion_fee' => 0,
+                    'total_price' => 30000,
+                    'discount_amount' => 0,
+                    'currency' => 'USD',
                 ],
             ],
         ]);
@@ -104,10 +115,21 @@ class SaleOrderServiceTest extends TestCase
 
         $saleOrder = $this->service->createOrder([
             'order_number' => 'SO-002',
+            'currency' => 'USD',
+            'subtotal' => 15000,
+            'conversion_fees' => 0,
+            'total' => 15000,
             'items' => [
                 [
                     'product_id' => $product->id,
+                    'product_name' => $product->name,
                     'quantity' => 3,
+                    'price' => 5000,
+                    'purchase_price' => 4000,
+                    'conversion_fee' => 0,
+                    'total_price' => 15000,
+                    'discount_amount' => 0,
+                    'currency' => 'USD',
                 ],
             ],
         ]);
@@ -147,10 +169,21 @@ class SaleOrderServiceTest extends TestCase
         // Act: Create sale order
         $saleOrder = $this->service->createOrder([
             'order_number' => 'SO-003',
+            'currency' => 'USD',
+            'subtotal' => 5000,
+            'conversion_fees' => 0,
+            'total' => 5000,
             'items' => [
                 [
                     'product_id' => $product->id,
+                    'product_name' => $product->name,
                     'quantity' => 2,
+                    'price' => 2500,
+                    'purchase_price' => 2000,
+                    'conversion_fee' => 0,
+                    'total_price' => 5000,
+                    'discount_amount' => 0,
+                    'currency' => 'USD',
                 ],
             ],
         ]);
@@ -200,10 +233,21 @@ class SaleOrderServiceTest extends TestCase
         // Act: Create sale order
         $this->service->createOrder([
             'order_number' => 'SO-004',
+            'currency' => 'USD',
+            'subtotal' => 15000,
+            'conversion_fees' => 0,
+            'total' => 15000,
             'items' => [
                 [
                     'product_id' => $product->id,
+                    'product_name' => $product->name,
                     'quantity' => 2,
+                    'price' => 7500,
+                    'purchase_price' => 6000,
+                    'conversion_fee' => 0,
+                    'total_price' => 15000,
+                    'discount_amount' => 0,
+                    'currency' => 'USD',
                 ],
             ],
         ]);
@@ -269,14 +313,32 @@ class SaleOrderServiceTest extends TestCase
         // Act: Create sale order with multiple items
         $saleOrder = $this->service->createOrder([
             'order_number' => 'SO-005',
+            'currency' => 'USD',
+            'subtotal' => 17500,
+            'conversion_fees' => 0,
+            'total' => 17500,
             'items' => [
                 [
                     'product_id' => $product1->id,
+                    'product_name' => $product1->name,
                     'quantity' => 2,
+                    'price' => 5000,
+                    'purchase_price' => 4000,
+                    'conversion_fee' => 0,
+                    'total_price' => 10000,
+                    'discount_amount' => 0,
+                    'currency' => 'USD',
                 ],
                 [
                     'product_id' => $product2->id,
+                    'product_name' => $product2->name,
                     'quantity' => 1,
+                    'price' => 7500,
+                    'purchase_price' => 6000,
+                    'conversion_fee' => 0,
+                    'total_price' => 7500,
+                    'discount_amount' => 0,
+                    'currency' => 'USD',
                 ],
             ],
         ]);
@@ -288,20 +350,16 @@ class SaleOrderServiceTest extends TestCase
         $this->assertEquals(SaleOrder::MANASTORE, $saleOrder->source);
         $this->assertCount(2, $saleOrder->items);
 
-        // Verify pricing calculation
-        $expectedTotal = (2 * 50.00) + (1 * 75.00);
-        $this->assertEquals($expectedTotal, $saleOrder->total_price);
-
-        // Verify items
+        // Verify pricing is persisted from ManaStore payload (stored as cents)
         $item1 = $saleOrder->items->firstWhere('product_id', $product1->id);
         $this->assertEquals(2, $item1->quantity);
-        $this->assertEquals(50.00, $item1->unit_price);
-        $this->assertEquals(100.00, $item1->subtotal);
+        $this->assertEquals(5000, $item1->price);
+        $this->assertEquals(10000, $item1->total_price);
 
         $item2 = $saleOrder->items->firstWhere('product_id', $product2->id);
         $this->assertEquals(1, $item2->quantity);
-        $this->assertEquals(75.00, $item2->unit_price);
-        $this->assertEquals(75.00, $item2->subtotal);
+        $this->assertEquals(7500, $item2->price);
+        $this->assertEquals(7500, $item2->total_price);
     }
 
     /**
@@ -336,14 +394,42 @@ class SaleOrderServiceTest extends TestCase
         // Act: Create first sale order consuming 1 voucher
         $saleOrder1 = $this->service->createOrder([
             'order_number' => 'SO-007A',
-            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            'currency' => 'USD',
+            'subtotal' => 5000,
+            'conversion_fees' => 0,
+            'total' => 5000,
+            'items' => [[
+                'product_id' => $product->id,
+                'product_name' => $product->name,
+                'quantity' => 1,
+                'price' => 5000,
+                'purchase_price' => 4000,
+                'conversion_fee' => 0,
+                'total_price' => 5000,
+                'discount_amount' => 0,
+                'currency' => 'USD',
+            ]],
         ]);
         $this->assertEquals(Status::COMPLETED->value, $saleOrder1->status);
 
         // Act: Create second sale order requesting 2 units — only 1 remains → PROCESSING
         $saleOrder2 = $this->service->createOrder([
             'order_number' => 'SO-007B',
-            'items' => [['product_id' => $product->id, 'quantity' => 2]],
+            'currency' => 'USD',
+            'subtotal' => 10000,
+            'conversion_fees' => 0,
+            'total' => 10000,
+            'items' => [[
+                'product_id' => $product->id,
+                'product_name' => $product->name,
+                'quantity' => 2,
+                'price' => 5000,
+                'purchase_price' => 4000,
+                'conversion_fee' => 0,
+                'total_price' => 10000,
+                'discount_amount' => 0,
+                'currency' => 'USD',
+            ]],
         ]);
         $this->assertEquals(Status::PROCESSING->value, $saleOrder2->status);
 
@@ -392,10 +478,21 @@ class SaleOrderServiceTest extends TestCase
         // Act: Create sale order
         $saleOrder = $this->service->createOrder([
             'order_number' => 'SO-009',
+            'currency' => 'USD',
+            'subtotal' => 20000,
+            'conversion_fees' => 0,
+            'total' => 20000,
             'items' => [
                 [
                     'product_id' => $product->id,
+                    'product_name' => $product->name,
                     'quantity' => 2,
+                    'price' => 10000,
+                    'purchase_price' => 8000,
+                    'conversion_fee' => 0,
+                    'total_price' => 20000,
+                    'discount_amount' => 0,
+                    'currency' => 'USD',
                 ],
             ],
         ]);
@@ -454,10 +551,21 @@ class SaleOrderServiceTest extends TestCase
         // Act: Create sale order
         $saleOrder = $this->service->createOrder([
             'order_number' => 'SO-010',
+            'currency' => 'USD',
+            'subtotal' => 20000,
+            'conversion_fees' => 0,
+            'total' => 20000,
             'items' => [
                 [
                     'product_id' => $product->id,
+                    'product_name' => $product->name,
                     'quantity' => 2,
+                    'price' => 10000,
+                    'purchase_price' => 8000,
+                    'conversion_fee' => 0,
+                    'total_price' => 20000,
+                    'discount_amount' => 0,
+                    'currency' => 'USD',
                 ],
             ],
         ]);
@@ -492,7 +600,21 @@ class SaleOrderServiceTest extends TestCase
 
         $saleOrder = $this->service->createOrder([
             'order_number' => 'SO-AUTO-001',
-            'items' => [['product_id' => $product->id, 'quantity' => 3]],
+            'currency' => 'USD',
+            'subtotal' => 3000,
+            'conversion_fees' => 0,
+            'total' => 3000,
+            'items' => [[
+                'product_id' => $product->id,
+                'product_name' => $product->name,
+                'quantity' => 3,
+                'price' => 1000,
+                'purchase_price' => 800,
+                'conversion_fee' => 0,
+                'total_price' => 3000,
+                'discount_amount' => 0,
+                'currency' => 'USD',
+            ]],
         ]);
 
         $this->assertEquals(Status::COMPLETED->value, $saleOrder->status);
@@ -522,7 +644,21 @@ class SaleOrderServiceTest extends TestCase
 
         $saleOrder = $this->service->createOrder([
             'order_number' => 'SO-AUTO-002',
-            'items' => [['product_id' => $product->id, 'quantity' => 5]],
+            'currency' => 'USD',
+            'subtotal' => 5000,
+            'conversion_fees' => 0,
+            'total' => 5000,
+            'items' => [[
+                'product_id' => $product->id,
+                'product_name' => $product->name,
+                'quantity' => 5,
+                'price' => 1000,
+                'purchase_price' => 800,
+                'conversion_fee' => 0,
+                'total_price' => 5000,
+                'discount_amount' => 0,
+                'currency' => 'USD',
+            ]],
         ]);
 
         $this->assertEquals(Status::PROCESSING->value, $saleOrder->status);
@@ -567,7 +703,21 @@ class SaleOrderServiceTest extends TestCase
 
         $saleOrder = $this->service->createOrder([
             'order_number' => 'SO-AUTO-003',
-            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            'currency' => 'USD',
+            'subtotal' => 1500,
+            'conversion_fees' => 0,
+            'total' => 1500,
+            'items' => [[
+                'product_id' => $product->id,
+                'product_name' => $product->name,
+                'quantity' => 1,
+                'price' => 1500,
+                'purchase_price' => 1000,
+                'conversion_fee' => 0,
+                'total_price' => 1500,
+                'discount_amount' => 0,
+                'currency' => 'USD',
+            ]],
         ]);
 
         // A new PO was created
@@ -615,7 +765,21 @@ class SaleOrderServiceTest extends TestCase
 
         $saleOrder = $this->service->createOrder([
             'order_number' => 'SO-AUTO-004',
-            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            'currency' => 'USD',
+            'subtotal' => 1500,
+            'conversion_fees' => 0,
+            'total' => 1500,
+            'items' => [[
+                'product_id' => $product->id,
+                'product_name' => $product->name,
+                'quantity' => 1,
+                'price' => 1500,
+                'purchase_price' => 1000,
+                'conversion_fee' => 0,
+                'total_price' => 1500,
+                'discount_amount' => 0,
+                'currency' => 'USD',
+            ]],
         ]);
 
         // PO was created

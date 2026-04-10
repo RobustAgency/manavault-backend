@@ -25,7 +25,10 @@ class SaleOrderRepositoryTest extends TestCase
         $data = [
             'order_number' => 'SO-2026-000001',
             'source' => SaleOrder::MANASTORE,
-            'currency' => 'usd',
+            'currency' => 'USD',
+            'subtotal' => 10000,
+            'conversion_fees' => 0,
+            'total' => 10000,
             'total_price' => 100.00,
             'status' => Status::PENDING->value,
         ];
@@ -36,6 +39,9 @@ class SaleOrderRepositoryTest extends TestCase
         $this->assertEquals('SO-2026-000001', $saleOrder->order_number);
         $this->assertEquals(SaleOrder::MANASTORE, $saleOrder->source);
         $this->assertEquals(100.00, $saleOrder->total_price);
+        $this->assertEquals(10000, $saleOrder->subtotal);
+        $this->assertEquals(0, $saleOrder->conversion_fees);
+        $this->assertEquals(10000, $saleOrder->total);
     }
 
     public function test_get_sale_order_by_id(): void

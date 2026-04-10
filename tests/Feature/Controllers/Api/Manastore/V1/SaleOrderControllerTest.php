@@ -57,10 +57,21 @@ class SaleOrderControllerTest extends TestCase
 
         $data = [
             'order_number' => 'SO-2026-000001',
+            'currency' => 'USD',
+            'subtotal' => 50000,
+            'conversion_fees' => 0,
+            'total' => 50000,
             'items' => [
                 [
                     'product_id' => $product->id,
+                    'product_name' => 'Test Product',
                     'quantity' => 5,
+                    'price' => 10000,
+                    'purchase_price' => 8000,
+                    'conversion_fee' => 0,
+                    'total_price' => 50000,
+                    'discount_amount' => 0,
+                    'currency' => 'USD',
                 ],
             ],
         ];
@@ -128,14 +139,32 @@ class SaleOrderControllerTest extends TestCase
 
         $data = [
             'order_number' => 'SO-2026-000002',
+            'currency' => 'USD',
+            'subtotal' => 13000,
+            'conversion_fees' => 0,
+            'total' => 13000,
             'items' => [
                 [
                     'product_id' => $product1->id,
+                    'product_name' => 'Product One',
                     'quantity' => 2,
+                    'price' => 2000,
+                    'purchase_price' => 1500,
+                    'conversion_fee' => 0,
+                    'total_price' => 4000,
+                    'discount_amount' => 0,
+                    'currency' => 'USD',
                 ],
                 [
                     'product_id' => $product2->id,
+                    'product_name' => 'Product Two',
                     'quantity' => 3,
+                    'price' => 3000,
+                    'purchase_price' => 2500,
+                    'conversion_fee' => 0,
+                    'total_price' => 9000,
+                    'discount_amount' => 0,
+                    'currency' => 'USD',
                 ],
             ],
         ];
@@ -155,10 +184,21 @@ class SaleOrderControllerTest extends TestCase
         $product = Product::factory()->create();
 
         $data = [
+            'currency' => 'USD',
+            'subtotal' => 5000,
+            'conversion_fees' => 0,
+            'total' => 5000,
             'items' => [
                 [
                     'product_id' => $product->id,
+                    'product_name' => 'Test Product',
                     'quantity' => 5,
+                    'price' => 1000,
+                    'purchase_price' => 800,
+                    'conversion_fee' => 0,
+                    'total_price' => 5000,
+                    'discount_amount' => 0,
+                    'currency' => 'USD',
                 ],
             ],
         ];
@@ -173,6 +213,10 @@ class SaleOrderControllerTest extends TestCase
     {
         $data = [
             'order_number' => 'SO-2026-000001',
+            'currency' => 'USD',
+            'subtotal' => 0,
+            'conversion_fees' => 0,
+            'total' => 0,
             'items' => [],
         ];
 
@@ -186,10 +230,21 @@ class SaleOrderControllerTest extends TestCase
     {
         $data = [
             'order_number' => 'SO-2026-000001',
+            'currency' => 'USD',
+            'subtotal' => 5000,
+            'conversion_fees' => 0,
+            'total' => 5000,
             'items' => [
                 [
                     'product_id' => 999,
+                    'product_name' => 'Ghost Product',
                     'quantity' => 5,
+                    'price' => 1000,
+                    'purchase_price' => 800,
+                    'conversion_fee' => 0,
+                    'total_price' => 5000,
+                    'discount_amount' => 0,
+                    'currency' => 'USD',
                 ],
             ],
         ];
@@ -206,9 +261,20 @@ class SaleOrderControllerTest extends TestCase
 
         $data = [
             'order_number' => 'SO-2026-000001',
+            'currency' => 'USD',
+            'subtotal' => 5000,
+            'conversion_fees' => 0,
+            'total' => 5000,
             'items' => [
                 [
                     'product_id' => $product->id,
+                    'product_name' => $product->name,
+                    'price' => 1000,
+                    'purchase_price' => 800,
+                    'conversion_fee' => 0,
+                    'total_price' => 5000,
+                    'discount_amount' => 0,
+                    'currency' => 'USD',
                 ],
             ],
         ];
@@ -225,10 +291,21 @@ class SaleOrderControllerTest extends TestCase
 
         $data = [
             'order_number' => 'SO-2026-000001',
+            'currency' => 'USD',
+            'subtotal' => 0,
+            'conversion_fees' => 0,
+            'total' => 0,
             'items' => [
                 [
                     'product_id' => $product->id,
+                    'product_name' => $product->name,
                     'quantity' => 0,
+                    'price' => 1000,
+                    'purchase_price' => 800,
+                    'conversion_fee' => 0,
+                    'total_price' => 0,
+                    'discount_amount' => 0,
+                    'currency' => 'USD',
                 ],
             ],
         ];
@@ -243,10 +320,21 @@ class SaleOrderControllerTest extends TestCase
     {
         $data = [
             'order_number' => 'SO-2026-000001',
+            'currency' => 'USD',
+            'subtotal' => 5000,
+            'conversion_fees' => 0,
+            'total' => 5000,
             'items' => [
                 [
                     'product_id' => 999,
+                    'product_name' => 'Ghost Product',
                     'quantity' => 5,
+                    'price' => 1000,
+                    'purchase_price' => 800,
+                    'conversion_fee' => 0,
+                    'total_price' => 5000,
+                    'discount_amount' => 0,
+                    'currency' => 'USD',
                 ],
             ],
         ];
@@ -265,7 +353,6 @@ class SaleOrderControllerTest extends TestCase
         $digitalProduct = DigitalProduct::factory()->create([
             'supplier_id' => $supplier->id,
             'selling_price' => 100.00,
-
         ]);
         $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
 
@@ -282,18 +369,31 @@ class SaleOrderControllerTest extends TestCase
             'status' => VoucherCodeStatus::AVAILABLE->value,
         ]);
 
+        // Prices come from ManaStore: 5 units at 10000 cents each = 50000 cents total (500.00 USD)
         $data = [
             'order_number' => 'SO-2026-000001',
+            'currency' => 'USD',
+            'subtotal' => 50000,
+            'conversion_fees' => 0,
+            'total' => 50000,
             'items' => [
                 [
                     'product_id' => $product->id,
+                    'product_name' => 'Test Product',
                     'quantity' => 5,
+                    'price' => 10000,
+                    'purchase_price' => 8000,
+                    'conversion_fee' => 0,
+                    'total_price' => 50000,
+                    'discount_amount' => 0,
+                    'currency' => 'USD',
                 ],
             ],
         ];
 
         $response = $this->postJson('/api/v1/sale-orders', $data, $this->getHeaders());
 
+        // total_price is stored as total/100 (cents to dollars)
         $response->assertStatus(201)
             ->assertJson([
                 'data' => [
@@ -325,10 +425,21 @@ class SaleOrderControllerTest extends TestCase
         $data = [
             'order_number' => 'SO-2026-000001',
             'source' => 'api',
+            'currency' => 'USD',
+            'subtotal' => 50000,
+            'conversion_fees' => 0,
+            'total' => 50000,
             'items' => [
                 [
                     'product_id' => $product->id,
+                    'product_name' => 'Test Product',
                     'quantity' => 5,
+                    'price' => 10000,
+                    'purchase_price' => 8000,
+                    'conversion_fee' => 0,
+                    'total_price' => 50000,
+                    'discount_amount' => 0,
+                    'currency' => 'USD',
                 ],
             ],
         ];
@@ -362,10 +473,21 @@ class SaleOrderControllerTest extends TestCase
 
         $data = [
             'order_number' => 'SO-2026-000001',
+            'currency' => 'USD',
+            'subtotal' => 50000,
+            'conversion_fees' => 0,
+            'total' => 50000,
             'items' => [
                 [
                     'product_id' => $product->id,
+                    'product_name' => 'Test Product',
                     'quantity' => 5,
+                    'price' => 10000,
+                    'purchase_price' => 8000,
+                    'conversion_fee' => 0,
+                    'total_price' => 50000,
+                    'discount_amount' => 0,
+                    'currency' => 'USD',
                 ],
             ],
         ];
@@ -411,10 +533,21 @@ class SaleOrderControllerTest extends TestCase
         // Create sale order
         $data = [
             'order_number' => 'SO-2026-GET-VOUCHERS-1',
+            'currency' => 'USD',
+            'subtotal' => 20000,
+            'conversion_fees' => 0,
+            'total' => 20000,
             'items' => [
                 [
                     'product_id' => $product->id,
+                    'product_name' => 'Test Product',
                     'quantity' => 2,
+                    'price' => 10000,
+                    'purchase_price' => 8000,
+                    'conversion_fee' => 0,
+                    'total_price' => 20000,
+                    'discount_amount' => 0,
+                    'currency' => 'USD',
                 ],
             ],
         ];
@@ -540,14 +673,32 @@ class SaleOrderControllerTest extends TestCase
         // Create sale order with multiple products
         $data = [
             'order_number' => 'SO-2026-MULTI-PRODUCT',
+            'currency' => 'USD',
+            'subtotal' => 27500,
+            'conversion_fees' => 0,
+            'total' => 27500,
             'items' => [
                 [
                     'product_id' => $product1->id,
+                    'product_name' => 'Product One',
                     'quantity' => 2,
+                    'price' => 10000,
+                    'purchase_price' => 8000,
+                    'conversion_fee' => 0,
+                    'total_price' => 20000,
+                    'discount_amount' => 0,
+                    'currency' => 'USD',
                 ],
                 [
                     'product_id' => $product2->id,
+                    'product_name' => 'Product Two',
                     'quantity' => 1,
+                    'price' => 7500,
+                    'purchase_price' => 6000,
+                    'conversion_fee' => 0,
+                    'total_price' => 7500,
+                    'discount_amount' => 0,
+                    'currency' => 'USD',
                 ],
             ],
         ];

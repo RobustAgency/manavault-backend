@@ -27,7 +27,7 @@ class SaleOrderService
             'subtotal' => $data['subtotal'],
             'conversion_fees' => $data['conversion_fees'],
             'total' => $data['total'],
-            'total_price' => $data['total'] / 100,
+            'total_price' => $data['total'] / 100, // we are getting total price in cents
             'status' => Status::PENDING->value,
         ]);
 
@@ -47,7 +47,6 @@ class SaleOrderService
                 $product = $this->productRepository->getProductById($itemData['product_id']);
                 $quantity = $itemData['quantity'];
 
-                $unitPrice = $itemData['price'] / 100;
                 if ($itemData['discount_amount'] > 0) {
                     $discountPerUnit = $itemData['discount_amount'] / $quantity;
                     $itemData['price'] = $itemData['price'] - $discountPerUnit;
