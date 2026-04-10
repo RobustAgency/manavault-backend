@@ -264,7 +264,10 @@ class SaleOrderControllerTest extends TestCase
         ]);
         $digitalProduct = DigitalProduct::factory()->create([
             'supplier_id' => $supplier->id,
+            'face_value' => 100.00,
+            'cost_price' => 80.00,
             'selling_price' => 100.00,
+            'selling_discount' => 0.00,
 
         ]);
         $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);

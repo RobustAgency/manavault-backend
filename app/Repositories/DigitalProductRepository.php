@@ -4,7 +4,9 @@ namespace App\Repositories;
 
 use App\Models\DigitalProduct;
 use Illuminate\Support\Collection;
+use App\Enums\PriceRule\ActionMode;
 use App\Services\ImageUploadService;
+use App\Enums\PriceRule\ActionOperator;
 use App\Enums\PriceRuleCondition\Operator;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -43,6 +45,10 @@ class DigitalProductRepository
             $query->where('currency', $filters['currency']);
         }
 
+        if (isset($filters['region'])) {
+            $query->where('region', 'like', '%'.$filters['region'].'%');
+        }
+
         $per_page = $filters['per_page'] ?? 10;
 
         $query->orderBy('created_at', 'desc');
@@ -56,6 +62,11 @@ class DigitalProductRepository
     public function createDigitalProduct(array $data): DigitalProduct
     {
         $data['last_synced_at'] = now();
+
+        // Stamp selling_discount_updated_at if a discount or explicit selling price is provided
+        if (! empty($data['selling_discount']) || array_key_exists('selling_price', $data)) {
+            $data['selling_discount_updated_at'] = now();
+        }
 
         if (! empty($data['image'])) {
             $uploadedImage = $this->imageUploadService->upload($data['image'], 'uploads/digital-products');
@@ -119,6 +130,11 @@ class DigitalProductRepository
             }
 
             unset($data['image']);
+        }
+
+        // Stamp selling_discount_updated_at whenever pricing fields are explicitly changed
+        if (array_key_exists('selling_discount', $data) || array_key_exists('selling_price', $data)) {
+            $data['selling_discount_updated_at'] = now();
         }
 
         $digitalProduct->update($data);
@@ -185,8 +201,14 @@ class DigitalProductRepository
     /**
      * @return EloquentCollection<int, DigitalProduct>|LengthAwarePaginator<int, DigitalProduct>
      */
-    public function getDigitalProductsByConditions(array $conditions, string $matchType = 'all', ?int $perPage = null): EloquentCollection|LengthAwarePaginator
-    {
+    public function getDigitalProductsByConditions(
+        array $conditions,
+        string $matchType = 'all',
+        ?int $perPage = null,
+        ?string $actionMode = null,
+        ?string $actionOperator = null,
+        mixed $actionValue = null,
+    ): EloquentCollection|LengthAwarePaginator {
         $query = DigitalProduct::query();
 
         $applyCondition = function ($q, array $condition) {
@@ -225,6 +247,22 @@ class DigitalProductRepository
         } else {
             foreach ($conditions as $condition) {
                 $applyCondition($query, $condition);
+            }
+        }
+
+        if ($actionMode !== null && $actionOperator !== null && $actionValue !== null) {
+            $multiplier = ($actionOperator === ActionOperator::ADDITION->value) ? 1 : -1;
+
+            if ($actionMode === ActionMode::PERCENTAGE->value) {
+                $query->whereRaw(
+                    '(face_value + (face_value * (? / 100) * ?)) >= cost_price',
+                    [$actionValue, $multiplier]
+                );
+            } elseif ($actionMode === ActionMode::ABSOLUTE->value) {
+                $query->whereRaw(
+                    '(face_value + (? * ?)) >= cost_price',
+                    [$actionValue, $multiplier]
+                );
             }
         }
 

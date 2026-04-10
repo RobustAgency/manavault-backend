@@ -230,7 +230,10 @@ class SaleOrderServiceTest extends TestCase
 
         // Setup digital products and vouchers for product1
         $digitalProduct1 = DigitalProduct::factory()->create([
+            'face_value' => 50.00,
+            'cost_price' => 45.00,
             'selling_price' => 50.00,
+            'selling_discount' => 0.00,
         ]);
         $product1->digitalProducts()->attach($digitalProduct1->id, ['priority' => 1]);
 
@@ -249,7 +252,10 @@ class SaleOrderServiceTest extends TestCase
 
         // Setup digital products and vouchers for product2
         $digitalProduct2 = DigitalProduct::factory()->create([
+            'face_value' => 75.00,
+            'cost_price' => 70.00,
             'selling_price' => 75.00,
+            'selling_discount' => 0.00,
         ]);
         $product2->digitalProducts()->attach($digitalProduct2->id, ['priority' => 1]);
 

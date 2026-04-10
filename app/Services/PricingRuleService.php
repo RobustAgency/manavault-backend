@@ -46,7 +46,14 @@ class PricingRuleService
             $this->priceRuleConditionRepository->create($condition);
         }
 
-        $products = $this->digitalProductRepository->getDigitalProductsByConditions($data['conditions'], $data['match_type']);
+        $products = $this->digitalProductRepository->getDigitalProductsByConditions(
+            $data['conditions'],
+            $data['match_type'],
+            null,
+            $data['action_mode'],
+            $data['action_operator'],
+            $data['action_value'],
+        );
 
         $affectedDigitalProductIds = [];
         foreach ($products as $digitalProduct) {
@@ -80,7 +87,14 @@ class PricingRuleService
 
         // Reapply actions to digital products
         $this->priceRuleDigitalProductRepository->deleteByPriceRuleId($priceRule->id);
-        $digitalProducts = $this->digitalProductRepository->getDigitalProductsByConditions($data['conditions'], $updatedPriceRule->match_type);
+        $digitalProducts = $this->digitalProductRepository->getDigitalProductsByConditions(
+            $data['conditions'],
+            $updatedPriceRule->match_type,
+            null,
+            $updatedPriceRule->action_mode,
+            $updatedPriceRule->action_operator,
+            $updatedPriceRule->action_value,
+        );
         $affectedDigitalProductIds = [];
         foreach ($digitalProducts as $digitalProduct) {
             $this->applyAction($digitalProduct, $updatedPriceRule);
@@ -114,6 +128,10 @@ class PricingRuleService
             $rule->action_value,
         );
 
+        if ($applicationData === null) {
+            return;
+        }
+
         $this->priceRuleDigitalProductRepository->create([
             'digital_product_id' => $applicationData['digital_product_id'],
             'price_rule_id' => $rule->id,
@@ -144,10 +162,13 @@ class PricingRuleService
             ->getDigitalProductsByConditions(
                 $data['conditions'],
                 $data['match_type'],
-                $perPage
+                $perPage,
+                $data['action_mode'],
+                $data['action_operator'],
+                $data['action_value'],
             );
 
-        $digitalProducts->getCollection()->transform(function ($digitalProduct) use ($data) {
+        $transformedCollection = $digitalProducts->getCollection()->map(function ($digitalProduct) use ($data) {
 
             $applicationData = $this->buildApplicationData(
                 $digitalProduct,
@@ -156,6 +177,10 @@ class PricingRuleService
                 $data['action_value'],
             );
 
+            if ($applicationData === null) {
+                return null;
+            }
+
             return [
                 'digital_product_id' => $applicationData['digital_product_id'],
                 'digital_product_name' => $applicationData['digital_product_name'],
@@ -163,10 +188,12 @@ class PricingRuleService
                 'current_selling_price' => $applicationData['current_selling_price'],
                 'new_selling_price' => $applicationData['new_selling_price'],
             ];
-        });
+        })->filter()->values();
 
-        /** @var LengthAwarePaginator<int, array<string, mixed>> */
-        return $digitalProducts;
+        /** @var LengthAwarePaginator<int, array<string, mixed>> $result */
+        $result = $digitalProducts->setCollection($transformedCollection); // @phpstan-ignore-line
+
+        return $result;
     }
 
     /**
@@ -181,11 +208,22 @@ class PricingRuleService
         string $actionMode,
         string $actionOperator,
         mixed $actionValue,
-    ): array {
+    ): ?array {
         $baseValue = (float) $digitalProduct->face_value;
         $originalSellingPrice = (float) $digitalProduct->selling_price;
         $calculatedPrice = $this->calculateNewPrice($digitalProduct, $actionMode, $actionValue, $actionOperator);
+        $costPrice = (float) ($digitalProduct->getAttribute('cost_price') ?? 0);
+
+        // Never allow the price to go below 0.
         $finalSellingPrice = (float) max($calculatedPrice, 0);
+
+        // Safety net: the SQL filter in getDigitalProductsByConditions already excludes
+        // products where the calculated price would fall below cost_price. This guard
+        // protects against any caller that bypasses the SQL filter (e.g. floating-point
+        // edge cases or future call sites).
+        if ($finalSellingPrice < $costPrice) {
+            return null;
+        }
 
         return [
             'digital_product_id' => $digitalProduct->id,

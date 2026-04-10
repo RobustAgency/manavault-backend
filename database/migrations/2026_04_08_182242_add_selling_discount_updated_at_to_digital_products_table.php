@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('digital_products', function (Blueprint $table) {
-            $table->decimal('selling_discount', 5, 2)->nullable()->after('selling_price');
+            $table->timestamp('selling_discount_updated_at')->nullable()->after('selling_discount');
         });
     }
 
@@ -22,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('digital_products', function (Blueprint $table) {
-            $table->dropColumn('selling_discount');
+            $table->dropColumn('selling_discount_updated_at');
         });
     }
 };

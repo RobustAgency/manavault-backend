@@ -41,4 +41,44 @@ class UpdateDigitalProductRequest extends FormRequest
             'image' => ['sometimes', 'nullable', 'file', 'image', 'max:2048'],
         ];
     }
+
+    /**
+     * Configure the validator instance.
+     */
+    public function withValidator(\Illuminate\Validation\Validator $validator): void
+    {
+        $validator->after(function (\Illuminate\Validation\Validator $validator) {
+            /** @var \App\Models\DigitalProduct $digitalProduct */
+            $digitalProduct = $this->route('digitalProduct');
+
+            // Resolve the values to use: prefer incoming request values, fall back to existing model values
+            $costPrice = (float) ($this->has('cost_price')
+                ? $this->input('cost_price')
+                : $digitalProduct->getAttribute('cost_price'));
+
+            $sellingPrice = (float) ($this->has('selling_price')
+                ? $this->input('selling_price')
+                : $digitalProduct->getAttribute('selling_price'));
+
+            $faceValue = (float) ($this->has('face_value')
+                ? $this->input('face_value')
+                : $digitalProduct->getAttribute('face_value'));
+
+            // Preserve null: a null selling_discount means "no discount, use selling_price directly"
+            $sellingDiscount = $this->has('selling_discount')
+                ? ($this->input('selling_discount') !== null ? (float) $this->input('selling_discount') : null)
+                : ($digitalProduct->getAttribute('selling_discount') !== null ? (float) $digitalProduct->getAttribute('selling_discount') : null);
+
+            $effectiveSellingPrice = $sellingDiscount !== null
+                ? round($faceValue * (1 - $sellingDiscount / 100), 2)
+                : $sellingPrice;
+
+            if ($effectiveSellingPrice < $costPrice) {
+                $validator->errors()->add(
+                    'selling_price',
+                    "The effective selling price ({$effectiveSellingPrice}) must not be less than the cost price ({$costPrice})."
+                );
+            }
+        });
+    }
 }

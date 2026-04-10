@@ -50,6 +50,7 @@ Route::middleware(['auth:supabase', 'user.approved'])->group(function () {
     Route::prefix('/products')->group(function () {
         Route::get('', [ProductController::class, 'index'])->middleware('permission:view_product');
         Route::post('', [ProductController::class, 'store'])->middleware('permission:create_product');
+        Route::post('/batch-import', [ProductController::class, 'batchImport'])->middleware('permission:create_product');
         Route::get('/{product}', [ProductController::class, 'show'])->middleware('permission:view_product');
         Route::post('/{product}', [ProductController::class, 'update'])->middleware('permission:edit_product');
         Route::delete('/{product}', [ProductController::class, 'destroy'])->middleware('permission:delete_product');
@@ -114,6 +115,8 @@ Route::middleware(['auth:supabase', 'user.approved'])->group(function () {
     Route::prefix('/sale-orders')->controller(SaleOrderController::class)->group(function () {
         Route::get('', 'index')->middleware('permission:view_sale_order');
         Route::get('/{saleOrder}', 'show')->middleware('permission:view_sale_order');
+        Route::get('/{saleOrder}/codes', 'codes')->middleware('permission:view_sale_order');
+        Route::get('/{saleOrder}/codes/download', 'downloadOrderCodes')->middleware('permission:view_sale_order');
     });
 
     Route::prefix('/roles')->controller(RoleController::class)->group(function () {
