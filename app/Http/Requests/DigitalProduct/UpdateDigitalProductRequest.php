@@ -52,19 +52,26 @@ class UpdateDigitalProductRequest extends FormRequest
             $digitalProduct = $this->route('digitalProduct');
 
             // Resolve the values to use: prefer incoming request values, fall back to existing model values
-            $costPrice = $this->has('cost_price')
-                ? (float) $this->input('cost_price')
-                : (float) $digitalProduct->getAttribute('cost_price');
+            $costPrice = (float) ($this->has('cost_price')
+                ? $this->input('cost_price')
+                : $digitalProduct->getAttribute('cost_price'));
 
-            $sellingPrice = $this->has('selling_price')
-                ? (float) $this->input('selling_price')
-                : (float) $digitalProduct->getAttribute('face_value');
+            $sellingPrice = (float) ($this->has('selling_price')
+                ? $this->input('selling_price')
+                : $digitalProduct->getAttribute('selling_price'));
 
+            $faceValue = (float) ($this->has('face_value')
+                ? $this->input('face_value')
+                : $digitalProduct->getAttribute('face_value'));
+
+            // Preserve null: a null selling_discount means "no discount, use selling_price directly"
             $sellingDiscount = $this->has('selling_discount')
-                ? (float) $this->input('selling_discount')
-                : (float) $digitalProduct->getAttribute('selling_discount');
+                ? ($this->input('selling_discount') !== null ? (float) $this->input('selling_discount') : null)
+                : ($digitalProduct->getAttribute('selling_discount') !== null ? (float) $digitalProduct->getAttribute('selling_discount') : null);
 
-            $effectiveSellingPrice = round($sellingPrice * (1 - $sellingDiscount / 100), 2);
+            $effectiveSellingPrice = $sellingDiscount !== null
+                ? round($faceValue * (1 - $sellingDiscount / 100), 2)
+                : $sellingPrice;
 
             if ($effectiveSellingPrice < $costPrice) {
                 $validator->errors()->add(

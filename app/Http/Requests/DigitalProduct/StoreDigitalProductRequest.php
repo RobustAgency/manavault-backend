@@ -93,13 +93,16 @@ class StoreDigitalProductRequest extends FormRequest
             foreach ($products as $index => $product) {
                 $costPrice = isset($product['cost_price']) ? (float) $product['cost_price'] : null;
                 $sellingPrice = isset($product['selling_price']) ? (float) $product['selling_price'] : null;
-                $sellingDiscount = isset($product['selling_discount']) ? (float) $product['selling_discount'] : 0;
+                $faceValue = isset($product['face_value']) ? (float) $product['face_value'] : null;
+                $sellingDiscount = isset($product['selling_discount']) ? (float) $product['selling_discount'] : null;
 
-                if ($costPrice === null || $sellingPrice === null) {
+                if ($costPrice === null || $sellingPrice === null || $faceValue === null) {
                     continue;
                 }
 
-                $effectiveSellingPrice = round($sellingPrice * (1 - $sellingDiscount / 100), 2);
+                $effectiveSellingPrice = $sellingDiscount !== null
+                    ? round($faceValue * (1 - $sellingDiscount / 100), 2)
+                    : $sellingPrice;
 
                 if ($effectiveSellingPrice < $costPrice) {
                     $validator->errors()->add(
