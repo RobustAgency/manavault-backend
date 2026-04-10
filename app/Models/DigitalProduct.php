@@ -114,7 +114,7 @@ class DigitalProduct extends Model
     /**
      * Get the effective selling price.
      */
-    public function getSellingPriceAttribute(): float
+    public function getSellingPriceAttribute(): ?float
     {
         $basePrice = (float) ($this->attributes['face_value'] ?? 0);
         $discount = (float) ($this->attributes['selling_discount'] ?? 0);
@@ -128,14 +128,16 @@ class DigitalProduct extends Model
                 return (float) $latestPriceRule->final_selling_price;
 
             default:
-                return (float) ($this->attributes['selling_price'] ?? 0);
+                $rawPrice = $this->attributes['selling_price'] ?? null;
+
+                return $rawPrice !== null ? (float) $rawPrice : null;
         }
     }
 
     /**
      * Get the effective selling discount.
      */
-    public function getSellingDiscountAttribute(): float
+    public function getSellingDiscountAttribute(): ?float
     {
         $basePrice = (float) ($this->attributes['face_value'] ?? 0);
         $storedDiscount = (float) ($this->attributes['selling_discount'] ?? 0);
@@ -153,7 +155,12 @@ class DigitalProduct extends Model
                     : 0;
 
             default:
-                $price = (float) ($this->attributes['selling_price'] ?? 0);
+                $rawPrice = $this->attributes['selling_price'] ?? null;
+                $price = $rawPrice !== null ? (float) $rawPrice : null;
+
+                if (! $price) {
+                    return null;
+                }
 
                 return $basePrice > 0
                     ? round((($basePrice - $price) / $basePrice) * 100, 2)
@@ -166,10 +173,10 @@ class DigitalProduct extends Model
      */
     private function resolvePricingSource(): string
     {
-        $discount = (float) ($this->attributes['selling_discount'] ?? 0);
+        $hasDiscount = array_key_exists('selling_discount', $this->attributes)
+            && $this->attributes['selling_discount'] !== null;
         $latestPriceRule = $this->latestPriceRuleDigitalProduct;
 
-        $hasDiscount = $discount >= 0;
         $hasPriceRule = $latestPriceRule !== null;
 
         if ($hasDiscount && $hasPriceRule) {
