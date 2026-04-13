@@ -9,6 +9,7 @@ use App\Models\PurchaseOrderSupplier;
 use App\Enums\PurchaseOrderSupplierStatus;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use App\Services\Giftery\GifteryVoucherService;
 use App\Services\Gift2Games\Gift2GamesVoucherService;
 use App\Services\PurchaseOrder\PurchaseOrderStatusService;
 use App\Services\PurchaseOrder\PurchaseOrderPlacementService;
@@ -41,6 +42,7 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
     public function handle(
         PurchaseOrderPlacementService $purchaseOrderPlacementService,
         Gift2GamesVoucherService $gift2GamesVoucherService,
+        GifteryVoucherService $gifteryVoucherService,
         PurchaseOrderStatusService $purchaseOrderStatusService,
     ): void {
         $externalOrderResponse = [];
@@ -64,6 +66,9 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
                 'transaction_id' => $transactionId,
             ]);
         } catch (\Exception $e) {
+
+            $this->purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::FAILED->value]);
+            $purchaseOrderStatusService->updateStatus($this->purchaseOrder->refresh());
             Log::error('Failed to place external order', [
                 'purchase_order_id' => $this->purchaseOrder->id,
                 'supplier_slug' => $this->supplier->slug,
@@ -71,15 +76,21 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
                 'error' => $e->getMessage(),
             ]);
 
-            $this->purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::FAILED->value]);
-
-            $purchaseOrderStatusService->updateStatus($this->purchaseOrder->refresh());
+            return;
         }
 
         if ($this->isGift2GamesSupplier()) {
+
             $gift2GamesVoucherService->storeVouchers($this->purchaseOrder, $externalOrderResponse);
             $this->purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
+
+        } elseif ($this->supplier->slug === 'giftery-api') {
+
+            $gifteryVoucherService->storeVouchers($this->purchaseOrder, $externalOrderResponse);
+            $this->purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
+
         } elseif ($this->supplier->slug === 'ez_cards') {
+
             Log::info('EzCards order created, vouchers will be fetched separately', [
                 'purchase_order_id' => $this->purchaseOrder->id,
                 'transaction_id' => $transactionId,
