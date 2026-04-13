@@ -17,19 +17,23 @@ class PurchaseOrderPlacementService
 
     public function placeOrder(Supplier $supplier, array $orderItems, string $orderNumber, string $currency): array
     {
-        if ($supplier->slug === 'ez_cards') {
-            return $this->ezcardsPlaceOrderService->placeOrder($orderItems, $orderNumber, $currency);
-        }
+        try {
+            if ($supplier->slug === 'ez_cards') {
+                return $this->ezcardsPlaceOrderService->placeOrder($orderItems, $orderNumber, $currency);
+            }
 
-        if ($this->isGift2GamesSupplier($supplier)) {
-            return $this->gift2GamesPlaceOrderService->placeOrder($orderItems, $orderNumber, $supplier->slug);
-        }
+            if ($this->isGift2GamesSupplier($supplier)) {
+                return $this->gift2GamesPlaceOrderService->placeOrder($orderItems, $orderNumber, $supplier->slug);
+            }
 
-        if ($supplier->slug === 'giftery-api') {
-            return $this->gifteryPlaceOrderService->placeOrder($orderItems, $orderNumber);
-        }
+            if ($supplier->slug === 'giftery-api') {
+                return $this->gifteryPlaceOrderService->placeOrder($orderItems, $orderNumber);
+            }
 
-        throw new \RuntimeException("Unknown external supplier: {$supplier->slug}");
+            throw new \RuntimeException("Unknown external supplier: {$supplier->slug}");
+        } catch (\Exception $e) {
+            throw $e;
+        }
     }
 
     private function isGift2GamesSupplier(Supplier $supplier): bool

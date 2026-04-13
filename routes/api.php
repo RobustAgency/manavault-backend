@@ -16,6 +16,7 @@ Route::prefix('/giftery/test')->group(function () {
     Route::get('/products', [GifteryController::class, 'testGetProducts']);
     Route::get('/products/{productId}', [GifteryController::class, 'testGetProductDetails']);
     Route::get('/accounts', [GifteryController::class, 'testGetAccounts']);
+    Route::get('/product-items/{itemId}', [GifteryController::class, 'testGetProductItemDetails']);
 
 });
 

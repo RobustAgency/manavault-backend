@@ -25,3 +25,8 @@ Schedule::command(SyncGift2GamesProductsCommand::class)
     ->hourly()
     ->withoutOverlapping()
     ->runInBackground();
+
+Schedule::command(SyncGift2GamesProductsCommand::class)
+    ->hourly()
+    ->withoutOverlapping()
+    ->runInBackground();

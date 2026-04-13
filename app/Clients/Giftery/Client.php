@@ -175,6 +175,17 @@ class Client
         return $response->json();
     }
 
+    public function getProductItemDetails(int $itemId): array
+    {
+        $response = $this->getClient()->withHeaders([
+            'time' => (string) time(),
+            'signature' => $this->generateRequestSignature(time()),
+            'Authorization' => "Bearer {$this->refreshToken()}",
+        ])->get("products/items/{$itemId}");
+
+        return $response->json();
+    }
+
     public function reserveOrder(array $payload): array
     {
         $timestamp = time();

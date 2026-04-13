@@ -66,6 +66,9 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
                 'transaction_id' => $transactionId,
             ]);
         } catch (\Exception $e) {
+
+            $this->purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::FAILED->value]);
+            $purchaseOrderStatusService->updateStatus($this->purchaseOrder->refresh());
             Log::error('Failed to place external order', [
                 'purchase_order_id' => $this->purchaseOrder->id,
                 'supplier_slug' => $this->supplier->slug,
@@ -73,9 +76,7 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
                 'error' => $e->getMessage(),
             ]);
 
-            $this->purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::FAILED->value]);
-
-            $purchaseOrderStatusService->updateStatus($this->purchaseOrder->refresh());
+            return;
         }
 
         if ($this->isGift2GamesSupplier()) {
@@ -83,7 +84,7 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
             $gift2GamesVoucherService->storeVouchers($this->purchaseOrder, $externalOrderResponse);
             $this->purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
 
-        } elseif ($this->isGifterySupplier()) {
+        } elseif ($this->supplier->slug === 'giftery-api') {
 
             $gifteryVoucherService->storeVouchers($this->purchaseOrder, $externalOrderResponse);
             $this->purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
@@ -103,10 +104,5 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
     {
         return str_starts_with($this->supplier->slug, 'gift2games')
             || str_starts_with($this->supplier->slug, 'gift-2-games');
-    }
-
-    private function isGifterySupplier(): bool
-    {
-        return str_starts_with($this->supplier->slug, 'giftery');
     }
 }

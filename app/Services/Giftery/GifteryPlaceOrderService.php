@@ -4,25 +4,40 @@ namespace App\Services\Giftery;
 
 use Illuminate\Support\Facades\Log;
 use App\Actions\Giftery\PlaceOrderAction;
+use App\Actions\Giftery\CheckProductStockAction;
+use App\Actions\Giftery\GetAccountBalanceAction;
 
 class GifteryPlaceOrderService
 {
     public function __construct(
         private PlaceOrderAction $placeOrderAction,
+        private CheckProductStockAction $checkProductStockAction,
+        private GetAccountBalanceAction $getAccountBalanceAction,
     ) {}
 
     /**
      * Place orders for all items with Giftery.
-     *
-     * Returns an array with two keys:
-     * - 'vouchers': items where codes were returned immediately (store right away)
-     * - 'pending':  items where codes are NOT yet available (need polling via getOperation)
      *
      * @param  array  $orderItems  Array of PurchaseOrderItem models
      * @param  string  $orderNumber  The purchase order number for reference
      */
     public function placeOrder(array $orderItems, string $orderNumber): array
     {
+        // Check account balance before processing orders
+        $this->checkAccountBalance($orderItems, $orderNumber);
+
+        // Check stock availability before processing orders
+        $stockCheck = $this->checkProductStockAction->execute($orderItems);
+
+        if (! $stockCheck['inStock']) {
+            Log::error('Giftery stock check failed', [
+                'order_number' => $orderNumber,
+                'unavailable_items' => $stockCheck['unavailableItems'],
+            ]);
+
+            throw new \RuntimeException('One or more items are out of stock with Giftery. See logs for details.');
+        }
+
         $vouchers = [];
         $transactionUUID = null;
 
@@ -97,5 +112,52 @@ class GifteryPlaceOrderService
             'expiryDate' => $voucher['expiryDate'] ?? null,
             'transactionUUID' => $transactionUUID,
         ];
+    }
+
+    /**
+     * Check if the account has sufficient available balance for the order.
+     *
+     * Uses the available balance (not credit limit) to determine if the order can proceed.
+     *
+     * @return array Account balance information
+     *
+     * @throws \RuntimeException If balance is insufficient or if fetching balance fails
+     */
+    private function checkAccountBalance(array $orderItems, string $orderNumber): array
+    {
+        try {
+            $account = $this->getAccountBalanceAction->execute();
+        } catch (\Exception $e) {
+            Log::error('Giftery get account balance error: '.$e->getMessage(), [
+                'order_number' => $orderNumber,
+            ]);
+
+            throw new \RuntimeException('Failed to check account balance with Giftery. See logs for details.');
+        }
+
+        // Calculate total order amount
+        $totalAmount = collect($orderItems)->sum('subtotal');
+
+        $availableBalance = $account['available'] ?? 0;
+
+        if ($totalAmount > $availableBalance) {
+            Log::error('Giftery insufficient balance', [
+                'order_number' => $orderNumber,
+                'required_amount' => $totalAmount,
+                'available_balance' => $availableBalance,
+            ]);
+
+            throw new \RuntimeException(
+                "Insufficient balance with Giftery. Required: {$totalAmount}, Available: {$availableBalance}"
+            );
+        }
+
+        Log::info('Giftery balance check passed', [
+            'order_number' => $orderNumber,
+            'required_amount' => $totalAmount,
+            'available_balance' => $availableBalance,
+        ]);
+
+        return $account;
     }
 }

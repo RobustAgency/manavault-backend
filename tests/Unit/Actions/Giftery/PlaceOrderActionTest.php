@@ -15,7 +15,7 @@ class PlaceOrderActionTest extends TestCase
         $reserveResponse = [
             'statusCode' => 0,
             'data' => [
-                'uuid' => 'test-uuid-123',
+                'transactionUUID' => 'test-uuid-123',
                 'status' => 'reserved',
                 'amount' => 100.00,
             ],
@@ -56,9 +56,9 @@ class PlaceOrderActionTest extends TestCase
             'fields' => [['key' => 'email', 'value' => 'test@example.com']],
         ]);
 
-        $this->assertEquals('test-uuid-123', $result['uuid']);
-        $this->assertEquals('confirmed', $result['status']);
-        $this->assertNotEmpty($result['codes']);
+        $this->assertEquals('test-uuid-123', $result['transactionUUID']);
+        $this->assertEquals('confirmed', $result['confirmResponse']['status']);
+        $this->assertNotEmpty($result['confirmResponse']['codes']);
     }
 
     public function test_execute_succeeds_without_codes_in_response(): void
@@ -68,7 +68,7 @@ class PlaceOrderActionTest extends TestCase
         $reserveResponse = [
             'statusCode' => 0,
             'data' => [
-                'uuid' => 'test-uuid-456',
+                'transactionUUID' => 'test-uuid-456',
                 'status' => 'reserved',
             ],
         ];
@@ -97,8 +97,8 @@ class PlaceOrderActionTest extends TestCase
             'fields' => [['key' => 'email', 'value' => 'test@example.com']],
         ]);
 
-        $this->assertEquals('test-uuid-456', $result['uuid']);
-        $this->assertEmpty($result['codes']);
+        $this->assertEquals('test-uuid-456', $result['transactionUUID']);
+        $this->assertEmpty($result['confirmResponse']['codes']);
     }
 
     public function test_execute_throws_on_reserve_failure(): void

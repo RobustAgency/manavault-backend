@@ -48,7 +48,7 @@ class SyncProducts
                         $sku = (string) $item['id'];
 
                         $price = $item['price'] ?? 0;
-                        $currency = strtolower($item['priceCurrency'] ?? 'usd');
+                        $currency = strtolower($item['rrpCurrency'] ?? 'usd');
 
                         // Create the digital product name combining product and item name
                         $name = $product['name'].' - '.$item['name'];
