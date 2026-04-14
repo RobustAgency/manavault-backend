@@ -4,9 +4,14 @@ namespace App\Clients\Giftery;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\RequestException;
 
 class Client
 {
+    private const MAX_RETRIES = 3;
+
+    private const RETRY_DELAY_MS = 1000;
+
     protected static function secret(): string
     {
         return base64_decode(config('services.giftery.secret'));
@@ -14,7 +19,31 @@ class Client
 
     private function getClient(): PendingRequest
     {
-        return Http::baseUrl(config('services.giftery.base_url'));
+        return Http::retry($this->getRetryAttempts(), $this->getRetryDelay(), function ($exception) {
+            // Retry on 5xx errors or connection exceptions (timeouts)
+            if ($exception instanceof RequestException) {
+                return $exception->response->serverError();
+            }
+
+            // Retry on connection errors (timeouts, network issues)
+            return $exception instanceof \Illuminate\Http\Client\ConnectionException;
+        })->baseUrl(config('services.giftery.base_url'));
+    }
+
+    /**
+     * Get the number of retry attempts.
+     */
+    protected function getRetryAttempts(): int
+    {
+        return self::MAX_RETRIES;
+    }
+
+    /**
+     * Get the retry delay in milliseconds.
+     */
+    protected function getRetryDelay(): int
+    {
+        return self::RETRY_DELAY_MS;
     }
 
     public static function generateAuthSignature(int $time): string
