@@ -1,0 +1,748 @@
+{
+  "info": {
+    "_postman_id": "28e0a6d0-d538-4710-a5b5-26f3ca2769db",
+    "name": "Tikkery API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "18376010",
+    "_collection_link": "https://go.postman.co/collection/18376010-28e0a6d0-d538-4710-a5b5-26f3ca2769db?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "balance",
+      "item": [
+        {
+          "name": "Show balance",
+          "request": {
+            "auth": {
+              "type": "oauth2",
+              "oauth2": [
+                {
+                  "key": "scope",
+                  "value": "profile email openid products.read orders.read orders.create balance.read",
+                  "type": "string"
+                },
+                {
+                  "key": "accessTokenUrl",
+                  "value": "https://www.tikkery.com/oauth/token",
+                  "type": "string"
+                },
+                {
+                  "key": "grant_type",
+                  "value": "password_credentials",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/balance?date=2024-11-24",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "balance"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2024-11-24",
+                  "description": "Fill in the date."
+                }
+              ]
+            },
+            "description": "Returns the balance at a selected date (or current date)"
+          },
+          "response": [
+            {
+              "name": "Show balance.",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "description": "Added as a part of security scheme: oauth2",
+                    "key": "Authorization",
+                    "value": "<token>"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/balance?date=2024-11-24T16:45:01+00:00",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "balance"
+                  ],
+                  "query": [
+                    {
+                      "description": "Fill in the date.",
+                      "key": "date",
+                      "value": "2024-11-24T16:45:01+00:00"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"balance\": 9048.32558494706\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "orders",
+      "item": [
+        {
+          "name": "{orderNumber}",
+          "item": [
+            {
+              "name": "Get order details",
+              "request": {
+                "auth": {
+                  "type": "oauth2",
+                  "oauth2": [
+                    {
+                      "key": "scope",
+                      "value": "profile email openid products.read orders.read orders.create balance.read",
+                      "type": "string"
+                    },
+                    {
+                      "key": "accessTokenUrl",
+                      "value": "https://www.tikkery.com/oauth/token",
+                      "type": "string"
+                    },
+                    {
+                      "key": "grant_type",
+                      "value": "password_credentials",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/orders/:orderNumber",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "orders",
+                    ":orderNumber"
+                  ],
+                  "variable": [
+                    {
+                      "key": "orderNumber",
+                      "value": "",
+                      "description": "Order number."
+                    }
+                  ]
+                },
+                "description": "Returns information about a single order."
+              },
+              "response": [
+                {
+                  "name": "Order details response.",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "description": "Added as a part of security scheme: oauth2",
+                        "key": "Authorization",
+                        "value": "<token>"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/orders/:orderNumber",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "orders",
+                        ":orderNumber"
+                      ],
+                      "variable": [
+                        {
+                          "key": "orderNumber",
+                          "value": "",
+                          "description": "Order number."
+                        }
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"order\": {\n    \"number\": \"a9a4ad5f8bb526b37353f5bd75174c7a\",\n    \"isCompleted\": true,\n    \"isPaid\": false,\n    \"dateOrdered\": \"2023-10-15T22:01:00+02:00\",\n    \"datePaid\": \"2023-10-15T22:01:00+02:00\",\n    \"currency\": \"EUR\",\n    \"total\": 6392.570612431978,\n    \"status\": \"pending\",\n    \"customerReference\": \"abc123456\",\n    \"lineItems\": [\n      {\n        \"sku\": \"Blizzard-20-EUR\",\n        \"qty\": \"2\",\n        \"price\": 1720.8189987934186,\n        \"total\": 5493.794280524485\n      },\n      {\n        \"sku\": \"Blizzard-20-EUR\",\n        \"qty\": \"2\",\n        \"price\": 8176.498688103524,\n        \"total\": 4296.494314953039\n      }\n    ]\n  },\n  \"codes\": [\n    {\n      \"productSku\": \"Blizzard-20-EUR\",\n      \"serial\": \"1234567890\",\n      \"redemptionCode\": \"1234-5678-1234-5678\",\n      \"pin\": \"123\"\n    },\n    {\n      \"productSku\": \"Blizzard-20-EUR\",\n      \"serial\": \"1234567890\",\n      \"redemptionCode\": \"1234-5678-1234-5678\",\n      \"pin\": \"123\"\n    }\n  ]\n}"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "create",
+          "item": [
+            {
+              "name": "Create a new order",
+              "request": {
+                "auth": {
+                  "type": "oauth2",
+                  "oauth2": [
+                    {
+                      "key": "scope",
+                      "value": "profile email openid products.read orders.read orders.create balance.read",
+                      "type": "string"
+                    },
+                    {
+                      "key": "accessTokenUrl",
+                      "value": "https://www.tikkery.com/oauth/token",
+                      "type": "string"
+                    },
+                    {
+                      "key": "grant_type",
+                      "value": "password_credentials",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"lineItems\": [\n    {\n      \"sku\": \"Blizzard-20-EUR\",\n      \"qty\": \"1\",\n      \"price\": 343.5940445269581\n    },\n    {\n      \"sku\": \"Blizzard-20-EUR\",\n      \"qty\": \"1\",\n      \"price\": 7253.247107889527\n    }\n  ],\n  \"customerReference\": \"abc1234567\"\n}",
+                  "options": {
+                    "raw": {
+                      "headerFamily": "json",
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/orders/create",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "orders",
+                    "create"
+                  ]
+                },
+                "description": "Creates a new order on your behalf and automatically pays it using your balance."
+              },
+              "response": [
+                {
+                  "name": "Order creation response.",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "description": "Added as a part of security scheme: oauth2",
+                        "key": "Authorization",
+                        "value": "<token>"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"lineItems\": [\n    {\n      \"sku\": \"Blizzard-20-EUR\",\n      \"qty\": \"1\",\n      \"price\": 343.5940445269581\n    },\n    {\n      \"sku\": \"Blizzard-20-EUR\",\n      \"qty\": \"1\",\n      \"price\": 7253.247107889527\n    }\n  ],\n  \"customerReference\": \"abc1234567\"\n}",
+                      "options": {
+                        "raw": {
+                          "headerFamily": "json",
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/orders/create",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "orders",
+                        "create"
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"order\": {\n    \"number\": \"a9a4ad5f8bb526b37353f5bd75174c7a\",\n    \"isCompleted\": true,\n    \"isPaid\": false,\n    \"dateOrdered\": \"2023-10-15T22:01:00+02:00\",\n    \"datePaid\": \"2023-10-15T22:01:00+02:00\",\n    \"currency\": \"EUR\",\n    \"total\": 6392.570612431978,\n    \"status\": \"pending\",\n    \"customerReference\": \"abc123456\",\n    \"lineItems\": [\n      {\n        \"sku\": \"Blizzard-20-EUR\",\n        \"qty\": \"2\",\n        \"price\": 1720.8189987934186,\n        \"total\": 5493.794280524485\n      },\n      {\n        \"sku\": \"Blizzard-20-EUR\",\n        \"qty\": \"2\",\n        \"price\": 8176.498688103524,\n        \"total\": 4296.494314953039\n      }\n    ]\n  },\n  \"codes\": [\n    {\n      \"productSku\": \"Blizzard-20-EUR\",\n      \"serial\": \"1234567890\",\n      \"redemptionCode\": \"1234-5678-1234-5678\",\n      \"pin\": \"123\"\n    },\n    {\n      \"productSku\": \"Blizzard-20-EUR\",\n      \"serial\": \"1234567890\",\n      \"redemptionCode\": \"1234-5678-1234-5678\",\n      \"pin\": \"123\"\n    }\n  ]\n}"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "List orders",
+          "request": {
+            "auth": {
+              "type": "oauth2",
+              "oauth2": [
+                {
+                  "key": "scope",
+                  "value": "profile email openid products.read orders.read orders.create balance.read",
+                  "type": "string"
+                },
+                {
+                  "key": "accessTokenUrl",
+                  "value": "https://www.tikkery.com/oauth/token",
+                  "type": "string"
+                },
+                {
+                  "key": "grant_type",
+                  "value": "password_credentials",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders?limit=100&offset=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100",
+                  "description": "Limit (max 100)."
+                },
+                {
+                  "key": "offset",
+                  "value": "",
+                  "description": "Offset."
+                }
+              ]
+            },
+            "description": "Returns a list of your previously created orders. The response is paginated."
+          },
+          "response": [
+            {
+              "name": "List of orders.",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "description": "Added as a part of security scheme: oauth2",
+                    "key": "Authorization",
+                    "value": "<token>"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/orders?limit=100&offset=",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "orders"
+                  ],
+                  "query": [
+                    {
+                      "description": "Limit (max 100).",
+                      "key": "limit",
+                      "value": "100"
+                    },
+                    {
+                      "description": "Offset.",
+                      "key": "offset",
+                      "value": ""
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"total\": 2697,\n  \"orders\": [\n    {\n      \"number\": \"a9a4ad5f8bb526b37353f5bd75174c7a\",\n      \"isCompleted\": false,\n      \"isPaid\": true,\n      \"dateOrdered\": \"2023-10-15T22:01:00+02:00\",\n      \"datePaid\": \"2023-10-15T22:01:00+02:00\",\n      \"currency\": \"EUR\",\n      \"total\": 2457.36101528663,\n      \"status\": \"pending\",\n      \"customerReference\": \"abc123456\",\n      \"lineItems\": [\n        {\n          \"sku\": \"Blizzard-20-EUR\",\n          \"qty\": \"2\",\n          \"price\": 3614.888876421909,\n          \"total\": 9393.043174936081\n        },\n        {\n          \"sku\": \"Blizzard-20-EUR\",\n          \"qty\": \"2\",\n          \"price\": 8038.775326297822,\n          \"total\": 3325.5013456786187\n        }\n      ]\n    },\n    {\n      \"number\": \"a9a4ad5f8bb526b37353f5bd75174c7a\",\n      \"isCompleted\": true,\n      \"isPaid\": true,\n      \"dateOrdered\": \"2023-10-15T22:01:00+02:00\",\n      \"datePaid\": \"2023-10-15T22:01:00+02:00\",\n      \"currency\": \"EUR\",\n      \"total\": 111.53580599989832,\n      \"status\": \"pending\",\n      \"customerReference\": \"abc123456\",\n      \"lineItems\": [\n        {\n          \"sku\": \"Blizzard-20-EUR\",\n          \"qty\": \"2\",\n          \"price\": 1721.196916459402,\n          \"total\": 6586.817811917771\n        },\n        {\n          \"sku\": \"Blizzard-20-EUR\",\n          \"qty\": \"2\",\n          \"price\": 8854.28162332572,\n          \"total\": 109.1927211900856\n        }\n      ]\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "products",
+      "item": [
+        {
+          "name": "stock",
+          "item": [
+            {
+              "name": "Get product stock",
+              "request": {
+                "auth": {
+                  "type": "oauth2",
+                  "oauth2": [
+                    {
+                      "key": "scope",
+                      "value": "profile email openid products.read orders.read orders.create balance.read",
+                      "type": "string"
+                    },
+                    {
+                      "key": "accessTokenUrl",
+                      "value": "https://www.tikkery.com/oauth/token",
+                      "type": "string"
+                    },
+                    {
+                      "key": "grant_type",
+                      "value": "password_credentials",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/products/stock?sku[]=Blizzard-20-EUR&sku[]=Blizzard-20-EUR",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "products",
+                    "stock"
+                  ],
+                  "query": [
+                    {
+                      "key": "sku[]",
+                      "value": "Blizzard-20-EUR"
+                    },
+                    {
+                      "key": "sku[]",
+                      "value": "Blizzard-20-EUR"
+                    }
+                  ]
+                },
+                "description": "Returns the stock availability for each requested SKU."
+              },
+              "response": [
+                {
+                  "name": "Product stock response.",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "description": "Added as a part of security scheme: oauth2",
+                        "key": "Authorization",
+                        "value": "<token>"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/products/stock?sku[]=Blizzard-20-EUR",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "products",
+                        "stock"
+                      ],
+                      "query": [
+                        {
+                          "key": "sku[]",
+                          "value": "Blizzard-20-EUR"
+                        }
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"stock\": [\n    {\n      \"sku\": \"Blizzard-20-EUR\",\n      \"stock\": 2098\n    },\n    {\n      \"sku\": \"Blizzard-20-EUR\",\n      \"stock\": 2259\n    }\n  ]\n}"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "List products",
+          "request": {
+            "auth": {
+              "type": "oauth2",
+              "oauth2": [
+                {
+                  "key": "scope",
+                  "value": "profile email openid products.read orders.read orders.create balance.read",
+                  "type": "string"
+                },
+                {
+                  "key": "accessTokenUrl",
+                  "value": "https://www.tikkery.com/oauth/token",
+                  "type": "string"
+                },
+                {
+                  "key": "grant_type",
+                  "value": "password_credentials",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100",
+                  "description": "Limit (max 100).",
+                  "disabled": true
+                },
+                {
+                  "key": "offset",
+                  "value": "",
+                  "description": "Offset.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Returns a list of available products. The response is paginated."
+          },
+          "response": [
+            {
+              "name": "List of products.",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "description": "Added as a part of security scheme: oauth2",
+                    "key": "Authorization",
+                    "value": "<token>"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/products?limit=100&offset=",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "products"
+                  ],
+                  "query": [
+                    {
+                      "description": "Limit (max 100).",
+                      "key": "limit",
+                      "value": "100"
+                    },
+                    {
+                      "description": "Offset.",
+                      "key": "offset",
+                      "value": ""
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"total\": 8944,\n  \"products\": [\n    {\n      \"sku\": \"Blizzard-20-EUR\",\n      \"title\": \"Blizzard - EUR - 20\",\n      \"cardValue\": \"20\",\n      \"discountPercent\": 123.2171907719537,\n      \"onSale\": false,\n      \"price\": 4622.008696732216,\n      \"cardBrand\": {\n        \"title\": \"Blizzard\",\n        \"logo\": \"https://static.tikkery.com/assets/brands/battlenet-340w.png?v=1681295266\"\n      },\n      \"currency\": \"EUR\",\n      \"regions\": [\n        \"Europe\",\n        \"Europe\"\n      ]\n    },\n    {\n      \"sku\": \"Blizzard-20-EUR\",\n      \"title\": \"Blizzard - EUR - 20\",\n      \"cardValue\": \"20\",\n      \"discountPercent\": 3885.120354336613,\n      \"onSale\": false,\n      \"price\": 1556.4674415034042,\n      \"cardBrand\": {\n        \"title\": \"Blizzard\",\n        \"logo\": \"https://static.tikkery.com/assets/brands/battlenet-340w.png?v=1681295266\"\n      },\n      \"currency\": \"EUR\",\n      \"regions\": [\n        \"Europe\",\n        \"Europe\"\n      ]\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "access token",
+      "request": {
+        "auth": {
+          "type": "oauth2",
+          "oauth2": [
+            {
+              "key": "scope",
+              "value": "profile email openid products.read orders.read orders.create balance.read",
+              "type": "string"
+            },
+            {
+              "key": "accessTokenUrl",
+              "value": "https://www.tikkery.com/oauth/token",
+              "type": "string"
+            },
+            {
+              "key": "grant_type",
+              "value": "password_credentials",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "grant_type",
+              "value": "password",
+              "type": "text",
+              "uuid": "ebade0e3-52c5-4d1b-ab7e-9168b7da99d2"
+            },
+            {
+              "key": "client_id",
+              "value": "441e59f4a24ce4fef9adc7d82edbcff3d194e1e590e33e23315470010ffeaf95",
+              "type": "text",
+              "uuid": "d68f2966-4ac3-4172-870f-0ebe8d8ce969"
+            },
+            {
+              "key": "client_secret",
+              "value": "a8ba4d903d552b5e4bf9fd2458087895c44d467b82b6a618e90f567f75a4dfec5c17db032a7f3de0",
+              "type": "text",
+              "uuid": "f474f7bc-1ccc-4f26-a479-d55d1c157f70"
+            },
+            {
+              "key": "scope",
+              "value": "balance.read products.read",
+              "type": "text",
+              "uuid": "29d672e9-7069-404b-902a-071f662a21bb"
+            },
+            {
+              "key": "username",
+              "value": "bejamin@manaminds.com",
+              "type": "text",
+              "uuid": "cd4a2b47-4fb5-4231-be59-8932747a1f07"
+            },
+            {
+              "key": "password",
+              "value": "fbe7564e56ce5588df42cad282f1afbcbb490587c6297575a73d5ee60e32349c.7cd90031457ead161058f0fe5bb7905805ca1a2172ae07e506c04d7eb2d810001493508099d8ea4a",
+              "type": "text",
+              "uuid": "6fb57cfa-0477-4501-a7f7-c619a9ff259a"
+            }
+          ]
+        },
+        "url": {
+          "raw": "https://sandbox.tikkery.com/oauth/token",
+          "protocol": "https",
+          "host": [
+            "sandbox",
+            "tikkery",
+            "com"
+          ],
+          "path": [
+            "oauth",
+            "token"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "/"
+    }
+  ]
+}
