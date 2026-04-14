@@ -91,7 +91,7 @@ class Client
     {
         $response = $this->getClient()
             ->withHeaders(['Authorization' => 'Bearer '.$this->getAccessToken()])
-            ->get("/orders/{$orderId}/delivery");
+            ->get("/order/delivery/{$orderId}");
 
         if ($response->successful()) {
             return $response->json();

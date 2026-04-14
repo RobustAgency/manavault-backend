@@ -71,7 +71,8 @@ class IrewardifyPlaceOrderService
     private function ensureSufficientBalance(float $totalPrice): void
     {
         $response = $this->getWalletBalance->execute();
-        $availableBalance = (float) ($response['data']['balance'] ?? $response['balance'] ?? 0);
+        $walletData = $response['data'] ?? [];
+        $availableBalance = (float) ($walletData['walletOne'] ?? 0);
 
         if ($availableBalance < $totalPrice) {
             Log::error("Irewardify order: insufficient balance. Required: {$totalPrice}, Available: {$availableBalance}");
