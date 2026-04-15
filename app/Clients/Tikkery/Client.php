@@ -194,7 +194,9 @@ class Client
     protected function handleResponse(\Illuminate\Http\Client\Response $response): array
     {
         if ($response->successful()) {
-            return $response->json();
+            $data = $response->json();
+
+            return is_array($data) ? $data : ['data' => $data];
         }
 
         throw new \Exception('Tikkery API request failed: '.$response->body());
@@ -202,12 +204,25 @@ class Client
 
     /**
      * Get the account balance at the given date.
+     *
+     * The Tikkery /balance endpoint may return a plain numeric value instead of
+     * an object, so we normalise the response into ['balance' => value].
      */
     public function getBalance(string $date): array
     {
         $response = $this->getClient()->get('/balance', ['date' => $date]);
 
-        return $this->handleResponse($response);
+        if ($response->successful()) {
+            $data = $response->json();
+
+            if (! is_array($data)) {
+                return ['balance' => $data];
+            }
+
+            return $data;
+        }
+
+        throw new \Exception('Tikkery API request failed: '.$response->body());
     }
 
     /**

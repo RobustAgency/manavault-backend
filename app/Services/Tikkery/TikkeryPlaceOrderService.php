@@ -2,18 +2,28 @@
 
 namespace App\Services\Tikkery;
 
+use App\Actions\Tikkery\GetStock;
+use App\Actions\Tikkery\GetBalance;
 use Illuminate\Support\Facades\Log;
 use App\Actions\Tikkery\CreateOrder;
 
 class TikkeryPlaceOrderService
 {
-    public function __construct(private CreateOrder $createOrder) {}
+    public function __construct(
+        private CreateOrder $createOrder,
+        private GetBalance $getBalance,
+        private GetStock $getStock,
+    ) {}
 
     /**
      * Place an order with Tikkery for the given purchase order items.
      */
     public function placeOrder(array $orderItems, string $orderNumber): array
     {
+        $this->checkAccountBalance($orderItems, $orderNumber);
+
+        $this->checkStock($orderItems, $orderNumber);
+
         $lineItems = [];
 
         foreach ($orderItems as $item) {
@@ -53,11 +63,6 @@ class TikkeryPlaceOrderService
 
     /**
      * Enrich raw Tikkery codes with purchase_order_item_id and digital_product_id
-     * by matching codes back to purchase order items by SKU position.
-     *
-     * @param  array<int, array<string, mixed>>  $codes
-     * @param  array  $orderItems  PurchaseOrderItem models
-     * @return array<int, array<string, mixed>>
      */
     public function enrichCodes(array $codes, array $orderItems): array
     {
@@ -94,5 +99,91 @@ class TikkeryPlaceOrderService
         }
 
         return $enrichedCodes;
+    }
+
+    /**
+     * Check if the Tikkery wallet has sufficient balance to cover the total order cost.
+     *
+     * @throws \RuntimeException If balance is insufficient or cannot be fetched
+     */
+    private function checkAccountBalance(array $orderItems, string $orderNumber): void
+    {
+        try {
+            $response = $this->getBalance->execute(now()->toIso8601String());
+        } catch (\Exception $e) {
+            Log::error('Tikkery get balance error: '.$e->getMessage(), [
+                'order_number' => $orderNumber,
+            ]);
+
+            throw new \RuntimeException('Failed to check account balance with Tikkery. See logs for details.');
+        }
+
+        $availableBalance = (float) ($response['balance'] ?? 0);
+        $totalAmount = (float) collect($orderItems)->sum('subtotal');
+
+        if ($totalAmount > $availableBalance) {
+            Log::error('Tikkery insufficient balance', [
+                'order_number' => $orderNumber,
+                'required_amount' => $totalAmount,
+                'available_balance' => $availableBalance,
+            ]);
+
+            throw new \RuntimeException(
+                "Insufficient balance with Tikkery. Required: {$totalAmount}, Available: {$availableBalance}"
+            );
+        }
+    }
+
+    /**
+     * Check that all order item SKUs have sufficient stock on Tikkery.
+     *
+     * @throws \RuntimeException If any SKU is out of stock or the check fails
+     */
+    private function checkStock(array $orderItems, string $orderNumber): void
+    {
+        $requiredQty = [];
+        foreach ($orderItems as $item) {
+            $sku = $item->digitalProduct->sku;
+            $requiredQty[$sku] = ($requiredQty[$sku] ?? 0) + (int) $item->quantity;
+        }
+
+        $skus = array_keys($requiredQty);
+
+        try {
+            $response = $this->getStock->execute($skus);
+        } catch (\Exception $e) {
+            Log::error('Tikkery get stock error: '.$e->getMessage(), [
+                'order_number' => $orderNumber,
+            ]);
+
+            throw new \RuntimeException('Failed to check stock availability with Tikkery. See logs for details.');
+        }
+
+        $availableStock = [];
+        foreach ($response['stock'] ?? [] as $entry) {
+            $sku = $entry['sku'];
+            $availableStock[$sku] = ($availableStock[$sku] ?? 0) + (int) $entry['stock'];
+        }
+
+        $unavailableSkus = [];
+        foreach ($requiredQty as $sku => $needed) {
+            $available = $availableStock[$sku] ?? 0;
+            if ($needed > $available) {
+                $unavailableSkus[] = [
+                    'sku' => $sku,
+                    'required' => $needed,
+                    'available' => $available,
+                ];
+            }
+        }
+
+        if (! empty($unavailableSkus)) {
+            Log::error('Tikkery stock check failed', [
+                'order_number' => $orderNumber,
+                'unavailable_skus' => $unavailableSkus,
+            ]);
+
+            throw new \RuntimeException('One or more items are out of stock with Tikkery. See logs for details.');
+        }
     }
 }
