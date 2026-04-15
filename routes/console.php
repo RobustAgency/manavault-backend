@@ -4,6 +4,7 @@ use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 use App\Console\Commands\SyncEzCardsProductsCommand;
+use App\Console\Commands\SyncGamezcodeProductsCommand;
 use App\Console\Commands\SyncGift2GamesProductsCommand;
 use App\Console\Commands\AddVoucherCodeForEZCardsCommand;
 
@@ -26,7 +27,7 @@ Schedule::command(SyncGift2GamesProductsCommand::class)
     ->withoutOverlapping()
     ->runInBackground();
 
-Schedule::command(SyncGift2GamesProductsCommand::class)
+Schedule::command(SyncGamezcodeProductsCommand::class)
     ->hourly()
     ->withoutOverlapping()
     ->runInBackground();

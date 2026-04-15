@@ -81,4 +81,10 @@ return [
         'secret' => env('GIFTERY_SECRET_KEY'),
     ],
 
+    'gamezcode' => [
+        'base_url' => env('GAMEZCODE_BASE_URL', 'https://api.kalixo.io/v1'),
+        'email' => env('GAMEZCODE_EMAIL'),
+        'password' => env('GAMEZCODE_PASSWORD'),
+    ],
+
 ];

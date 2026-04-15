@@ -10,6 +10,7 @@ use App\Enums\PurchaseOrderSupplierStatus;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Services\Giftery\GifteryVoucherService;
+use App\Services\Gamezcode\GamezcodeVoucherService;
 use App\Services\Gift2Games\Gift2GamesVoucherService;
 use App\Services\PurchaseOrder\PurchaseOrderStatusService;
 use App\Services\PurchaseOrder\PurchaseOrderPlacementService;
@@ -43,6 +44,7 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
         PurchaseOrderPlacementService $purchaseOrderPlacementService,
         Gift2GamesVoucherService $gift2GamesVoucherService,
         GifteryVoucherService $gifteryVoucherService,
+        GamezcodeVoucherService $gamezCodeVoucherService,
         PurchaseOrderStatusService $purchaseOrderStatusService,
     ): void {
         $externalOrderResponse = [];
@@ -87,6 +89,11 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
         } elseif ($this->supplier->slug === 'giftery-api') {
 
             $gifteryVoucherService->storeVouchers($this->purchaseOrder, $externalOrderResponse);
+            $this->purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
+
+        } elseif ($this->supplier->slug === 'gamezcode') {
+
+            $gamezCodeVoucherService->storeVouchers($this->purchaseOrder, $externalOrderResponse);
             $this->purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
 
         } elseif ($this->supplier->slug === 'ez_cards') {
