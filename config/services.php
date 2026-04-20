@@ -81,4 +81,16 @@ return [
         'secret' => env('GIFTERY_SECRET_KEY'),
     ],
 
+    'tikkery' => [
+        // Base URL for API calls (balance, products, orders)
+        'base_url' => env('TIKKERY_BASE_URL', 'https://www.tikkery.com/api'),
+        // OAuth2 token endpoint (may differ from base_url, e.g. sandbox vs production)
+        'auth_url' => env('TIKKERY_AUTH_URL', 'https://www.tikkery.com/oauth/token'),
+        'client_id' => env('TIKKERY_CLIENT_ID'),
+        'client_secret' => env('TIKKERY_CLIENT_SECRET'),
+        'username' => env('TIKKERY_USERNAME'),
+        'password' => env('TIKKERY_PASSWORD'),
+        'scopes' => env('TIKKERY_SCOPES', 'balance.read products.read orders.read orders.create'),
+    ],
+
 ];
