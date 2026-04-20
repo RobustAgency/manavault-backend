@@ -74,6 +74,12 @@ return [
         'api_key' => env('MANASTORE_API_KEY'),
     ],
 
+    'irewardify' => [
+        'username' => env('IREWARDIFY_USERNAME'),
+        'password' => env('IREWARDIFY_PASSWORD'),
+        'url' => env('IREWARDIFY_BASE_URL'),
+    ],
+
     'giftery' => [
         'base_url' => env('GIFTERY_BASE_URL'),
         'login' => env('GIFTERY_USERNAME'),
@@ -82,10 +88,8 @@ return [
     ],
 
     'tikkery' => [
-        // Base URL for API calls (balance, products, orders)
-        'base_url' => env('TIKKERY_BASE_URL', 'https://www.tikkery.com/api'),
-        // OAuth2 token endpoint (may differ from base_url, e.g. sandbox vs production)
-        'auth_url' => env('TIKKERY_AUTH_URL', 'https://www.tikkery.com/oauth/token'),
+        'base_url' => env('TIKKERY_BASE_URL'),
+        'auth_url' => env('TIKKERY_AUTH_URL'),
         'client_id' => env('TIKKERY_CLIENT_ID'),
         'client_secret' => env('TIKKERY_CLIENT_SECRET'),
         'username' => env('TIKKERY_USERNAME'),

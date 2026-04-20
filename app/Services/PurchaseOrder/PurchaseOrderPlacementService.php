@@ -7,12 +7,14 @@ use App\Services\Ezcards\EzcardsPlaceOrderService;
 use App\Services\Giftery\GifteryPlaceOrderService;
 use App\Services\Tikkery\TikkeryPlaceOrderService;
 use App\Services\Gift2Games\Gift2GamesPlaceOrderService;
+use App\Services\Irewardify\IrewardifyPlaceOrderService;
 
 class PurchaseOrderPlacementService
 {
     public function __construct(
         private EzcardsPlaceOrderService $ezcardsPlaceOrderService,
         private Gift2GamesPlaceOrderService $gift2GamesPlaceOrderService,
+        private IrewardifyPlaceOrderService $irewardifyPlaceOrderService,
         private GifteryPlaceOrderService $gifteryPlaceOrderService,
         private TikkeryPlaceOrderService $tikkeryPlaceOrderService,
     ) {}
@@ -26,6 +28,10 @@ class PurchaseOrderPlacementService
 
             if ($this->isGift2GamesSupplier($supplier)) {
                 return $this->gift2GamesPlaceOrderService->placeOrder($orderItems, $orderNumber, $supplier->slug);
+            }
+
+            if ($supplier->slug === 'irewardify') {
+                return $this->irewardifyPlaceOrderService->placeOrder($orderItems, $orderNumber);
             }
 
             if ($supplier->slug === 'giftery-api') {
