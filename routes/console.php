@@ -4,6 +4,8 @@ use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 use App\Console\Commands\SyncEzCardsProductsCommand;
+use App\Console\Commands\SyncTikkeryProductsCommand;
+use App\Console\Commands\FetchTikkeryVouchersCommand;
 use App\Console\Commands\SyncGift2GamesProductsCommand;
 use App\Console\Commands\FetchIrewardifyVouchersCommand;
 use App\Console\Commands\AddVoucherCodeForEZCardsCommand;
@@ -27,6 +29,20 @@ Schedule::command(SyncEzCardsProductsCommand::class)
     ->withoutOverlapping()
     ->runInBackground();
 
+Schedule::command(SyncGift2GamesProductsCommand::class)
+    ->hourly()
+    ->withoutOverlapping()
+    ->runInBackground();
+
+Schedule::command(SyncTikkeryProductsCommand::class)
+    ->hourly()
+    ->withoutOverlapping()
+    ->runInBackground();
+
+Schedule::command(FetchTikkeryVouchersCommand::class)
+    ->everyFifteenMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();
 Schedule::command(SyncGift2GamesProductsCommand::class)
     ->hourly()
     ->withoutOverlapping()

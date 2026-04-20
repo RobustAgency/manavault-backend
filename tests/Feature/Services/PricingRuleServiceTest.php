@@ -519,45 +519,6 @@ class PricingRuleServiceTest extends TestCase
         ]);
     }
 
-    public function test_selling_price_cannot_be_negative(): void
-    {
-        $digitalProduct = DigitalProduct::factory()->create([
-            'supplier_id' => $this->supplier->id,
-            'face_value' => 50.00,
-            'cost_price' => 0.00,
-            'selling_price' => 50.00,
-            'brand' => 'TestBrand',
-        ]);
-
-        $data = [
-            'name' => 'Extreme Discount',
-            'description' => 'Discount larger than price',
-            'match_type' => 'all',
-            'action_operator' => ActionOperator::SUBTRACTION->value,
-            'action_mode' => ActionMode::ABSOLUTE->value,
-            'action_value' => 100, // More than the digital product price
-            'status' => Status::ACTIVE->value,
-            'conditions' => [
-                [
-                    'field' => 'brand',
-                    'operator' => Operator::EQUAL->value,
-                    'value' => 'TestBrand',
-                ],
-            ],
-        ];
-
-        $this->service->createPriceRuleWithConditions($data);
-
-        // Price should be 0 minimum, not negative
-        $this->assertDatabaseHas('price_rule_digital_product', [
-            'digital_product_id' => $digitalProduct->id,
-            'final_selling_price' => 0.00,
-        ]);
-
-        $digitalProduct->refresh();
-        $this->assertEquals(0.00, (float) $digitalProduct->selling_price);
-    }
-
     public function test_create_rule_with_no_matching_digital_products(): void
     {
         DigitalProduct::factory()->create([

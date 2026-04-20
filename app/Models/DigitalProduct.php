@@ -31,6 +31,7 @@ class DigitalProduct extends Model
         'face_value',
         'selling_price',
         'selling_discount',
+        'selling_discount_updated_at',
         'currency',
         'metadata',
         'source',
@@ -45,6 +46,7 @@ class DigitalProduct extends Model
         'cost_price' => 'decimal:2',
         'face_value' => 'decimal:2',
         'selling_discount' => 'decimal:2',
+        'selling_discount_updated_at' => 'datetime',
         'last_synced_at' => 'datetime',
         'is_active' => 'boolean',
         'in_stock' => 'boolean',
@@ -91,51 +93,6 @@ class DigitalProduct extends Model
         return $this->hasOne(PriceRuleDigitalProduct::class)->latestOfMany('applied_at');
     }
 
-    /**
-     * Get the effective selling price with the following priority:
-     * 1. Selling discount (user-set) — always takes precedence
-     * 2. Latest price rule automation — applied if no discount exists
-     * 3. Base selling_price column — final fallback
-     */
-    public function getSellingPriceAttribute(): float
-    {
-        $basePrice = (float) ($this->attributes['face_value'] ?? 0);
-        $discount = (float) ($this->attributes['selling_discount'] ?? 0);
-
-        if ($discount > 0) {
-            return round($basePrice * (1 - $discount / 100), 2);
-        }
-
-        $latestPriceRule = $this->latestPriceRuleDigitalProduct;
-
-        if ($latestPriceRule !== null) {
-            return (float) $latestPriceRule->final_selling_price;
-        }
-
-        return (float) ($this->attributes['selling_price'] ?? 0);
-    }
-
-    /**
-     * Get the effective selling discount with the following priority:
-     * 1. Stored selling_discount (user-set) — always takes precedence
-     * 2. Calculated from face_value and effective selling_price — fallback
-     */
-    public function getSellingDiscountAttribute(): float
-    {
-        $storedDiscount = (float) ($this->attributes['selling_discount'] ?? 0);
-
-        if ($storedDiscount > 0) {
-            return $storedDiscount;
-        }
-
-        $faceValue = (float) ($this->attributes['face_value'] ?? 0);
-        $sellingPrice = $this->getSellingPriceAttribute();
-
-        return $faceValue > 0
-            ? round((($faceValue - $sellingPrice) / $faceValue) * 100, 2)
-            : 0;
-    }
-
     public function getCostPriceDiscountAttribute(): float
     {
         $faceValue = $this->getAttribute('face_value');
@@ -152,5 +109,92 @@ class DigitalProduct extends Model
         $sellingPrice = $this->getSellingPriceAttribute();
 
         return round($sellingPrice - $costPrice, 2);
+    }
+
+    /**
+     * Get the effective selling price.
+     */
+    public function getSellingPriceAttribute(): ?float
+    {
+        $basePrice = (float) ($this->attributes['face_value'] ?? 0);
+        $discount = (float) ($this->attributes['selling_discount'] ?? 0);
+        $latestPriceRule = $this->latestPriceRuleDigitalProduct;
+
+        switch ($this->resolvePricingSource()) {
+            case 'discount':
+                return round($basePrice * (1 - $discount / 100), 2);
+
+            case 'rule':
+                return (float) $latestPriceRule->final_selling_price;
+
+            default:
+                $rawPrice = $this->attributes['selling_price'] ?? null;
+
+                return $rawPrice !== null ? (float) $rawPrice : null;
+        }
+    }
+
+    /**
+     * Get the effective selling discount.
+     */
+    public function getSellingDiscountAttribute(): ?float
+    {
+        $basePrice = (float) ($this->attributes['face_value'] ?? 0);
+        $storedDiscount = (float) ($this->attributes['selling_discount'] ?? 0);
+        $latestPriceRule = $this->latestPriceRuleDigitalProduct;
+
+        switch ($this->resolvePricingSource()) {
+            case 'discount':
+                return $storedDiscount;
+
+            case 'rule':
+                $price = (float) $latestPriceRule->final_selling_price;
+
+                return $basePrice > 0
+                    ? round((($basePrice - $price) / $basePrice) * 100, 2)
+                    : 0;
+
+            default:
+                $rawPrice = $this->attributes['selling_price'] ?? null;
+                $price = $rawPrice !== null ? (float) $rawPrice : null;
+
+                if (! $price) {
+                    return null;
+                }
+
+                return $basePrice > 0
+                    ? round((($basePrice - $price) / $basePrice) * 100, 2)
+                    : 0;
+        }
+    }
+
+    /**
+     * Determine the active pricing source.
+     */
+    private function resolvePricingSource(): string
+    {
+        $hasDiscount = array_key_exists('selling_discount', $this->attributes)
+            && $this->attributes['selling_discount'] !== null;
+        $latestPriceRule = $this->latestPriceRuleDigitalProduct;
+
+        $hasPriceRule = $latestPriceRule !== null;
+
+        if ($hasDiscount && $hasPriceRule) {
+            $discountUpdatedAt = $this->getAttribute('selling_discount_updated_at');
+            $priceRuleAppliedAt = $latestPriceRule->applied_at;
+
+            return ($discountUpdatedAt !== null && $discountUpdatedAt >= $priceRuleAppliedAt)
+                ? 'discount'
+                : 'rule';
+        }
+
+        if ($hasDiscount) {
+            return 'discount';
+        }
+        if ($hasPriceRule) {
+            return 'rule';
+        }
+
+        return 'fallback';
     }
 }

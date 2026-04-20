@@ -90,8 +90,10 @@ class ProductControllerTest extends TestCase
 
         $digitalProduct = DigitalProduct::factory()->create([
             'supplier_id' => $supplier->id,
+            'face_value' => 120.00,
             'cost_price' => 90.00,
-            'selling_price' => 110.00,
+            'selling_price' => 117.60,
+            'selling_discount' => 2.00,
         ]);
 
         $product->digitalProducts()->attach($digitalProduct->id);
@@ -106,7 +108,7 @@ class ProductControllerTest extends TestCase
         $this->assertNotNull($product['id']);
         $this->assertEquals('PlayStation 5', $product['name']);
         $this->assertEquals(100.00, (float) $product['face_value']);
-        $this->assertEquals(110.00, (float) $product['selling_price']);
+        $this->assertEquals(117.60, (float) $product['selling_price']);
         $this->assertEquals(1, $product['status']);
     }
 
