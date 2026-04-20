@@ -204,9 +204,6 @@ class Client
 
     /**
      * Get the account balance at the given date.
-     *
-     * The Tikkery /balance endpoint may return a plain numeric value instead of
-     * an object, so we normalise the response into ['balance' => value].
      */
     public function getBalance(string $date): array
     {
