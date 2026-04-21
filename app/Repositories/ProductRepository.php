@@ -198,4 +198,20 @@ class ProductRepository
     {
         return Product::where('brand_id', $brandId)->get();
     }
+
+    /**
+     * Get all unique regions from the regions column across all products.
+     *
+     * @return array<int, string>
+     */
+    public function getUniqueRegions(): array
+    {
+        return Product::whereNotNull('regions')
+            ->pluck('regions')
+            ->flatten()
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+    }
 }
