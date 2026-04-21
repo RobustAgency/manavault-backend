@@ -68,10 +68,7 @@ class SyncProducts
                 }
 
                 try {
-                    $faceValue = $variant['variant_price'] ?? null;
-                    $costPrice = $faceValue !== null
-                        ? round($faceValue * (1 + $costPercent / 100), 2)
-                        : 0;
+                    $price = $variant['variant_price'] ?? null;
 
                     $this->digitalProductRepository->createOrUpdate(
                         [
@@ -84,8 +81,8 @@ class SyncProducts
                             'sku' => $variantSku,
                             'brand' => $brand,
                             'description' => $description,
-                            'face_value' => $faceValue,
-                            'cost_price' => $costPrice,
+                            'face_value' => $price,
+                            'cost_price' => $price,
                             'currency' => $currency,
                             'region' => $country,
                             'image_url' => $imageUrl,
