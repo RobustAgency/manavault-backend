@@ -50,13 +50,12 @@ class SyncProducts
                 continue;
             }
 
-            $costPercent = (float) ($item['cost'] ?? 0);
+            $discount = (float) ($item['discount'] ?? 0);
             $currency = strtolower($item['currency'] ?? 'usd');
             $imageUrl = $item['image_url'] ?? null;
             $description = $item['description'] ?? null;
             $country = $item['country'] ?? null;
             $brand = $item['name'] ?? null;
-            $isActive = ($item['status'] ?? 'active') === 'active' && ! ($item['archive'] ?? false);
 
             foreach ($variants as $variant) {
                 $variantSku = (string) ($variant['sku'] ?? '');
@@ -68,7 +67,12 @@ class SyncProducts
                 }
 
                 try {
-                    $price = $variant['variant_price'] ?? null;
+                    $faceValue = $variant['variant_price'] ?? null;
+                    $price = is_numeric($faceValue) ? (float) $faceValue : 0;
+
+                    if ($discount > 0) {
+                        $price = $price - ($price * ($discount / 100));
+                    }
 
                     $this->digitalProductRepository->createOrUpdate(
                         [
@@ -81,7 +85,7 @@ class SyncProducts
                             'sku' => $variantSku,
                             'brand' => $brand,
                             'description' => $description,
-                            'face_value' => $price,
+                            'face_value' => $faceValue,
                             'cost_price' => $price,
                             'currency' => $currency,
                             'region' => $country,
@@ -91,7 +95,7 @@ class SyncProducts
                             ],
                             'source' => 'api',
                             'last_synced_at' => now(),
-                            'is_active' => $isActive,
+                            'is_active' => true,
                             'in_stock' => true,
                         ]
                     );
