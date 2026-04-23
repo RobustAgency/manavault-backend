@@ -10,6 +10,7 @@ use App\Console\Commands\SyncGift2GamesProductsCommand;
 use App\Console\Commands\SyncIrewardifyProductsCommand;
 use App\Console\Commands\FetchIrewardifyVouchersCommand;
 use App\Console\Commands\AddVoucherCodeForEZCardsCommand;
+use App\Console\Commands\PollPendingSupplierOrdersCommand;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -20,10 +21,18 @@ Schedule::command(SyncEzCardsProductsCommand::class)
     ->withoutOverlapping()
     ->runInBackground();
 
-Schedule::command(AddVoucherCodeForEZCardsCommand::class)
+// Unified pollable-supplier poller — covers EzCards and any future pollable supplier.
+// Replaces the dedicated AddVoucherCodeForEZCardsCommand schedule entry.
+Schedule::command(PollPendingSupplierOrdersCommand::class)
     ->everyFifteenMinutes()
     ->withoutOverlapping()
     ->runInBackground();
+
+// Legacy EzCards command kept for backwards-compatibility / manual runs, but no longer scheduled.
+// Schedule::command(AddVoucherCodeForEZCardsCommand::class)
+//     ->everyFifteenMinutes()
+//     ->withoutOverlapping()
+//     ->runInBackground();
 
 Schedule::command(SyncIrewardifyProductsCommand::class)
     ->hourly()

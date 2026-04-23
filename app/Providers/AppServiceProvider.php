@@ -9,6 +9,7 @@ use App\Observers\ProductObserver;
 use App\Services\Auth\SupabaseGuard;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use App\Managers\SupplierOrderManager;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -20,6 +21,10 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(SupabaseClient::class, function ($app) {
             return new SupabaseClient;
+        });
+
+        $this->app->singleton(SupplierOrderManager::class, function ($app) {
+            return new SupplierOrderManager($app);
         });
     }
 
