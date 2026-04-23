@@ -46,12 +46,14 @@ class Client
         throw new \Exception('Failed to fetch wallet balance from Irewardify: '.$response->body());
     }
 
-    public function getProducts(?array $queryParams = []): array
+    public function getProducts(): array
     {
         $response = $this->getClient()
             ->withHeaders(['Authorization' => 'Bearer '.$this->getAccessToken()])
-            ->get('/products', [
-                'query' => $queryParams,
+            ->get('/customer/products', [
+                'query' => [
+                    'category' => 'Digital',
+                ],
             ]);
 
         if ($response->successful()) {
@@ -65,7 +67,7 @@ class Client
     {
         $response = $this->getClient()
             ->withHeaders(['Authorization' => 'Bearer '.$this->getAccessToken()])
-            ->get("/products/{$productId}");
+            ->get("/customer/products/{$productId}");
 
         if ($response->successful()) {
             return $response->json();
