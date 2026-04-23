@@ -100,6 +100,10 @@ class DigitalStockRepository
             $query->where('digital_products.brand', 'like', '%'.$filters['brand'].'%');
         }
 
+        if (isset($filters['region'])) {
+            $query->where('digital_products.region', 'like', '%'.$filters['region'].'%');
+        }
+
         $query->orderBy('digital_products.created_at', 'desc');
 
         return $query;

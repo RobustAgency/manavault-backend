@@ -10,10 +10,6 @@ class GetProducts
 
     public function execute(): array
     {
-        $queryParams = [
-            'category' => 'Digital',
-        ];
-
         return $this->client->getProducts();
     }
 }
