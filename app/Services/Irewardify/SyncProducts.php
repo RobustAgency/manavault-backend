@@ -5,12 +5,14 @@ namespace App\Services\Irewardify;
 use App\Models\Supplier;
 use Illuminate\Support\Facades\Log;
 use App\Actions\Irewardify\GetProducts;
+use App\Actions\Irewardify\GetProductDetails;
 use App\Repositories\DigitalProductRepository;
 
 class SyncProducts
 {
     public function __construct(
         private GetProducts $getProducts,
+        private GetProductDetails $getProductDetails,
         private DigitalProductRepository $digitalProductRepository,
     ) {}
 
@@ -42,7 +44,9 @@ class SyncProducts
                 continue;
             }
 
-            $variants = $item['variants'] ?? [];
+            $productDetails = $this->getProductDetails->execute($productId);
+            $productDetailsData = $productDetails['data'] ?? $productDetails;
+            $variants = $productDetailsData['variants'] ?? [];
 
             if (empty($variants)) {
                 Log::warning("Irewardify sync: product {$productId} ({$item['name']}) has no variants, skipping.");
@@ -50,12 +54,12 @@ class SyncProducts
                 continue;
             }
 
-            $discount = (float) ($item['discount'] ?? 0);
             $currency = strtolower($item['currency'] ?? 'usd');
             $imageUrl = $item['image_url'] ?? null;
             $description = $item['description'] ?? null;
             $country = $item['country'] ?? null;
             $brand = $item['name'] ?? null;
+            $isActive = $item['status'] === 'active';
 
             foreach ($variants as $variant) {
                 $variantSku = (string) ($variant['sku'] ?? '');
@@ -68,11 +72,7 @@ class SyncProducts
 
                 try {
                     $faceValue = $variant['variant_price'] ?? null;
-                    $price = is_numeric($faceValue) ? (float) $faceValue : 0;
-
-                    if ($discount > 0) {
-                        $price = $price - ($price * ($discount / 100));
-                    }
+                    $price = round((float) ($variant['discounted_price'] ?? $faceValue), 2, PHP_ROUND_HALF_DOWN);
 
                     $this->digitalProductRepository->createOrUpdate(
                         [
@@ -95,7 +95,7 @@ class SyncProducts
                             ],
                             'source' => 'api',
                             'last_synced_at' => now(),
-                            'is_active' => true,
+                            'is_active' => $isActive,
                             'in_stock' => true,
                         ]
                     );
