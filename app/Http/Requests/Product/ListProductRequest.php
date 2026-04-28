@@ -30,6 +30,7 @@ class ListProductRequest extends FormRequest
             'brand_id' => ['nullable', 'exists:brands,id'],
             'currency' => ['nullable', Rule::enum(Currency::class)],
             'status' => ['nullable', 'string', Rule::in(array_map(fn ($c) => $c->value, Lifecycle::cases()))],
+            'region' => ['nullable', 'string', 'max:255'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }
