@@ -47,6 +47,10 @@ class ProductRepository
             $query->where('currency', $filters['currency']);
         }
 
+        if (isset($filters['region'])) {
+            $query->whereJsonContains('regions', $filters['region']);
+        }
+
         $per_page = $filters['per_page'] ?? 10;
 
         return $query->orderBy('created_at', 'desc')->paginate($per_page);
@@ -197,5 +201,31 @@ class ProductRepository
     public function getProductsByBrandId(int $brandId): Collection
     {
         return Product::where('brand_id', $brandId)->get();
+    }
+
+    /**
+     * Get all unique regions from products with optional search filter.
+     *
+     * @return array<int, string>
+     */
+    public function getAllRegions(?string $search = null): array
+    {
+        $query = Product::query()
+            ->whereNotNull('regions')
+            ->where('regions', '!=', '[]')
+            ->pluck('regions');
+
+        // Flatten all regions from all products
+        $allRegions = $query->flatten()->unique()->filter()->values();
+
+        // Apply search filter if provided
+        if ($search) {
+            $allRegions = $allRegions->filter(function ($region) use ($search) {
+                return stripos($region, $search) !== false;
+            })->values();
+        }
+
+        // Sort alphabetically
+        return $allRegions->sort()->values()->all();
     }
 }

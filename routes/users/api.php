@@ -48,6 +48,7 @@ Route::middleware(['auth:supabase', 'user.approved'])->group(function () {
     });
 
     Route::prefix('/products')->group(function () {
+        Route::get('/regions', [ProductController::class, 'getRegions'])->middleware('permission:view_product');
         Route::get('', [ProductController::class, 'index'])->middleware('permission:view_product');
         Route::post('', [ProductController::class, 'store'])->middleware('permission:create_product');
         Route::post('/batch-import', [ProductController::class, 'batchImport'])->middleware('permission:create_product');
