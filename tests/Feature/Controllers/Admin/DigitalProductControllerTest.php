@@ -750,24 +750,24 @@ class DigitalProductControllerTest extends TestCase
             ->assertJsonValidationErrors(['products.0.selling_discount']);
     }
 
-    public function test_admin_create_digital_product_fails_with_negative_selling_discount(): void
+    public function test_admin_create_digital_product_with_negative_selling_discount_applies_markup(): void
     {
         $this->actingAs($this->admin);
 
         $supplier = Supplier::factory()->create();
 
-        // Test with negative selling_discount
+        // -10% discount means a 10% markup: face_value 100 * (1 - (-10/100)) = 110.00
         $data = [
             'products' => [
                 [
                     'supplier_id' => $supplier->id,
-                    'name' => 'Negative Discount Product',
-                    'sku' => 'SKU-NEGATIVEDISCOUNT-001',
+                    'name' => 'Markup Product',
+                    'sku' => 'SKU-MARKUP-001',
                     'brand' => 'Test Brand',
                     'face_value' => 100.00,
                     'cost_price' => 50.00,
                     'selling_price' => 100.00,
-                    'selling_discount' => -10,  // Invalid: negative
+                    'selling_discount' => -10,
                     'currency' => 'usd',
                 ],
             ],
@@ -775,8 +775,245 @@ class DigitalProductControllerTest extends TestCase
 
         $response = $this->postJson('/api/digital-products', $data);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['products.0.selling_discount']);
+        $response->assertStatus(201)
+            ->assertJson([
+                'error' => false,
+                'data' => [
+                    [
+                        'selling_price' => 110.00,
+                        'selling_discount' => -10,
+                    ],
+                ],
+            ]);
+
+        $this->assertDatabaseHas('digital_products', [
+            'sku' => 'SKU-MARKUP-001',
+            'selling_discount' => -10,
+            'selling_price' => 100.00,  // base stored price unchanged
+        ]);
+    }
+
+    public function test_positive_discount_reduces_selling_price_below_face_value(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create();
+
+        // 20% discount: 100 * (1 - 20/100) = 80.00
+        $data = [
+            'products' => [
+                [
+                    'supplier_id' => $supplier->id,
+                    'name' => 'Positive Discount Product',
+                    'sku' => 'SKU-POSDISCOUNT-001',
+                    'brand' => 'Test Brand',
+                    'face_value' => 100.00,
+                    'cost_price' => 50.00,
+                    'selling_price' => 100.00,
+                    'selling_discount' => 20,
+                    'currency' => 'usd',
+                ],
+            ],
+        ];
+
+        $response = $this->postJson('/api/digital-products', $data);
+
+        $response->assertStatus(201)
+            ->assertJson([
+                'error' => false,
+                'data' => [
+                    [
+                        'selling_price' => 80.00,
+                        'selling_discount' => 20,
+                    ],
+                ],
+            ]);
+    }
+
+    public function test_zero_discount_keeps_selling_price_equal_to_face_value(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create();
+
+        // 0% discount: 100 * (1 - 0/100) = 100.00
+        $data = [
+            'products' => [
+                [
+                    'supplier_id' => $supplier->id,
+                    'name' => 'Zero Discount Product',
+                    'sku' => 'SKU-ZERODISCOUNT-001',
+                    'brand' => 'Test Brand',
+                    'face_value' => 100.00,
+                    'cost_price' => 50.00,
+                    'selling_price' => 100.00,
+                    'selling_discount' => 0,
+                    'currency' => 'usd',
+                ],
+            ],
+        ];
+
+        $response = $this->postJson('/api/digital-products', $data);
+
+        $response->assertStatus(201)
+            ->assertJson([
+                'error' => false,
+                'data' => [
+                    [
+                        'selling_price' => 100.00,
+                        'selling_discount' => 0,
+                    ],
+                ],
+            ]);
+    }
+
+    public function test_negative_discount_markup_raises_selling_price_above_face_value(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create();
+
+        // -15% discount (15% markup): 100 * (1 - (-15)/100) = 115.00
+        $data = [
+            'products' => [
+                [
+                    'supplier_id' => $supplier->id,
+                    'name' => 'Negative Discount Markup Product',
+                    'sku' => 'SKU-NEG15-001',
+                    'brand' => 'Test Brand',
+                    'face_value' => 100.00,
+                    'cost_price' => 50.00,
+                    'selling_price' => 100.00,
+                    'selling_discount' => -15,
+                    'currency' => 'usd',
+                ],
+            ],
+        ];
+
+        $response = $this->postJson('/api/digital-products', $data);
+
+        $response->assertStatus(201)
+            ->assertJson([
+                'error' => false,
+                'data' => [
+                    [
+                        'selling_price' => 115.00,
+                        'selling_discount' => -15,
+                    ],
+                ],
+            ]);
+    }
+
+    public function test_update_digital_product_positive_discount(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create();
+        $digitalProduct = \App\Models\DigitalProduct::factory()->create([
+            'supplier_id' => $supplier->id,
+            'face_value' => 200.00,
+            'cost_price' => 100.00,
+            'selling_price' => 200.00,
+            'selling_discount' => 0,
+        ]);
+
+        // Apply 25% discount: 200 * (1 - 25/100) = 150.00
+        $response = $this->postJson("/api/digital-products/{$digitalProduct->id}", [
+            'selling_discount' => 25,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'error' => false,
+                'data' => [
+                    'selling_price' => 150.00,
+                    'selling_discount' => 25,
+                ],
+            ]);
+    }
+
+    public function test_update_digital_product_zero_discount(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create();
+        $digitalProduct = \App\Models\DigitalProduct::factory()->create([
+            'supplier_id' => $supplier->id,
+            'face_value' => 200.00,
+            'cost_price' => 100.00,
+            'selling_price' => 200.00,
+            'selling_discount' => 25,
+        ]);
+
+        // Remove discount (set to 0): 200 * (1 - 0/100) = 200.00
+        $response = $this->postJson("/api/digital-products/{$digitalProduct->id}", [
+            'selling_discount' => 0,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'error' => false,
+                'data' => [
+                    'selling_price' => 200.00,
+                    'selling_discount' => 0,
+                ],
+            ]);
+    }
+
+    public function test_update_digital_product_negative_discount_markup(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create();
+        $digitalProduct = \App\Models\DigitalProduct::factory()->create([
+            'supplier_id' => $supplier->id,
+            'face_value' => 200.00,
+            'cost_price' => 100.00,
+            'selling_price' => 200.00,
+            'selling_discount' => 0,
+        ]);
+
+        // Apply -10% (10% markup): 200 * (1 - (-10)/100) = 220.00
+        $response = $this->postJson("/api/digital-products/{$digitalProduct->id}", [
+            'selling_discount' => -10,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'error' => false,
+                'data' => [
+                    'selling_price' => 220.00,
+                    'selling_discount' => -10,
+                ],
+            ]);
+    }
+
+    public function test_update_digital_product_discount_to_max_markup_boundary(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create();
+        $digitalProduct = \App\Models\DigitalProduct::factory()->create([
+            'supplier_id' => $supplier->id,
+            'face_value' => 100.00,
+            'cost_price' => 50.00,
+            'selling_price' => 100.00,
+            'selling_discount' => 0,
+        ]);
+
+        // -100% discount = 100% markup: 100 * (1 - (-100)/100) = 200.00
+        $response = $this->postJson("/api/digital-products/{$digitalProduct->id}", [
+            'selling_discount' => -100,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'error' => false,
+                'data' => [
+                    'selling_price' => 200.00,
+                    'selling_discount' => -100,
+                ],
+            ]);
     }
 
     /**
