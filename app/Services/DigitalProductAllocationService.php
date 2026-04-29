@@ -15,7 +15,7 @@ class DigitalProductAllocationService
      * Allocate as many vouchers as possible for a sale order item.
      * Returns the number of vouchers actually allocated (may be < $quantity).
      */
-    public function allocate(SaleOrderItem $item, Product $product, int $quantity): int
+    public function allocate(SaleOrderItem $item, Product $product, int $quantity, ?int $saleOrderId = null): int
     {
         $digitalProduct = $product->digitalProduct();
 
@@ -30,7 +30,7 @@ class DigitalProductAllocationService
 
         try {
             $vouchers = $this->voucherAllocationService
-                ->getAvailableVouchersForDigitalProduct($digitalProduct->id);
+                ->getAvailableVouchersForDigitalProduct($digitalProduct->id, $saleOrderId);
 
             foreach ($vouchers as $voucher) {
                 if ($remaining <= 0) {

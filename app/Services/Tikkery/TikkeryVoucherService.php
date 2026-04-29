@@ -201,7 +201,7 @@ class TikkeryVoucherService
                 ->values()
                 ->all();
 
-            event(new NewVouchersAvailable($digitalProductIds));
+            event(new NewVouchersAvailable($digitalProductIds, $purchaseOrder->id, $purchaseOrder->sale_order_id));
         }
 
         return $vouchersAdded;

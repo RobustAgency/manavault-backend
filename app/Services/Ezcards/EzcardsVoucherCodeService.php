@@ -269,7 +269,7 @@ class EzcardsVoucherCodeService
         // Notify listeners that new vouchers are available so pending sale orders can be fulfilled
         if ($vouchersAdded > 0) {
             $digitalProductIds = $purchaseOrder->items->pluck('digital_product_id')->unique()->values()->all();
-            event(new NewVouchersAvailable($digitalProductIds));
+            event(new NewVouchersAvailable($digitalProductIds, $purchaseOrder->id, $purchaseOrder->id));
         }
 
         return $vouchersAdded;

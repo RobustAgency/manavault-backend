@@ -236,7 +236,7 @@ class IrewardifyVoucherService
 
         if ($vouchersAdded > 0) {
             $digitalProductIds = $purchaseOrder->items->pluck('digital_product_id')->unique()->values()->all();
-            event(new NewVouchersAvailable($digitalProductIds));
+            event(new NewVouchersAvailable($digitalProductIds, $purchaseOrder->id, $purchaseOrder->sale_order_id));
         }
 
         return $vouchersAdded;
