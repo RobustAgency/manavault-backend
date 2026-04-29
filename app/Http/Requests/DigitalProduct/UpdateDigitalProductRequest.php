@@ -34,7 +34,7 @@ class UpdateDigitalProductRequest extends FormRequest
             'cost_price' => ['sometimes', 'numeric', 'min:0'],
             'face_value' => ['sometimes', 'numeric', 'gt:0'],
             'selling_price' => ['sometimes', 'numeric', 'gt:0'],
-            'selling_discount' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:100'],
+            'selling_discount' => ['sometimes', 'nullable', 'numeric', 'max:100'],
             'currency' => ['sometimes', 'string', Rule::in(array_map(fn ($c) => $c->value, Currency::cases()))],
             'status' => ['sometimes', 'string', 'in:active,inactive'],
             'metadata' => ['sometimes', 'nullable', 'array'],
