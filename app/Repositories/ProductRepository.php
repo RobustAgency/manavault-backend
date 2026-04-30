@@ -204,28 +204,18 @@ class ProductRepository
     }
 
     /**
-     * Get all unique regions from products with optional search filter.
+     * Get all unique regions from products (database interaction only).
      *
-     * @return array<int, string>
+     * @return \Illuminate\Support\Collection<int, string>
      */
-    public function getAllRegions(?string $search = null): array
+    public function getAllRegions(): \Illuminate\Support\Collection
     {
         $query = Product::query()
             ->whereNotNull('regions')
             ->where('regions', '!=', '[]')
             ->pluck('regions');
 
-        // Flatten all regions from all products
-        $allRegions = $query->flatten()->unique()->filter()->values();
-
-        // Apply search filter if provided
-        if ($search) {
-            $allRegions = $allRegions->filter(function ($region) use ($search) {
-                return stripos($region, $search) !== false;
-            })->values();
-        }
-
-        // Sort alphabetically
-        return $allRegions->sort()->values()->all();
+        // Flatten all regions from all products and return unique values
+        return $query->flatten()->unique()->filter()->values();
     }
 }
