@@ -2,6 +2,7 @@
 
 namespace App\Services\PurchaseOrder;
 
+use App\Models\PurchaseOrder;
 use App\Models\Supplier;
 use App\Services\Ezcards\EzcardsPlaceOrderService;
 use App\Services\Giftery\GifteryPlaceOrderService;
@@ -15,7 +16,7 @@ class PurchaseOrderPlacementService
         private GifteryPlaceOrderService $gifteryPlaceOrderService,
     ) {}
 
-    public function placeOrder(Supplier $supplier, array $orderItems, string $orderNumber, string $currency): array
+    public function placeOrder(Supplier $supplier, array $orderItems, string $orderNumber, string $currency, PurchaseOrder $purchaseOrder): array
     {
         try {
             if ($supplier->slug === 'ez_cards') {
@@ -23,7 +24,9 @@ class PurchaseOrderPlacementService
             }
 
             if ($this->isGift2GamesSupplier($supplier)) {
-                return $this->gift2GamesPlaceOrderService->placeOrder($orderItems, $orderNumber, $supplier->slug);
+                $this->gift2GamesPlaceOrderService->placeOrder($orderItems, $orderNumber, $supplier->slug, $purchaseOrder);
+
+                return [];
             }
 
             if ($supplier->slug === 'giftery-api') {

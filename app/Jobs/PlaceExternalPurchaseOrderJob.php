@@ -56,6 +56,7 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
                 $this->purchaseOrderItems,
                 $this->orderNumber,
                 $this->currency,
+                $this->purchaseOrder,
             );
 
             $transactionId = $externalOrderResponse['transactionId'] ?? null;
