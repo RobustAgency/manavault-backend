@@ -24,6 +24,8 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
      */
     public int $tries = 3;
 
+    public int $timeout = 600;
+
     /**
      * The number of seconds to wait before retrying the job.
      *
