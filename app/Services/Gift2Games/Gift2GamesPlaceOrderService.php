@@ -2,13 +2,13 @@
 
 namespace App\Services\Gift2Games;
 
-use App\Events\NewVouchersAvailable;
-use App\Models\PurchaseOrder;
 use App\Models\Voucher;
-use App\Services\Voucher\VoucherCipherService;
+use App\Models\PurchaseOrder;
 use Illuminate\Support\Facades\Log;
+use App\Events\NewVouchersAvailable;
 use App\Actions\Gift2Games\CreateOrder;
 use App\Actions\Gift2Games\CheckBalance;
+use App\Services\Voucher\VoucherCipherService;
 
 class Gift2GamesPlaceOrderService
 {
