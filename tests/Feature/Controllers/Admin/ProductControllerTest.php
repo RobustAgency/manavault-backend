@@ -1074,6 +1074,132 @@ class ProductControllerTest extends TestCase
     }
 
     /**
+     * Test 1: Get all unique regions from products
+     */
+    public function test_get_all_regions_from_products(): void
+    {
+        $this->actingAs($this->admin);
+
+        // Create products with different regions (factory handles other fields)
+        Product::factory()->create(['regions' => ['US', 'CA']]);
+        Product::factory()->create(['regions' => ['EU', 'UK']]);
+        Product::factory()->create(['regions' => ['US', 'EU', 'AU']]);
+        Product::factory()->create(['regions' => ['JP', 'KR']]);
+
+        // Create a product with null regions (should be excluded)
+        Product::factory()->create(['regions' => null]);
+
+        // Create a product with empty regions array (should be excluded)
+        Product::factory()->create(['regions' => []]);
+
+        $response = $this->getJson('/api/products/regions');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'error',
+                'data',
+                'message',
+            ])
+            ->assertJson([
+                'error' => false,
+                'message' => 'Regions retrieved successfully.',
+            ]);
+
+        $regions = $response->json('data');
+
+        // Verify all unique regions are returned
+        $this->assertCount(7, $regions);
+
+        // Verify all expected regions are present (order doesn't matter)
+        $this->assertContains('AU', $regions);
+        $this->assertContains('CA', $regions);
+        $this->assertContains('EU', $regions);
+        $this->assertContains('JP', $regions);
+        $this->assertContains('KR', $regions);
+        $this->assertContains('UK', $regions);
+        $this->assertContains('US', $regions);
+    }
+
+    /**
+     * Test 3: Filter products by region parameter
+     */
+    public function test_filter_products_by_region(): void
+    {
+        $this->actingAs($this->admin);
+
+        // Create products with different regions (factory handles other fields)
+        Product::factory()->create([
+            'name' => 'US Product',
+            'regions' => ['US', 'CA'],
+        ]);
+
+        Product::factory()->create([
+            'name' => 'EU Product',
+            'regions' => ['EU', 'UK'],
+        ]);
+
+        Product::factory()->create([
+            'name' => 'Global Product',
+            'regions' => ['US', 'EU', 'AU'],
+        ]);
+
+        Product::factory()->create([
+            'name' => 'Asia Product',
+            'regions' => ['JP', 'KR'],
+        ]);
+
+        // Create a product without regions
+        Product::factory()->create([
+            'name' => 'No Region Product',
+            'regions' => null,
+        ]);
+
+        // Filter by US region
+        $response = $this->getJson('/api/products?region=US');
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'error' => false,
+                'message' => 'Products retrieved successfully.',
+            ]);
+
+        $products = $response->json('data');
+
+        // Should return only products containing "US" in regions
+        $this->assertCount(2, $products);
+
+        $productNames = array_column($products, 'name');
+        $this->assertContains('US Product', $productNames);
+        $this->assertContains('Global Product', $productNames);
+        $this->assertNotContains('EU Product', $productNames);
+        $this->assertNotContains('Asia Product', $productNames);
+        $this->assertNotContains('No Region Product', $productNames);
+
+        // Filter by EU region
+        $response2 = $this->getJson('/api/products?region=EU');
+
+        $products2 = $response2->json('data');
+        $this->assertCount(2, $products2);
+
+        $productNames2 = array_column($products2, 'name');
+        $this->assertContains('EU Product', $productNames2);
+        $this->assertContains('Global Product', $productNames2);
+
+        // Filter by JP region
+        $response3 = $this->getJson('/api/products?region=JP');
+
+        $products3 = $response3->json('data');
+        $this->assertCount(1, $products3);
+        $this->assertEquals('Asia Product', $products3[0]['name']);
+
+        // Filter by non-existent region
+        $response4 = $this->getJson('/api/products?region=XYZ');
+
+        $products4 = $response4->json('data');
+        $this->assertCount(0, $products4);
+    }
+
+    /**
      * Helper method to create a temporary file with specific content and extension
      */
     private function createTempFile(string $content, string $extension): string
