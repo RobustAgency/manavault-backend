@@ -249,4 +249,137 @@ class PurchaseOrderServiceTest extends TestCase
         // The external supplier job was dispatched (but not run)
         Queue::assertPushed(PlaceExternalPurchaseOrderJob::class, 1);
     }
+
+    /**
+     * Test: A purchase order created with a sale_order_id stores it correctly.
+     */
+    public function test_create_purchase_order_stores_sale_order_id(): void
+    {
+        Queue::fake();
+
+        $supplier = Supplier::factory()->create([
+            'name' => 'Internal Supplier',
+            'slug' => 'internal_supplier',
+            'type' => 'internal',
+        ]);
+
+        $digitalProduct = DigitalProduct::factory()->create([
+            'sku' => 'INT-SALE-001',
+            'cost_price' => 10.00,
+        ]);
+
+        $saleOrder = \App\Models\SaleOrder::factory()->create();
+
+        $data = [
+            'sale_order_id' => $saleOrder->id,
+            'items' => [
+                [
+                    'supplier_id' => $supplier->id,
+                    'digital_product_id' => $digitalProduct->id,
+                    'quantity' => 1,
+                ],
+            ],
+        ];
+
+        $purchaseOrder = $this->service->createPurchaseOrder($data);
+
+        $this->assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
+        $this->assertEquals($saleOrder->id, $purchaseOrder->sale_order_id);
+        $this->assertDatabaseHas('purchase_orders', [
+            'id' => $purchaseOrder->id,
+            'sale_order_id' => $saleOrder->id,
+        ]);
+    }
+
+    /**
+     * Test: A manually created purchase order (no sale_order_id) stores NULL.
+     */
+    public function test_manual_purchase_order_has_null_sale_order_id(): void
+    {
+        Queue::fake();
+
+        $supplier = Supplier::factory()->create([
+            'name' => 'Internal Supplier',
+            'slug' => 'internal_supplier',
+            'type' => 'internal',
+        ]);
+
+        $digitalProduct = DigitalProduct::factory()->create([
+            'sku' => 'INT-MANUAL-001',
+            'cost_price' => 10.00,
+        ]);
+
+        $data = [
+            'items' => [
+                [
+                    'supplier_id' => $supplier->id,
+                    'digital_product_id' => $digitalProduct->id,
+                    'quantity' => 1,
+                ],
+            ],
+        ];
+
+        $purchaseOrder = $this->service->createPurchaseOrder($data);
+
+        $this->assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
+        $this->assertNull($purchaseOrder->sale_order_id);
+        $this->assertDatabaseHas('purchase_orders', [
+            'id' => $purchaseOrder->id,
+            'sale_order_id' => null,
+        ]);
+    }
+
+    /**
+     * Test: createPurchaseOrderForDigitalProduct with a sale_order_id links the PO to the sale order.
+     */
+    public function test_create_purchase_order_for_digital_product_with_sale_order_id(): void
+    {
+        Queue::fake();
+
+        $supplier = Supplier::factory()->create([
+            'name' => 'Internal Supplier',
+            'slug' => 'internal_supplier',
+            'type' => 'internal',
+        ]);
+
+        $digitalProduct = DigitalProduct::factory()->forSupplier($supplier)->create([
+            'sku' => 'INT-DP-001',
+            'cost_price' => 5.00,
+        ]);
+
+        $saleOrder = \App\Models\SaleOrder::factory()->create();
+
+        $purchaseOrder = $this->service->createPurchaseOrderForDigitalProduct($digitalProduct, 2, $saleOrder->id);
+
+        $this->assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
+        $this->assertEquals($saleOrder->id, $purchaseOrder->sale_order_id);
+        $this->assertDatabaseHas('purchase_orders', [
+            'id' => $purchaseOrder->id,
+            'sale_order_id' => $saleOrder->id,
+        ]);
+    }
+
+    /**
+     * Test: createPurchaseOrderForDigitalProduct without sale_order_id stores NULL.
+     */
+    public function test_create_purchase_order_for_digital_product_without_sale_order_id(): void
+    {
+        Queue::fake();
+
+        $supplier = Supplier::factory()->create([
+            'name' => 'Internal Supplier',
+            'slug' => 'internal_supplier',
+            'type' => 'internal',
+        ]);
+
+        $digitalProduct = DigitalProduct::factory()->forSupplier($supplier)->create([
+            'sku' => 'INT-DP-002',
+            'cost_price' => 5.00,
+        ]);
+
+        $purchaseOrder = $this->service->createPurchaseOrderForDigitalProduct($digitalProduct, 2);
+
+        $this->assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
+        $this->assertNull($purchaseOrder->sale_order_id);
+    }
 }

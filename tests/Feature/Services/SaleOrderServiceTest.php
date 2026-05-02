@@ -630,4 +630,62 @@ class SaleOrderServiceTest extends TestCase
         $this->assertEquals(Status::PROCESSING->value, $saleOrder->status);
         Event::assertNotDispatched(SaleOrderCompleted::class);
     }
+
+    /**
+     * Test: Auto-created PO is linked to the originating sale order via sale_order_id.
+     */
+    public function test_auto_purchase_order_has_sale_order_id_when_shortfall_occurs(): void
+    {
+        Event::fake([SaleOrderCompleted::class]);
+
+        $supplier = Supplier::factory()->create([
+            'slug' => 'internal_supplier',
+            'type' => 'internal',
+        ]);
+        $product = Product::factory()->active()->create(['fulfillment_mode' => 'price']);
+        $digitalProduct = DigitalProduct::factory()->forSupplier($supplier)->create([
+            'sku' => 'INT-LINK-001',
+            'cost_price' => 10.00,
+            'selling_price' => 15.00,
+        ]);
+        $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
+
+        // No vouchers → full shortfall, auto-PO will be created
+        $saleOrder = $this->service->createOrder([
+            'order_number' => 'SO-LINK-001',
+            'items' => [['product_id' => $product->id, 'quantity' => 2]],
+        ]);
+
+        $autoPurchaseOrder = PurchaseOrder::where('sale_order_id', $saleOrder->id)->first();
+
+        $this->assertNotNull($autoPurchaseOrder, 'Auto-created PO should be linked to the sale order');
+        $this->assertEquals($saleOrder->id, $autoPurchaseOrder->sale_order_id);
+    }
+
+    /**
+     * Test: Manually created POs (outside sale order flow) have null sale_order_id.
+     */
+    public function test_manual_purchase_order_has_null_sale_order_id_in_sale_order_flow(): void
+    {
+        // Arrange: sufficient stock, no shortfall → no auto-PO created
+        $product = Product::factory()->active()->create(['fulfillment_mode' => 'price']);
+        $digitalProduct = DigitalProduct::factory()->create(['selling_price' => 10.00]);
+        $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
+
+        $purchaseOrder = PurchaseOrder::factory()->completed()->create();
+        $purchaseOrderItem = \App\Models\PurchaseOrderItem::factory()
+            ->forPurchaseOrder($purchaseOrder)
+            ->forDigitalProduct($digitalProduct)
+            ->withQuantity(3)
+            ->create();
+
+        \App\Models\Voucher::factory()->count(3)->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_item_id' => $purchaseOrderItem->id,
+            'status' => \App\Enums\VoucherCodeStatus::AVAILABLE->value,
+        ]);
+
+        // The pre-existing PO was created manually (no sale_order_id)
+        $this->assertNull($purchaseOrder->fresh()->sale_order_id);
+    }
 }

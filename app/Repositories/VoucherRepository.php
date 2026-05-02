@@ -54,9 +54,9 @@ class VoucherRepository
     /**
      * @return Collection<int, \App\Models\Voucher>
      */
-    public function getAvailableVouchersForDigitalProduct(int $digitalProductId): Collection
+    public function getAvailableVouchersForDigitalProduct(int $digitalProductId, ?int $saleOrderId = null): Collection
     {
-        $vouchers = $this->availableVouchersQuery($digitalProductId)
+        $vouchers = $this->availableVouchersQuery($digitalProductId, $saleOrderId)
             ->orderBy('created_at')
             ->lockForUpdate()
             ->get();
@@ -70,9 +70,9 @@ class VoucherRepository
     /**
      * Get available quantity (count of unallocated vouchers) for a digital product.
      */
-    public function getAvailableQuantity(int $digitalProductId): int
+    public function getAvailableQuantity(int $digitalProductId, ?int $saleOrderId = null): int
     {
-        return $this->availableVouchersQuery($digitalProductId)->count();
+        return $this->availableVouchersQuery($digitalProductId, $saleOrderId)->count();
     }
 
     public function updateVoucherStatus(int $voucherId, string $status): void
@@ -87,12 +87,20 @@ class VoucherRepository
      *
      * @return Builder<Voucher>
      */
-    private function availableVouchersQuery(int $digitalProductId): Builder
+    private function availableVouchersQuery(int $digitalProductId, ?int $saleOrderId = null): Builder
     {
-        return Voucher::query()
+        $query = Voucher::query()
             ->where('status', VoucherCodeStatus::AVAILABLE->value)
             ->whereHas('purchaseOrderItem', function ($q) use ($digitalProductId) {
                 $q->where('digital_product_id', $digitalProductId);
             });
+
+        if ($saleOrderId !== null) {
+            $query->whereHas('purchaseOrder', function ($q) use ($saleOrderId) {
+                $q->where('sale_order_id', $saleOrderId);
+            });
+        }
+
+        return $query;
     }
 }

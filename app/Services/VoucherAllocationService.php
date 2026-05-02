@@ -21,17 +21,17 @@ class VoucherAllocationService
      *
      * @throws \Exception If insufficient vouchers available
      */
-    public function getAvailableVouchersForDigitalProduct(int $digitalProductId): Collection
+    public function getAvailableVouchersForDigitalProduct(int $digitalProductId, ?int $saleOrderId = null): Collection
     {
-        return $this->voucherRepository->getAvailableVouchersForDigitalProduct($digitalProductId);
+        return $this->voucherRepository->getAvailableVouchersForDigitalProduct($digitalProductId, $saleOrderId);
     }
 
     /**
      * Get available quantity (count of unallocated vouchers) for a digital product.
      */
-    public function getAvailableQuantity(int $digitalProductId): int
+    public function getAvailableQuantity(int $digitalProductId, ?int $saleOrderId = null): int
     {
-        return $this->voucherRepository->getAvailableQuantity($digitalProductId);
+        return $this->voucherRepository->getAvailableQuantity($digitalProductId, $saleOrderId);
     }
 
     public function allocateVoucher(int $saleOrderItemId, DigitalProduct $digitalProduct, Voucher $voucher): void

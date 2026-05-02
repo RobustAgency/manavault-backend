@@ -33,7 +33,7 @@ class SaleOrderService
         try {
             $this->validateProductsAndDigitalStock($data['items']);
 
-            $this->triggerAutoPurchaseOrdersIfNeeded($data['items']);
+            $this->triggerAutoPurchaseOrdersIfNeeded($data['items'], $saleOrder->id);
 
             $totalPrice = 0;
             $fullyAllocated = true;
@@ -99,7 +99,7 @@ class SaleOrderService
     /**
      * For items where stock is short, dispatch auto-POs via eligible external suppliers.
      */
-    private function triggerAutoPurchaseOrdersIfNeeded(array $items): void
+    private function triggerAutoPurchaseOrdersIfNeeded(array $items, int $saleOrderId): void
     {
         foreach ($items as $itemData) {
             $product = $this->productRepository->getProductById($itemData['product_id']);
@@ -109,7 +109,7 @@ class SaleOrderService
 
             if ($totalAvailable < $quantity) {
                 $shortfall = $quantity - $totalAvailable;
-                $this->autoPurchaseOrderService->handleShortfall($digitalProduct, $shortfall);
+                $this->autoPurchaseOrderService->handleShortfall($digitalProduct, $shortfall, $saleOrderId);
             }
         }
     }

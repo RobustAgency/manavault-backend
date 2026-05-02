@@ -11,24 +11,36 @@ use App\Events\NewVouchersAvailable;
 use App\Repositories\SaleOrderRepository;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Services\DigitalProductAllocationService;
+use App\Services\ManualPurchaseOrderStockService;
 
-class ProcessPendingSaleOrders implements ShouldQueue
+class ProcessVoucherCodes implements ShouldQueue
 {
     public function __construct(
-        private DigitalProductAllocationService $digitalProductAllocationService,
         private SaleOrderRepository $saleOrderRepository,
+        private DigitalProductAllocationService $digitalProductAllocationService,
+        private ManualPurchaseOrderStockService $manualPurchaseOrderStockService,
     ) {}
 
     public function handle(NewVouchersAvailable $event): void
     {
+        logger()->info('ProcessVoucherCodes: handling NewVouchersAvailable event', [
+            'sale_order_id' => $event->saleOrderId,
+            'purchase_order_id' => $event->purchaseOrderId,
+            'event' => $event,
+        ]);
         $digitalProductIds = $event->digitalProductIds;
         Log::info('FulfillPendingSaleOrders: triggered with new vouchers for digital products', [
             'digital_product_ids' => $digitalProductIds,
         ]);
-        $pendingOrders = $this->saleOrderRepository->getPendingSaleOrdersForDigitalProducts($digitalProductIds);
 
-        foreach ($pendingOrders as $saleOrder) {
-            $this->processSaleOrder($saleOrder);
+        if ($event->saleOrderId !== null) {
+            $saleOrder = $this->saleOrderRepository->getSaleOrderById($event->saleOrderId);
+            if ($saleOrder->status === Status::PROCESSING->value) {
+                $this->processSaleOrder($saleOrder);
+            }
+        } else {
+            // process purchase order without sale order id
+            $this->manualPurchaseOrderStockService->processPurchaseOrderStock($event->purchaseOrderId);
         }
     }
 
@@ -47,7 +59,7 @@ class ProcessPendingSaleOrders implements ShouldQueue
                 }
 
                 $product = $item->product;
-                $allocated = $this->digitalProductAllocationService->allocate($item, $product, $remaining);
+                $allocated = $this->digitalProductAllocationService->allocate($item, $product, $remaining, $saleOrder->id);
 
                 if ($allocated < $remaining) {
                     $fullyAllocated = false;
