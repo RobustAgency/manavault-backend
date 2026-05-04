@@ -1121,6 +1121,42 @@ class ProductControllerTest extends TestCase
     }
 
     /**
+     * Test 2: Search regions by keyword
+     */
+    public function test_get_regions_with_search(): void
+    {
+        $this->actingAs($this->admin);
+
+        Product::factory()->create(['regions' => ['US', 'CA']]);
+        Product::factory()->create(['regions' => ['EU', 'UK']]);
+        Product::factory()->create(['regions' => ['US', 'EU', 'AU']]);
+        Product::factory()->create(['regions' => ['JP', 'KR']]);
+
+        $response = $this->getJson('/api/products/regions?search=US');
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'error' => false,
+                'message' => 'Regions retrieved successfully.',
+            ]);
+
+        $regions = $response->json('data');
+
+        $this->assertCount(1, $regions);
+
+        // Search that matches nothing
+        $emptyResponse = $this->getJson('/api/products/regions?search=XYZ');
+
+        $emptyResponse->assertStatus(200);
+        $this->assertCount(0, $emptyResponse->json('data'));
+
+        // Invalid search (too long) should fail validation
+        $invalidResponse = $this->getJson('/api/products/regions?search='.str_repeat('a', 256));
+
+        $invalidResponse->assertStatus(422);
+    }
+
+    /**
      * Test 3: Filter products by region parameter
      */
     public function test_filter_products_by_region(): void

@@ -22,8 +22,7 @@ class GetRegionsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'search' => ['nullable', 'string', 'max:255'],
+            'search' => ['nullable', 'string', 'min:2', 'max:255'],
         ];
     }
 }
-
