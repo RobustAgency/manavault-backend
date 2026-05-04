@@ -16,9 +16,9 @@ class DatabaseSeeder extends Seeder
             EzCardSupplierSeeder::class,
             Gift2GamesSupplierSeeder::class,
             GifterySupplierSeeder::class,
-            TikkerySupplierSeeder::class,
+            // TikkerySupplierSeeder::class,
             PermissionSeeder::class,
-            IrewardifySupplierSeeder::class,
+            // IrewardifySupplierSeeder::class,
         ]);
     }
 }

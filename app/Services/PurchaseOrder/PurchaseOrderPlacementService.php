@@ -37,10 +37,6 @@ class PurchaseOrderPlacementService
                 return $this->irewardifyPlaceOrderService->placeOrder($orderItems, $orderNumber);
             }
 
-            if ($supplier->slug === 'irewardify') {
-                return $this->irewardifyPlaceOrderService->placeOrder($orderItems, $orderNumber);
-            }
-
             if ($supplier->slug === 'giftery-api') {
                 return $this->gifteryPlaceOrderService->placeOrder($orderItems, $orderNumber);
             }
