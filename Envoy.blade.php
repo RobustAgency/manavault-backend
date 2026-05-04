@@ -29,10 +29,10 @@
 @endtask
 
 @task('writeable')
-    echo 'make bootstrap/cache writeable ...'
+    echo 'make storage and bootstrap/cache writeable ...'
     cd {{ $new_release_dir }}
-    chgrp -R www-data bootstrap/cache
-    chmod -R g+w bootstrap/cache
+    chgrp -R www-data storage bootstrap/cache
+    chmod -R ug+rwX storage bootstrap/cache
 @endtask
 
 @task('migrate')
