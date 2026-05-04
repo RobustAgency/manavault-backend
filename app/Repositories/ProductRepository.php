@@ -8,6 +8,7 @@ use App\Services\ImageUploadService;
 use App\Enums\PriceRuleCondition\Operator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection as BaseCollection;
 
 class ProductRepository
 {
@@ -206,16 +207,13 @@ class ProductRepository
     /**
      * Get all unique regions from products (database interaction only).
      *
-     * @return \Illuminate\Support\Collection<int, string>
+     * @return BaseCollection<int, string>
      */
-    public function getAllRegions(): \Illuminate\Support\Collection
+    public function getAllProductsRegions(): BaseCollection
     {
-        $query = Product::query()
+        return Product::query()
             ->whereNotNull('regions')
             ->where('regions', '!=', '[]')
             ->pluck('regions');
-
-        // Flatten all regions from all products and return unique values
-        return $query->flatten()->unique()->filter()->values();
     }
 }

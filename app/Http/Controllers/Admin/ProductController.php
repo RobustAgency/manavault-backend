@@ -8,9 +8,11 @@ use App\Events\AssignDigitalProduct;
 use App\Http\Controllers\Controller;
 use App\Enums\Product\FulfillmentMode;
 use App\Services\ProductImportService;
+use App\Services\ProductRegionService;
 use App\Http\Resources\ProductResource;
 use App\Repositories\ProductRepository;
 use App\Events\DigitalProductPriorityChange;
+use App\Http\Requests\Product\GetRegionsRequest;
 use App\Http\Requests\Product\ListProductRequest;
 use App\Http\Requests\Product\StoreProductRequest;
 use App\Http\Requests\Product\UpdateProductRequest;
@@ -23,6 +25,7 @@ class ProductController extends Controller
     public function __construct(
         private ProductRepository $repository,
         private ProductImportService $importService,
+        private ProductRegionService $regionService,
     ) {}
 
     public function index(ListProductRequest $request): JsonResponse
@@ -160,10 +163,9 @@ class ProductController extends Controller
     /**
      * Get all unique regions from products with optional search.
      */
-    public function getRegions(): JsonResponse
+    public function getRegions(GetRegionsRequest $request): JsonResponse
     {
-        $search = request()->query('search');
-        $regions = $this->repository->getAllRegions($search);
+        $regions = $this->regionService->getUniqueRegions($request->validated('search'));
 
         return response()->json([
             'error' => false,
