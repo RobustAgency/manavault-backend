@@ -24,6 +24,8 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
      */
     public int $tries = 3;
 
+    public int $timeout = 600;
+
     /**
      * The number of seconds to wait before retrying the job.
      *
@@ -56,6 +58,7 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
                 $this->purchaseOrderItems,
                 $this->orderNumber,
                 $this->currency,
+                $this->purchaseOrder,
             );
 
             $transactionId = $externalOrderResponse['transactionId'] ?? null;
