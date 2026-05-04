@@ -156,4 +156,19 @@ class ProductController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get all unique regions from products with optional search.
+     */
+    public function getRegions(): JsonResponse
+    {
+        $search = request()->query('search');
+        $regions = $this->repository->getAllRegions($search);
+
+        return response()->json([
+            'error' => false,
+            'data' => $regions,
+            'message' => 'Regions retrieved successfully.',
+        ]);
+    }
 }
