@@ -13,13 +13,11 @@ use App\Enums\PurchaseOrderSupplierStatus;
 use App\Jobs\PlaceExternalPurchaseOrderJob;
 use App\Repositories\PurchaseOrderRepository;
 use App\Services\PurchaseOrder\GroupBySupplierIdService;
-use App\Services\PurchaseOrder\PurchaseOrderStatusService;
 
 class PurchaseOrderService
 {
     public function __construct(
         private GroupBySupplierIdService $groupBySupplierIdService,
-        private PurchaseOrderStatusService $purchaseOrderStatusService,
         private PurchaseOrderRepository $purchaseOrderRepository,
     ) {}
 
@@ -47,8 +45,6 @@ class PurchaseOrderService
 
                 $this->processSupplierItems($purchaseOrder, $supplier, $items, $orderNumber, $currency);
             }
-
-            $this->purchaseOrderStatusService->updateStatus($purchaseOrder);
 
             DB::commit();
 
