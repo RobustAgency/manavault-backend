@@ -17,21 +17,31 @@ class VoucherAllocationService
     ) {}
 
     /**
-     * @return Collection<int, Voucher>
+     * Vouchers from purchase orders that have no sale order attached (general stock).
      *
-     * @throws \Exception If insufficient vouchers available
+     * @return Collection<int, Voucher>
      */
-    public function getAvailableVouchersForDigitalProduct(int $digitalProductId, ?int $saleOrderId = null): Collection
+    public function getAvailableVouchers(int $digitalProductId): Collection
     {
-        return $this->voucherRepository->getAvailableVouchersForDigitalProduct($digitalProductId, $saleOrderId);
+        return $this->voucherRepository->getAvailableVouchers($digitalProductId);
     }
 
     /**
-     * Get available quantity (count of unallocated vouchers) for a digital product.
+     * Vouchers from purchase orders that belong to the given sale order.
+     *
+     * @return Collection<int, Voucher>
      */
-    public function getAvailableQuantity(int $digitalProductId, ?int $saleOrderId = null): int
+    public function getAvailableVouchersForSaleOrder(int $digitalProductId, int $saleOrderId): Collection
     {
-        return $this->voucherRepository->getAvailableQuantity($digitalProductId, $saleOrderId);
+        return $this->voucherRepository->getAvailableVouchersForSaleOrder($digitalProductId, $saleOrderId);
+    }
+
+    /**
+     * Get count of unallocated vouchers (general stock only) for a digital product.
+     */
+    public function getAvailableQuantity(int $digitalProductId): int
+    {
+        return $this->voucherRepository->getAvailableVouchersCount($digitalProductId);
     }
 
     public function allocateVoucher(int $saleOrderItemId, DigitalProduct $digitalProduct, Voucher $voucher): void

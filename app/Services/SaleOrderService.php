@@ -31,8 +31,6 @@ class SaleOrderService
         logger()->info("Creating sale order with ID: {$saleOrder->id} and order number: {$saleOrder->order_number}");
 
         try {
-            $this->validateProductsAndDigitalStock($data['items']);
-
             $this->triggerAutoPurchaseOrdersIfNeeded($data['items'], $saleOrder->id);
 
             $totalPrice = 0;
@@ -55,7 +53,7 @@ class SaleOrderService
                     'subtotal' => $subtotal,
                 ]);
 
-                $allocated = $this->digitalProductAllocationService->allocate($item, $product, $quantity);
+                $allocated = $this->digitalProductAllocationService->allocateFromGeneralStock($item, $product, $quantity);
 
                 if ($allocated < $quantity) {
                     $fullyAllocated = false;
@@ -80,19 +78,6 @@ class SaleOrderService
             logger()->error("Error processing sale order ID: {$saleOrder->id} - {$e->getMessage()}");
 
             return $saleOrder;
-        }
-    }
-
-    /**
-     * Validate products have digital products assigned
-     */
-    private function validateProductsAndDigitalStock(array $items): void
-    {
-        foreach ($items as $itemData) {
-            $product = $this->productRepository->getProductById($itemData['product_id']);
-            if ($product->digitalProducts->isEmpty()) {
-                throw new \Exception("Product {$product->name} has no digital products assigned.");
-            }
         }
     }
 
