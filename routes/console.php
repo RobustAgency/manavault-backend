@@ -21,7 +21,7 @@ Schedule::command(SyncEzCardsProductsCommand::class)
     ->runInBackground();
 
 Schedule::command(AddVoucherCodeForEZCardsCommand::class)
-    ->everyFifteenMinutes()
+    ->everyMinute()
     ->withoutOverlapping()
     ->runInBackground();
 
@@ -31,7 +31,7 @@ Schedule::command(SyncIrewardifyProductsCommand::class)
     ->runInBackground();
 
 Schedule::command(FetchIrewardifyVouchersCommand::class)
-    ->everyFifteenMinutes()
+    ->everyMinute()
     ->withoutOverlapping()
     ->runInBackground();
 
@@ -46,11 +46,6 @@ Schedule::command(SyncTikkeryProductsCommand::class)
     ->runInBackground();
 
 Schedule::command(FetchTikkeryVouchersCommand::class)
-    ->everyFifteenMinutes()
-    ->withoutOverlapping()
-    ->runInBackground();
-
-Schedule::command(SyncGift2GamesProductsCommand::class)
-    ->hourly()
+    ->everyMinute()
     ->withoutOverlapping()
     ->runInBackground();
