@@ -27,6 +27,7 @@ class VoucherResource extends JsonResource
             'status' => $this->status,
             'pin_code' => $this->pin_code,
             'stock_id' => $this->stock_id,
+            'expires_at' => $this->expires_at?->toISOString(),
             'created_at' => $this->created_at->toDateTimeString(),
             'updated_at' => $this->updated_at->toDateTimeString(),
         ];

@@ -24,6 +24,7 @@ class SyncDigitalProduct
         $supplier = Supplier::where('slug', 'ez_cards')->firstOrFail();
 
         $page = 1;
+        $syncedSkus = [];
 
         do {
             $response = $this->getProducts->execute($this->pageSize, $page);
@@ -35,13 +36,19 @@ class SyncDigitalProduct
                 break;
             }
 
-            $this->syncBatch($supplier, $items);
+            $this->syncBatch($supplier, $items, $syncedSkus);
 
             $page++;
         } while ($page <= $totalPage);
+
+        $deactivated = $this->digitalProductRepository->deactivateStaleBySupplierId($supplier->id, $syncedSkus);
+
+        if ($deactivated > 0) {
+            Log::info("EZ Cards sync: deactivated {$deactivated} removed product(s) for supplier: {$supplier->slug}");
+        }
     }
 
-    private function syncBatch(Supplier $supplier, array $items): void
+    private function syncBatch(Supplier $supplier, array $items, array &$syncedSkus): void
     {
         foreach ($items as $item) {
             try {
@@ -62,8 +69,11 @@ class SyncDigitalProduct
                         'metadata' => $item,
                         'source' => 'api',
                         'last_synced_at' => now(),
+                        'is_active' => true,
                     ]
                 );
+
+                $syncedSkus[] = $item['sku'];
 
             } catch (\Throwable $e) {
                 Log::error("Failed syncing SKU {$item['sku']}: {$e->getMessage()}");

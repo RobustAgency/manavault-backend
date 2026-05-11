@@ -24,6 +24,7 @@ class VoucherFactory extends Factory
             'status' => 'COMPLETED',
             'pin_code' => $this->faker->numerify('####'),
             'stock_id' => $this->faker->numberBetween(1, 1000),
+            'expires_at' => $this->faker->optional()->dateTimeBetween('now', '+3 years'),
         ];
     }
 

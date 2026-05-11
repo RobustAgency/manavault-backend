@@ -21,6 +21,11 @@ class Voucher extends Model
         'status',
         'pin_code',
         'stock_id',
+        'expires_at',
+    ];
+
+    protected $casts = [
+        'expires_at' => 'datetime',
     ];
 
     /**

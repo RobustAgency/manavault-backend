@@ -29,6 +29,7 @@ class ListDigitalStockRequest extends FormRequest
             'name' => ['sometimes', 'string', 'max:255'],
             'stock' => ['sometimes', Rule::enum(Stock::class)],
             'brand' => ['sometimes', 'string', 'max:255'],
+            'region' => ['sometimes', 'string', 'max:255'],
         ];
     }
 }

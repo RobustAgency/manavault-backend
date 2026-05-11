@@ -10,6 +10,7 @@ use App\Enums\PurchaseOrderSupplierStatus;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Services\Giftery\GifteryVoucherService;
+use App\Services\Tikkery\TikkeryVoucherService;
 use App\Services\Gift2Games\Gift2GamesVoucherService;
 use App\Services\PurchaseOrder\PurchaseOrderStatusService;
 use App\Services\PurchaseOrder\PurchaseOrderPlacementService;
@@ -45,6 +46,7 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
         PurchaseOrderPlacementService $purchaseOrderPlacementService,
         Gift2GamesVoucherService $gift2GamesVoucherService,
         GifteryVoucherService $gifteryVoucherService,
+        TikkeryVoucherService $tikkeryVoucherService,
         PurchaseOrderStatusService $purchaseOrderStatusService,
     ): void {
         $externalOrderResponse = [];
@@ -56,6 +58,7 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
                 $this->purchaseOrderItems,
                 $this->orderNumber,
                 $this->currency,
+                $this->purchaseOrder,
             );
 
             $transactionId = $externalOrderResponse['transactionId'] ?? null;
@@ -97,6 +100,27 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
                 'purchase_order_id' => $this->purchaseOrder->id,
                 'transaction_id' => $transactionId,
             ]);
+        } elseif ($this->supplier->slug === 'irewardify') {
+            Log::info('Irewardify order created, vouchers will be fetched separately via orderId', [
+                'purchase_order_id' => $this->purchaseOrder->id,
+                'order_id' => $transactionId,
+            ]);
+
+        } elseif ($this->supplier->slug === 'tikkery') {
+
+            $isCompleted = (bool) ($externalOrderResponse['isCompleted'] ?? false);
+
+            if ($isCompleted && ! empty($externalOrderResponse['codes'])) {
+                $tikkeryVoucherService->storeVouchers($this->purchaseOrder, $externalOrderResponse);
+                $this->purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
+            } else {
+                // Order is pending — vouchers will be fetched by the scheduled poller
+                Log::info('Tikkery order is pending, vouchers will be fetched separately', [
+                    'purchase_order_id' => $this->purchaseOrder->id,
+                    'transaction_id' => $transactionId,
+                ]);
+            }
+
         }
 
         $purchaseOrderStatusService->updateStatus($this->purchaseOrder->refresh());
