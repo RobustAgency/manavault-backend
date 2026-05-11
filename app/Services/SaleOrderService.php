@@ -24,9 +24,7 @@ class SaleOrderService
             'order_number' => $data['order_number'],
             'source' => SaleOrder::MANASTORE,
             'currency' => $data['currency'],
-            'subtotal' => $data['subtotal'],
             'conversion_fees' => $data['conversion_fees'],
-            'total' => $data['total'],
             'total_price' => $data['total'] / 100, // we are getting total price in cents
             'status' => Status::PENDING->value,
         ]);
