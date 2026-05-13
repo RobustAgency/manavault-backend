@@ -6,14 +6,17 @@ use App\Models\SaleOrder;
 use Illuminate\Http\JsonResponse;
 use App\Services\SaleOrderService;
 use App\Http\Controllers\Controller;
+use App\Repositories\SaleOrderRepository;
 use App\Http\Requests\SaleOrder\StoreSaleOrderRequest;
 use App\Http\Resources\ManaStore\V1\SaleOrderResource;
 use App\Http\Resources\ManaStore\V1\VoucherCodesResource;
+use App\Http\Resources\ManaStore\V1\SaleOrderDetailResource;
 
 class SaleOrderController extends Controller
 {
     public function __construct(
         private SaleOrderService $saleOrderService,
+        private SaleOrderRepository $saleOrderRepository,
     ) {}
 
     /**
@@ -32,6 +35,36 @@ class SaleOrderController extends Controller
             ], 201);
         } catch (\Exception $e) {
             logger()->error('Failed to create sale order', ['error' => $e->getMessage()]);
+
+            return response()->json([
+                'error' => true,
+                'message' => $e->getMessage(),
+            ], 400);
+        }
+    }
+
+    /**
+     * Get details of a sale order.
+     */
+    public function show(int $orderNumber): JsonResponse
+    {
+        try {
+            $saleOrder = $this->saleOrderRepository->getSaleOrderByOrderNumber($orderNumber);
+
+            if (! $saleOrder) {
+                return response()->json([
+                    'error' => true,
+                    'message' => "Sale order with order number {$orderNumber} not found.",
+                ], 404);
+            }
+
+            return response()->json([
+                'error' => false,
+                'message' => 'Sale order retrieved successfully.',
+                'data' => new SaleOrderDetailResource($saleOrder),
+            ], 200);
+        } catch (\Exception $e) {
+            logger()->error('Failed to retrieve sale order', ['error' => $e->getMessage()]);
 
             return response()->json([
                 'error' => true,
