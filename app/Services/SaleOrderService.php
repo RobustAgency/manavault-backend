@@ -20,15 +20,28 @@ class SaleOrderService
 
     public function createOrder(array $data): SaleOrder
     {
+        $existing = $this->saleOrderRepository->getSaleOrderByOrderNumber($data['order_number']);
 
-        $saleOrder = $this->saleOrderRepository->createSaleOrder([
-            'order_number' => $data['order_number'],
-            'source' => SaleOrder::MANASTORE,
-            'total_price' => 0,
-            'status' => Status::PENDING->value,
-        ]);
+        if ($existing) {
+            if ($existing->items()->exists()) {
+                logger()->info("Resync skipped for order {$existing->order_number}: items already exist.");
 
-        logger()->info("Creating sale order with ID: {$saleOrder->id} and order number: {$saleOrder->order_number}");
+                return $existing->load(['items.digitalProducts']);
+            }
+
+            logger()->info("Resyncing sale order ID: {$existing->id} (order number: {$existing->order_number}) — no items found, reprocessing.");
+            $saleOrder = $existing;
+            $saleOrder->update(['status' => Status::PENDING->value]);
+        } else {
+            $saleOrder = $this->saleOrderRepository->createSaleOrder([
+                'order_number' => $data['order_number'],
+                'source' => SaleOrder::MANASTORE,
+                'total_price' => 0,
+                'status' => Status::PENDING->value,
+            ]);
+
+            logger()->info("Creating sale order with ID: {$saleOrder->id} and order number: {$saleOrder->order_number}");
+        }
 
         try {
             $this->validateProductsAndDigitalStock($data['items']);
