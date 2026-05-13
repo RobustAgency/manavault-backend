@@ -20,7 +20,7 @@ class StoreSaleOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'order_number' => ['required', 'string', 'max:255', 'unique:sale_orders,order_number'],
+            'order_number' => ['required', 'string', 'max:255'],
             'source' => ['nullable', 'string', 'max:255'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
