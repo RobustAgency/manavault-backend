@@ -24,8 +24,9 @@ class SaleOrderService
             'order_number' => $data['order_number'],
             'source' => SaleOrder::MANASTORE,
             'currency' => $data['currency'],
+            'subtotal' => $data['subtotal'],
             'conversion_fees' => $data['conversion_fees'],
-            'total_price' => $data['total'] / 100, // we are getting total price in cents
+            'total_price' => $data['total'],
             'status' => Status::PENDING->value,
         ]);
 
@@ -52,16 +53,13 @@ class SaleOrderService
 
                 $item = $saleOrder->items()->create([
                     'product_id' => $product->id,
+                    'product_name' => $itemData['product_name'] ?? $product->name,
                     'quantity' => $quantity,
-                    'unit_price' => $itemData['price'] / 100,
-                    'subtotal' => $itemData['total_price'] / 100,
-                    'price' => $itemData['price'],
-                    'purchase_price' => $itemData['purchase_price'],
+                    'unit_price' => $itemData['price'],
+                    'subtotal' => $itemData['total_price'],
                     'conversion_fee' => $itemData['conversion_fee'],
-                    'total_price' => $itemData['total_price'],
                     'discount_amount' => $itemData['discount_amount'],
                     'currency' => $itemData['currency'],
-                    'status' => 'pending',
                 ]);
 
                 $allocated = $this->digitalProductAllocationService->allocate($item, $product, $quantity);

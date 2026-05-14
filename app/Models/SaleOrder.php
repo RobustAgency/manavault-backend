@@ -20,7 +20,6 @@ class SaleOrder extends Model
         'total_price',
         'subtotal',
         'conversion_fees',
-        'total',
         'status',
     ];
 
@@ -28,7 +27,6 @@ class SaleOrder extends Model
         'total_price' => 'decimal:2',
         'subtotal' => 'integer',
         'conversion_fees' => 'integer',
-        'total' => 'integer',
     ];
 
     /**

@@ -30,10 +30,6 @@ class SaleOrderResource extends JsonResource
                 'amount' => (string) $this->conversion_fees,
                 'currency' => $this->currency,
             ],
-            'total' => [
-                'amount' => (string) $this->total,
-                'currency' => $this->currency,
-            ],
             'total_price' => $this->total_price,
             'status' => $this->status,
             'created_at' => $this->created_at->toDateTimeString(),

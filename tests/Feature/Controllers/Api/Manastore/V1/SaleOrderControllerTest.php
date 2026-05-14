@@ -88,6 +88,9 @@ class SaleOrderControllerTest extends TestCase
                     'id',
                     'order_number',
                     'source',
+                    'currency',
+                    'subtotal' => ['amount', 'currency'],
+                    'conversion_fees' => ['amount', 'currency'],
                     'total_price',
                     'status',
                 ],
@@ -96,6 +99,16 @@ class SaleOrderControllerTest extends TestCase
         $this->assertDatabaseHas('sale_orders', [
             'order_number' => 'SO-2026-000001',
             'source' => 'manastore',
+            'currency' => 'USD',
+            'subtotal' => 50000,
+            'conversion_fees' => 0,
+        ]);
+
+        $this->assertDatabaseHas('sale_order_items', [
+            'product_id' => $product->id,
+            'product_name' => 'Test Product',
+            'quantity' => 5,
+            'currency' => 'USD',
         ]);
     }
 
@@ -524,7 +537,7 @@ class SaleOrderControllerTest extends TestCase
         ]);
 
         // Create completed vouchers
-        $vouchers = Voucher::factory()->count(3)->create([
+        Voucher::factory()->count(3)->create([
             'purchase_order_id' => $purchaseOrder->id,
             'purchase_order_item_id' => $purchaseOrderItem->id,
             'status' => VoucherCodeStatus::AVAILABLE->value,
@@ -642,7 +655,7 @@ class SaleOrderControllerTest extends TestCase
         ]);
 
         // Create completed vouchers for product1
-        $vouchers1 = Voucher::factory()->count(3)->create([
+        Voucher::factory()->count(3)->create([
             'purchase_order_id' => $purchaseOrder1->id,
             'purchase_order_item_id' => $purchaseOrderItem1->id,
             'status' => VoucherCodeStatus::AVAILABLE->value,
@@ -664,7 +677,7 @@ class SaleOrderControllerTest extends TestCase
         ]);
 
         // Create completed vouchers for product2
-        $vouchers2 = Voucher::factory()->count(2)->create([
+        Voucher::factory()->count(2)->create([
             'purchase_order_id' => $purchaseOrder2->id,
             'purchase_order_item_id' => $purchaseOrderItem2->id,
             'status' => VoucherCodeStatus::AVAILABLE->value,

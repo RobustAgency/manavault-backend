@@ -120,6 +120,9 @@ class SaleOrderControllerTest extends TestCase
                     'id',
                     'order_number',
                     'source',
+                    'currency',
+                    'subtotal' => ['amount', 'currency'],
+                    'conversion_fees' => ['amount', 'currency'],
                     'total_price',
                     'status',
                 ],
@@ -131,6 +134,16 @@ class SaleOrderControllerTest extends TestCase
 
         $this->assertDatabaseHas('sale_orders', [
             'order_number' => 'MS-2026-000001',
+            'currency' => 'USD',
+            'subtotal' => 10000,
+            'conversion_fees' => 0,
+        ]);
+
+        $this->assertDatabaseHas('sale_order_items', [
+            'product_id' => $product->id,
+            'product_name' => 'Test Product',
+            'quantity' => 2,
+            'currency' => 'USD',
         ]);
     }
 
