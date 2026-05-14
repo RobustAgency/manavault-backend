@@ -35,46 +35,7 @@ class AddVoucherCodeForEZCardsCommand extends Command
         $this->newLine();
 
         try {
-            $summary = $this->voucherCodeService->processAllPurchaseOrders();
-
-            // Display summary
-            $this->info('Processing completed!');
-            $this->newLine();
-
-            $this->table(
-                ['Metric', 'Count'],
-                [
-                    ['Total Orders Found', $summary['total_orders']],
-                    ['Orders Processed', $summary['processed_orders']],
-                    ['Orders Skipped', $summary['skipped_orders']],
-                    ['Orders Failed', $summary['failed_orders']],
-                    ['Total Vouchers Added', $summary['total_vouchers_added']],
-                ]
-            );
-
-            // Display errors if any
-            if (! empty($summary['errors'])) {
-                $this->newLine();
-                $this->error('Errors encountered:');
-                $this->newLine();
-
-                foreach ($summary['errors'] as $error) {
-                    $this->line(sprintf(
-                        'Order #%s (ID: %d): %s',
-                        $error['order_number'],
-                        $error['purchase_order_id'],
-                        $error['error']
-                    ));
-                }
-            }
-
-            $this->newLine();
-
-            if ($summary['failed_orders'] > 0) {
-                $this->warn('Processing completed with some errors. Check the logs for details.');
-
-                return Command::FAILURE;
-            }
+            $this->voucherCodeService->processAllPurchaseOrders();
 
             $this->info('All orders processed successfully!');
 
