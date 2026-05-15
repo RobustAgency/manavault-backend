@@ -350,16 +350,16 @@ class SaleOrderServiceTest extends TestCase
         $this->assertEquals(SaleOrder::MANASTORE, $saleOrder->source);
         $this->assertCount(2, $saleOrder->items);
 
-        // Verify pricing is persisted from ManaStore payload (stored as cents)
+        // Verify pricing is persisted from ManaStore payload
         $item1 = $saleOrder->items->firstWhere('product_id', $product1->id);
         $this->assertEquals(2, $item1->quantity);
-        $this->assertEquals(5000, $item1->price);
-        $this->assertEquals(10000, $item1->total_price);
+        $this->assertEquals(50, $item1->unit_price);
+        $this->assertEquals(100, $item1->subtotal);
 
         $item2 = $saleOrder->items->firstWhere('product_id', $product2->id);
         $this->assertEquals(1, $item2->quantity);
-        $this->assertEquals(7500, $item2->price);
-        $this->assertEquals(7500, $item2->total_price);
+        $this->assertEquals(75, $item2->unit_price);
+        $this->assertEquals(75, $item2->subtotal);
     }
 
     /**

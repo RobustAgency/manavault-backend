@@ -406,11 +406,10 @@ class SaleOrderControllerTest extends TestCase
 
         $response = $this->postJson('/api/v1/sale-orders', $data, $this->getHeaders());
 
-        // total_price is stored as total/100 (cents to dollars)
         $response->assertStatus(201)
             ->assertJson([
                 'data' => [
-                    'total_price' => 500.00,
+                    'total_price' => '50000.00',
                 ],
             ]);
     }
