@@ -66,7 +66,7 @@ class SaleOrderRepository
     /**
      * Get a sale order by order number.
      */
-    public function getSaleOrderByOrderNumber(int $orderNumber): ?SaleOrder
+    public function getSaleOrderByOrderNumber(string $orderNumber): ?SaleOrder
     {
         return SaleOrder::with('items.digitalProducts')
             ->where('order_number', $orderNumber)

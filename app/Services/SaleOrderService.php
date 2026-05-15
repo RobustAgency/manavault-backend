@@ -36,10 +36,12 @@ class SaleOrderService
             $saleOrder = $this->saleOrderRepository->createSaleOrder([
                 'order_number' => $data['order_number'],
                 'source' => SaleOrder::MANASTORE,
-                'total_price' => 0,
+                'currency' => $data['currency'],
+                'subtotal' => $data['subtotal'],
+                'conversion_fees' => $data['conversion_fees'],
+                'total_price' => $data['total'],
                 'status' => Status::PENDING->value,
             ]);
-
             logger()->info("Creating sale order with ID: {$saleOrder->id} and order number: {$saleOrder->order_number}");
         }
 

@@ -25,7 +25,6 @@ class SaleOrderResource extends JsonResource
             'total_price' => $this->total_price,
             'subtotal' => $this->subtotal,
             'conversion_fees' => $this->conversion_fees,
-            'total' => $this->total,
             'status' => $this->status,
             'created_at' => $this->created_at->toDateTimeString(),
             'updated_at' => $this->updated_at->toDateTimeString(),
