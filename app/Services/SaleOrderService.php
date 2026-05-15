@@ -36,10 +36,12 @@ class SaleOrderService
             $saleOrder = $this->saleOrderRepository->createSaleOrder([
                 'order_number' => $data['order_number'],
                 'source' => SaleOrder::MANASTORE,
-                'total_price' => 0,
+                'currency' => $data['currency'],
+                'subtotal' => $data['subtotal'],
+                'conversion_fees' => $data['conversion_fees'],
+                'total_price' => $data['total'],
                 'status' => Status::PENDING->value,
             ]);
-
             logger()->info("Creating sale order with ID: {$saleOrder->id} and order number: {$saleOrder->order_number}");
         }
 
@@ -48,7 +50,6 @@ class SaleOrderService
 
             $this->triggerAutoPurchaseOrdersIfNeeded($data['items']);
 
-            $totalPrice = 0;
             $fullyAllocated = true;
 
             $saleOrder->update(['status' => Status::PROCESSING->value]);
@@ -58,14 +59,20 @@ class SaleOrderService
                 $product = $this->productRepository->getProductById($itemData['product_id']);
                 $quantity = $itemData['quantity'];
 
-                $unitPrice = $product->selling_price;
-                $subtotal = $quantity * $unitPrice;
+                if ($itemData['discount_amount'] > 0) {
+                    $discountPerUnit = $itemData['discount_amount'] / $quantity;
+                    $itemData['price'] = $itemData['price'] - $discountPerUnit;
+                }
 
                 $item = $saleOrder->items()->create([
                     'product_id' => $product->id,
+                    'product_name' => $itemData['product_name'] ?? $product->name,
                     'quantity' => $quantity,
-                    'unit_price' => $unitPrice,
-                    'subtotal' => $subtotal,
+                    'unit_price' => $itemData['price'],
+                    'subtotal' => $itemData['total_price'],
+                    'conversion_fee' => $itemData['conversion_fee'],
+                    'discount_amount' => $itemData['discount_amount'],
+                    'currency' => $itemData['currency'],
                 ]);
 
                 $allocated = $this->digitalProductAllocationService->allocate($item, $product, $quantity);
@@ -73,14 +80,11 @@ class SaleOrderService
                 if ($allocated < $quantity) {
                     $fullyAllocated = false;
                 }
-
-                $totalPrice += $subtotal;
             }
 
             $finalStatus = $fullyAllocated ? Status::COMPLETED->value : Status::PROCESSING->value;
             $saleOrder->update([
                 'status' => $finalStatus,
-                'total_price' => $totalPrice,
             ]);
 
             if ($fullyAllocated) {

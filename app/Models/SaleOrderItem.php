@@ -15,14 +15,20 @@ class SaleOrderItem extends Model
     protected $fillable = [
         'sale_order_id',
         'product_id',
+        'product_name',
         'quantity',
         'unit_price',
         'subtotal',
+        'conversion_fee',
+        'discount_amount',
+        'currency',
     ];
 
     protected $casts = [
         'unit_price' => 'decimal:2',
         'subtotal' => 'decimal:2',
+        'conversion_fee' => 'integer',
+        'discount_amount' => 'integer',
     ];
 
     /**

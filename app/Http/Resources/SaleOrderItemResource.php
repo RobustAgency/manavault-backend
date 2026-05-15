@@ -20,9 +20,13 @@ class SaleOrderItemResource extends JsonResource
         return [
             'id' => $this->id,
             'product_id' => $this->product_id,
+            'product_name' => $this->product_name,
             'quantity' => $this->quantity,
             'unit_price' => $this->unit_price,
             'subtotal' => $this->subtotal,
+            'conversion_fee' => $this->conversion_fee,
+            'discount_amount' => $this->discount_amount,
+            'currency' => $this->currency,
             'product' => new ProductResource($this->whenLoaded('product')),
         ];
     }

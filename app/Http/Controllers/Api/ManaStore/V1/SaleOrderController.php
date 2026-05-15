@@ -46,7 +46,7 @@ class SaleOrderController extends Controller
     /**
      * Get details of a sale order.
      */
-    public function show(int $orderNumber): JsonResponse
+    public function show(string $orderNumber): JsonResponse
     {
         try {
             $saleOrder = $this->saleOrderRepository->getSaleOrderByOrderNumber($orderNumber);
