@@ -33,7 +33,7 @@ class StoreDigitalProductRequest extends FormRequest
             'products.*.cost_price' => ['required', 'numeric', 'min:0'],
             'products.*.face_value' => ['required', 'numeric', 'gt:0'],
             'products.*.selling_price' => ['required', 'numeric', 'gt:0'],
-            'products.*.selling_discount' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'products.*.selling_discount' => ['nullable', 'numeric', 'max:100'],
             'products.*.currency' => ['required', 'string', Rule::in(array_map(fn ($c) => $c->value, Currency::cases()))],
             'products.*.metadata' => ['nullable', 'array'],
             'products.*.tags' => ['nullable', 'array'],
@@ -64,7 +64,6 @@ class StoreDigitalProductRequest extends FormRequest
             'products.*.face_value.gt' => 'Face value must be greater than 0.',
             'products.*.selling_price.gt' => 'Selling price must be greater than 0.',
             'products.*.selling_discount.numeric' => 'Selling discount must be a number.',
-            'products.*.selling_discount.min' => 'Selling discount must be at least 0.',
             'products.*.selling_discount.max' => 'Selling discount must not exceed 100.',
             'products.*.currency.required' => 'Currency is required for all products.',
             'products.*.currency.in' => 'The selected currency is invalid.',
@@ -80,5 +79,37 @@ class StoreDigitalProductRequest extends FormRequest
             'products.*.image.image' => 'Image must be an image.',
             'products.*.image.max' => 'Image must not exceed 2048 kilobytes.',
         ];
+    }
+
+    /**
+     * Configure the validator instance.
+     */
+    public function withValidator(\Illuminate\Validation\Validator $validator): void
+    {
+        $validator->after(function (\Illuminate\Validation\Validator $validator) {
+            $products = $this->input('products', []);
+
+            foreach ($products as $index => $product) {
+                $costPrice = isset($product['cost_price']) ? (float) $product['cost_price'] : null;
+                $sellingPrice = isset($product['selling_price']) ? (float) $product['selling_price'] : null;
+                $faceValue = isset($product['face_value']) ? (float) $product['face_value'] : null;
+                $sellingDiscount = isset($product['selling_discount']) ? (float) $product['selling_discount'] : null;
+
+                if ($costPrice === null || $sellingPrice === null || $faceValue === null) {
+                    continue;
+                }
+
+                $effectiveSellingPrice = $sellingDiscount !== null
+                    ? round($faceValue * (1 - $sellingDiscount / 100), 2)
+                    : $sellingPrice;
+
+                if ($effectiveSellingPrice < $costPrice) {
+                    $validator->errors()->add(
+                        "products.{$index}.selling_price",
+                        "The effective selling price ({$effectiveSellingPrice}) must not be less than the cost price ({$costPrice})."
+                    );
+                }
+            }
+        });
     }
 }

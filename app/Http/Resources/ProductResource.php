@@ -5,6 +5,8 @@ namespace App\Http\Resources;
 use App\Models\Product;
 use App\Models\Voucher;
 use Illuminate\Http\Request;
+use App\Models\DigitalProduct;
+use Illuminate\Support\Collection;
 use App\Enums\Product\FulfillmentMode;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -42,7 +44,7 @@ class ProductResource extends JsonResource
             'is_out_of_stock' => $this->is_out_of_stock,
             'created_at' => $this->created_at->toDateTimeString(),
             'updated_at' => $this->updated_at->toDateTimeString(),
-            'digital_products' => DigitalProductResource::collection($this->whenLoaded('digitalProducts')),
+            'digital_products' => DigitalProductResource::collection($this->getSortedDigitalProducts()),
             'digital_product' => $digitalProduct ? new DigitalProductResource($digitalProduct) : null,
             'brand' => new BrandResource($this->whenLoaded('brand')),
         ];
@@ -60,6 +62,22 @@ class ProductResource extends JsonResource
         return $this->fulfillment_mode === FulfillmentMode::MANUAL->value
             ? $this->digitalProducts->sortBy('pivot.priority')->first()
             : $this->digitalProducts->sortBy('cost_price')->first();
+    }
+
+    /**
+     * Get sorted digital products based on fulfillment mode.
+     *
+     * @return Collection<int, DigitalProduct>
+     */
+    private function getSortedDigitalProducts(): Collection
+    {
+        if (! $this->relationLoaded('digitalProducts')) {
+            return collect();
+        }
+
+        return $this->fulfillment_mode === FulfillmentMode::MANUAL->value
+            ? $this->digitalProducts->sortBy('pivot.priority')
+            : $this->digitalProducts->sortBy('cost_price');
     }
 
     private function getAvailableQuantity(): int

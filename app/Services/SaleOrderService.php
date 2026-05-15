@@ -20,17 +20,28 @@ class SaleOrderService
 
     public function createOrder(array $data): SaleOrder
     {
-        $saleOrder = $this->saleOrderRepository->createSaleOrder([
-            'order_number' => $data['order_number'],
-            'source' => SaleOrder::MANASTORE,
-            'currency' => $data['currency'],
-            'subtotal' => $data['subtotal'],
-            'conversion_fees' => $data['conversion_fees'],
-            'total_price' => $data['total'],
-            'status' => Status::PENDING->value,
-        ]);
+        $existing = $this->saleOrderRepository->getSaleOrderByOrderNumber($data['order_number']);
 
-        logger()->info("Creating sale order with ID: {$saleOrder->id} and order number: {$saleOrder->order_number}");
+        if ($existing) {
+            if ($existing->items()->exists()) {
+                logger()->info("Resync skipped for order {$existing->order_number}: items already exist.");
+
+                return $existing->load(['items.digitalProducts']);
+            }
+
+            logger()->info("Resyncing sale order ID: {$existing->id} (order number: {$existing->order_number}) — no items found, reprocessing.");
+            $saleOrder = $existing;
+            $saleOrder->update(['status' => Status::PENDING->value]);
+        } else {
+            $saleOrder = $this->saleOrderRepository->createSaleOrder([
+                'order_number' => $data['order_number'],
+                'source' => SaleOrder::MANASTORE,
+                'total_price' => 0,
+                'status' => Status::PENDING->value,
+            ]);
+
+            logger()->info("Creating sale order with ID: {$saleOrder->id} and order number: {$saleOrder->order_number}");
+        }
 
         try {
             $this->validateProductsAndDigitalStock($data['items']);

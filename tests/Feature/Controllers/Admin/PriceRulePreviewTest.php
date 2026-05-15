@@ -42,6 +42,7 @@ class PriceRulePreviewTest extends TestCase
             'brand' => 'Sony',
             'face_value' => 100.00,
             'selling_price' => 100.00,
+            'cost_price' => 50.00,
         ]);
         $dp2 = DigitalProduct::factory()->create([
             'supplier_id' => $this->supplier->id,
@@ -49,6 +50,7 @@ class PriceRulePreviewTest extends TestCase
             'brand' => 'Sony',
             'face_value' => 50.00,
             'selling_price' => 50.00,
+            'cost_price' => 25.00,
         ]);
 
         $payload = [
@@ -98,6 +100,7 @@ class PriceRulePreviewTest extends TestCase
             'brand' => 'Microsoft',
             'face_value' => 100.00,
             'selling_price' => 100.00,
+            'cost_price' => 50.00,
         ]);
 
         $payload = [
@@ -135,6 +138,7 @@ class PriceRulePreviewTest extends TestCase
             'brand' => 'Apple',
             'face_value' => 50.00,
             'selling_price' => 50.00,
+            'cost_price' => 25.00,
         ]);
 
         $payload = [
@@ -172,6 +176,7 @@ class PriceRulePreviewTest extends TestCase
             'brand' => 'Google',
             'face_value' => 30.00,
             'selling_price' => 30.00,
+            'cost_price' => 10.00,
         ]);
 
         $payload = [
@@ -209,6 +214,7 @@ class PriceRulePreviewTest extends TestCase
             'brand' => 'Nintendo',
             'face_value' => 60.00,
             'selling_price' => 60.00,
+            'cost_price' => 30.00,
         ]);
         $dp2 = DigitalProduct::factory()->create([
             'supplier_id' => $this->supplier->id,
@@ -216,6 +222,7 @@ class PriceRulePreviewTest extends TestCase
             'brand' => 'Nintendo',
             'face_value' => 60.00,
             'selling_price' => 60.00,
+            'cost_price' => 30.00,
         ]);
 
         $payload = [
@@ -258,6 +265,7 @@ class PriceRulePreviewTest extends TestCase
             'brand' => 'Samsung',
             'face_value' => 500.00,
             'selling_price' => 500.00,
+            'cost_price' => 200.00,
         ]);
         $dp2 = DigitalProduct::factory()->create([
             'supplier_id' => $this->supplier->id,
@@ -265,6 +273,7 @@ class PriceRulePreviewTest extends TestCase
             'brand' => 'LG',
             'face_value' => 400.00,
             'selling_price' => 400.00,
+            'cost_price' => 200.00,
         ]);
         $dp3 = DigitalProduct::factory()->create([
             'supplier_id' => $this->supplier->id,
@@ -272,6 +281,7 @@ class PriceRulePreviewTest extends TestCase
             'brand' => 'Other',
             'face_value' => 300.00,
             'selling_price' => 300.00,
+            'cost_price' => 150.00,
         ]);
 
         $payload = [
@@ -344,6 +354,7 @@ class PriceRulePreviewTest extends TestCase
             'brand' => 'Test Brand',
             'face_value' => 100.00,
             'selling_price' => 100.00,
+            'cost_price' => 50.00,
         ]);
 
         $originalPrice = $dp->selling_price;
@@ -380,6 +391,7 @@ class PriceRulePreviewTest extends TestCase
             'brand' => 'Complete',
             'face_value' => 100.00,
             'selling_price' => 100.00,
+            'cost_price' => 50.00,
         ]);
 
         $payload = [

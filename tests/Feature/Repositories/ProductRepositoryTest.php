@@ -5,6 +5,7 @@ namespace Tests\Feature\Repositories;
 use Tests\TestCase;
 use App\Models\Brand;
 use App\Models\Product;
+use App\Models\DigitalProduct;
 use App\Enums\Product\Lifecycle;
 use App\Repositories\ProductRepository;
 use App\Enums\PriceRuleCondition\Operator;
@@ -78,9 +79,15 @@ class ProductRepositoryTest extends TestCase
 
     public function test_get_filtered_products_by_status(): void
     {
-        Product::factory()->create(['status' => Lifecycle::ACTIVE->value]);
-        Product::factory()->create(['status' => Lifecycle::IN_ACTIVE->value]);
-        Product::factory()->create(['status' => Lifecycle::ACTIVE->value]);
+        $product1 = Product::factory()->create(['status' => Lifecycle::ACTIVE->value]);
+        $product2 = Product::factory()->create(['status' => Lifecycle::IN_ACTIVE->value]);
+        $product3 = Product::factory()->create(['status' => Lifecycle::ACTIVE->value]);
+
+        $digitalProduct = DigitalProduct::factory()->create();
+
+        $product1->digitalProducts()->save($digitalProduct);
+        $product2->digitalProducts()->save($digitalProduct);
+        $product3->digitalProducts()->save($digitalProduct);
 
         $results = $this->repository->getFilteredProducts(['status' => Lifecycle::ACTIVE->value]);
 

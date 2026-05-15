@@ -119,5 +119,18 @@ class DigitalProductImport implements ToCollection, WithHeadingRow
         if ($validator->fails()) {
             throw new ValidationException($validator);
         }
+
+        // Additional business rule: effective selling price must not be less than cost price
+        $costPrice = isset($row['cost_price']) ? (float) $row['cost_price'] : null;
+        $sellingPrice = isset($row['selling_price']) ? (float) $row['selling_price'] : null;
+
+        if ($costPrice !== null && $sellingPrice !== null && $sellingPrice < $costPrice) {
+            $validator = Validator::make([], []);
+            $validator->errors()->add(
+                'selling_price',
+                "Selling Price (row {$rowNumber}): the selling price ({$sellingPrice}) must not be less than the cost price ({$costPrice})."
+            );
+            throw new ValidationException($validator);
+        }
     }
 }

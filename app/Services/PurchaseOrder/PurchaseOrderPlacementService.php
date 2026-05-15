@@ -3,27 +3,52 @@
 namespace App\Services\PurchaseOrder;
 
 use App\Models\Supplier;
+use App\Models\PurchaseOrder;
 use App\Services\Ezcards\EzcardsPlaceOrderService;
+use App\Services\Giftery\GifteryPlaceOrderService;
+use App\Services\Tikkery\TikkeryPlaceOrderService;
 use App\Services\Gift2Games\Gift2GamesPlaceOrderService;
+use App\Services\Irewardify\IrewardifyPlaceOrderService;
 
 class PurchaseOrderPlacementService
 {
     public function __construct(
         private EzcardsPlaceOrderService $ezcardsPlaceOrderService,
         private Gift2GamesPlaceOrderService $gift2GamesPlaceOrderService,
+        private IrewardifyPlaceOrderService $irewardifyPlaceOrderService,
+        private GifteryPlaceOrderService $gifteryPlaceOrderService,
+        private TikkeryPlaceOrderService $tikkeryPlaceOrderService,
     ) {}
 
-    public function placeOrder(Supplier $supplier, array $orderItems, string $orderNumber, string $currency): array
+    public function placeOrder(Supplier $supplier, array $orderItems, string $orderNumber, string $currency, PurchaseOrder $purchaseOrder): array
     {
-        if ($supplier->slug === 'ez_cards') {
-            return $this->ezcardsPlaceOrderService->placeOrder($orderItems, $orderNumber, $currency);
-        }
+        try {
+            if ($supplier->slug === 'ez_cards') {
+                return $this->ezcardsPlaceOrderService->placeOrder($orderItems, $orderNumber, $currency);
+            }
 
-        if ($this->isGift2GamesSupplier($supplier)) {
-            return $this->gift2GamesPlaceOrderService->placeOrder($orderItems, $orderNumber, $supplier->slug);
-        }
+            if ($this->isGift2GamesSupplier($supplier)) {
+                $this->gift2GamesPlaceOrderService->placeOrder($orderItems, $orderNumber, $supplier->slug, $purchaseOrder);
 
-        throw new \RuntimeException("Unknown external supplier: {$supplier->slug}");
+                return [];
+            }
+
+            if ($supplier->slug === 'irewardify') {
+                return $this->irewardifyPlaceOrderService->placeOrder($orderItems, $orderNumber);
+            }
+
+            if ($supplier->slug === 'giftery-api') {
+                return $this->gifteryPlaceOrderService->placeOrder($orderItems, $orderNumber);
+            }
+
+            if ($supplier->slug === 'tikkery') {
+                return $this->tikkeryPlaceOrderService->placeOrder($orderItems, $orderNumber);
+            }
+
+            throw new \RuntimeException("Unknown external supplier: {$supplier->slug}");
+        } catch (\Exception $e) {
+            throw $e;
+        }
     }
 
     private function isGift2GamesSupplier(Supplier $supplier): bool

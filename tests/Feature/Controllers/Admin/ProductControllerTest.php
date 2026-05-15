@@ -70,13 +70,18 @@ class ProductControllerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        Product::factory()->count(3)->create(['status' => 'active']);
-        Product::factory()->count(2)->create(['status' => 'inactive']);
+        $digitalProduct = DigitalProduct::factory()->create(['currency' => 'usd']);
+
+        $product1 = Product::factory()->create(['status' => 'active']);
+        $product2 = Product::factory()->create(['status' => 'inactive']);
+
+        $product1->digitalProducts()->syncWithoutDetaching([$digitalProduct->id]);
+        $product2->digitalProducts()->syncWithoutDetaching([$digitalProduct->id]);
 
         $response = $this->getJson('/api/products?status=active');
 
         $response->assertStatus(200);
-        $this->assertCount(3, $response->json('data'));
+        $this->assertCount(1, $response->json('data'));
     }
 
     public function test_admin_list_products_with_pagination(): void
@@ -104,8 +109,10 @@ class ProductControllerTest extends TestCase
         ]);
 
         $digitalProduct = DigitalProduct::factory()->create([
-            'selling_price' => 99.99,
+            'face_value' => 100.00,
+            'selling_price' => 99.01,
             'currency' => 'usd',
+            'selling_discount' => 0.99,
         ]);
 
         $product->digitalProducts()->attach($digitalProduct->id);
@@ -140,7 +147,7 @@ class ProductControllerTest extends TestCase
                 'data' => [
                     'id' => $product->id,
                     'name' => 'Test Product',
-                    'selling_price' => 99.99,
+                    'selling_price' => 99.01,
                 ],
             ]);
     }
@@ -772,6 +779,460 @@ class ProductControllerTest extends TestCase
 
         $response->assertStatus(500)
             ->assertJson(['error' => true]);
+    }
+
+    /**
+     * Test: Digital products are displayed in correct order with PRICE fulfillment mode (sorted by cost_price ASC)
+     */
+    public function test_digital_products_displayed_in_cost_price_order_on_show(): void
+    {
+        $this->actingAs($this->admin);
+
+        $brand = Brand::factory()->create();
+        $supplier1 = \App\Models\Supplier::factory()->create(['name' => 'Supplier 1']);
+        $supplier2 = \App\Models\Supplier::factory()->create(['name' => 'Supplier 2']);
+        $supplier3 = \App\Models\Supplier::factory()->create(['name' => 'Supplier 3']);
+
+        // Create a product with PRICE fulfillment mode
+        $product = Product::factory()->create([
+            'brand_id' => $brand->id,
+            'name' => 'Multi-Supplier Product',
+            'face_value' => 100.00,
+            'fulfillment_mode' => FulfillmentMode::PRICE->value,
+            'currency' => 'usd',
+        ]);
+
+        // Create digital products with different cost prices
+        // We deliberately create them in reverse order to verify sorting
+        $dp3 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier3->id,
+            'name' => 'Product from Supplier 3',
+            'cost_price' => 85.00,
+            'selling_price' => 95.00,
+            'currency' => 'usd',
+        ]);
+
+        $dp1 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier1->id,
+            'name' => 'Product from Supplier 1',
+            'cost_price' => 50.00,
+            'selling_price' => 70.00,
+            'currency' => 'usd',
+        ]);
+
+        $dp2 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier2->id,
+            'name' => 'Product from Supplier 2',
+            'cost_price' => 70.00,
+            'selling_price' => 85.00,
+            'currency' => 'usd',
+        ]);
+
+        // Attach in random order to test sorting
+        $product->digitalProducts()->attach([$dp3->id, $dp1->id, $dp2->id]);
+
+        $response = $this->getJson("/api/products/{$product->id}");
+
+        $response->assertStatus(200);
+
+        $digitalProducts = $response->json('data.digital_products');
+        $this->assertCount(3, $digitalProducts);
+
+        // Verify digital products are sorted by cost_price ASC
+        $this->assertEquals($dp1->id, $digitalProducts[0]['id']);
+        $this->assertEquals(50.00, $digitalProducts[0]['cost_price']);
+
+        $this->assertEquals($dp2->id, $digitalProducts[1]['id']);
+        $this->assertEquals(70.00, $digitalProducts[1]['cost_price']);
+
+        $this->assertEquals($dp3->id, $digitalProducts[2]['id']);
+        $this->assertEquals(85.00, $digitalProducts[2]['cost_price']);
+    }
+
+    /**
+     * Test: Digital products are displayed in correct order with MANUAL fulfillment mode (sorted by priority)
+     */
+    public function test_digital_products_displayed_in_priority_order_on_show(): void
+    {
+        $this->actingAs($this->admin);
+
+        $brand = Brand::factory()->create();
+        $supplier1 = \App\Models\Supplier::factory()->create(['name' => 'Supplier A']);
+        $supplier2 = \App\Models\Supplier::factory()->create(['name' => 'Supplier B']);
+        $supplier3 = \App\Models\Supplier::factory()->create(['name' => 'Supplier C']);
+
+        // Create a product with MANUAL fulfillment mode
+        $product = Product::factory()->create([
+            'brand_id' => $brand->id,
+            'name' => 'Priority-based Product',
+            'face_value' => 100.00,
+            'fulfillment_mode' => FulfillmentMode::MANUAL->value,
+            'currency' => 'usd',
+        ]);
+
+        // Create digital products
+        $dp1 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier1->id,
+            'name' => 'Priority Product 1',
+            'cost_price' => 50.00,
+            'selling_price' => 70.00,
+            'currency' => 'usd',
+        ]);
+
+        $dp2 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier2->id,
+            'name' => 'Priority Product 2',
+            'cost_price' => 70.00,
+            'selling_price' => 85.00,
+            'currency' => 'usd',
+        ]);
+
+        $dp3 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier3->id,
+            'name' => 'Priority Product 3',
+            'cost_price' => 85.00,
+            'selling_price' => 95.00,
+            'currency' => 'usd',
+        ]);
+
+        // Attach with specific priorities (reverse order to test)
+        $product->digitalProducts()->attach([
+            $dp3->id => ['priority' => 3],
+            $dp1->id => ['priority' => 1],
+            $dp2->id => ['priority' => 2],
+        ]);
+
+        $response = $this->getJson("/api/products/{$product->id}");
+
+        $response->assertStatus(200);
+
+        $digitalProducts = $response->json('data.digital_products');
+        $this->assertCount(3, $digitalProducts);
+
+        // Verify digital products are sorted by priority ASC
+        $this->assertEquals($dp1->id, $digitalProducts[0]['id']);
+        $this->assertEquals(1, $digitalProducts[0]['pivot']['priority']);
+
+        $this->assertEquals($dp2->id, $digitalProducts[1]['id']);
+        $this->assertEquals(2, $digitalProducts[1]['pivot']['priority']);
+
+        $this->assertEquals($dp3->id, $digitalProducts[2]['id']);
+        $this->assertEquals(3, $digitalProducts[2]['pivot']['priority']);
+    }
+
+    /**
+     * Test: Single digital product selected based on PRICE fulfillment mode (lowest cost)
+     */
+    public function test_digital_product_selection_with_price_mode(): void
+    {
+        $this->actingAs($this->admin);
+
+        $brand = Brand::factory()->create();
+        $supplier1 = \App\Models\Supplier::factory()->create();
+        $supplier2 = \App\Models\Supplier::factory()->create();
+        $supplier3 = \App\Models\Supplier::factory()->create();
+
+        $product = Product::factory()->create([
+            'brand_id' => $brand->id,
+            'fulfillment_mode' => FulfillmentMode::PRICE->value,
+            'currency' => 'usd',
+        ]);
+
+        $dp1 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier1->id,
+            'cost_price' => 100.00,
+            'selling_price' => 120.00,
+            'currency' => 'usd',
+        ]);
+
+        $dp2 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier2->id,
+            'cost_price' => 50.00,
+            'selling_price' => 70.00,
+            'currency' => 'usd',
+        ]);
+
+        $dp3 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier3->id,
+            'cost_price' => 75.00,
+            'selling_price' => 90.00,
+            'currency' => 'usd',
+        ]);
+
+        $product->digitalProducts()->attach([$dp1->id, $dp2->id, $dp3->id]);
+
+        $response = $this->getJson("/api/products/{$product->id}");
+
+        $response->assertStatus(200);
+
+        // The single digital_product should be the one with lowest cost_price
+        $selectedDigitalProduct = $response->json('data.digital_product');
+        $this->assertEquals($dp2->id, $selectedDigitalProduct['id']);
+        $this->assertEquals(50.00, $selectedDigitalProduct['cost_price']);
+    }
+
+    /**
+     * Test: Single digital product selected based on MANUAL fulfillment mode (priority 1)
+     */
+    public function test_digital_product_selection_with_manual_mode(): void
+    {
+        $this->actingAs($this->admin);
+
+        $brand = Brand::factory()->create();
+        $supplier1 = \App\Models\Supplier::factory()->create();
+        $supplier2 = \App\Models\Supplier::factory()->create();
+        $supplier3 = \App\Models\Supplier::factory()->create();
+
+        $product = Product::factory()->create([
+            'brand_id' => $brand->id,
+            'fulfillment_mode' => FulfillmentMode::MANUAL->value,
+            'currency' => 'usd',
+        ]);
+
+        $dp1 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier1->id,
+            'cost_price' => 50.00,
+            'selling_price' => 70.00,
+            'currency' => 'usd',
+        ]);
+
+        $dp2 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier2->id,
+            'cost_price' => 100.00,
+            'selling_price' => 120.00,
+            'currency' => 'usd',
+        ]);
+
+        $dp3 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier3->id,
+            'cost_price' => 75.00,
+            'selling_price' => 90.00,
+            'currency' => 'usd',
+        ]);
+
+        // Attach with priorities (not in order)
+        $product->digitalProducts()->attach([
+            $dp3->id => ['priority' => 2],
+            $dp1->id => ['priority' => 3],
+            $dp2->id => ['priority' => 1],
+        ]);
+
+        $response = $this->getJson("/api/products/{$product->id}");
+
+        $response->assertStatus(200);
+
+        // The single digital_product should be the one with priority 1
+        $selectedDigitalProduct = $response->json('data.digital_product');
+        $this->assertEquals($dp2->id, $selectedDigitalProduct['id']);
+        $this->assertEquals(1, $selectedDigitalProduct['pivot']['priority']);
+    }
+
+    /**
+     * Test: Verify selling_price is correctly returned from the selected digital product
+     */
+    public function test_product_selling_price_from_digital_product(): void
+    {
+        $this->actingAs($this->admin);
+
+        $brand = Brand::factory()->create();
+        $supplier1 = \App\Models\Supplier::factory()->create();
+        $supplier2 = \App\Models\Supplier::factory()->create();
+
+        $product = Product::factory()->create([
+            'brand_id' => $brand->id,
+            'fulfillment_mode' => FulfillmentMode::PRICE->value,
+            'currency' => 'usd',
+        ]);
+
+        // Create digital products with different selling prices
+        $dp1 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier1->id,
+            'face_value' => 160.00,
+            'cost_price' => 140.00,
+            'selling_price' => 150.00,
+            'currency' => 'usd',
+        ]);
+
+        $dp2 = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier2->id,
+            'face_value' => 100.00,
+            'cost_price' => 80.00,
+            'selling_price' => 85.00,
+            'selling_discount' => 15.00,
+            'currency' => 'usd',
+        ]);
+
+        $product->digitalProducts()->attach([$dp1->id, $dp2->id]);
+
+        $response = $this->getJson("/api/products/{$product->id}");
+
+        $response->assertStatus(200);
+
+        // Product selling_price should match the selected digital product (lowest cost)
+        $this->assertEquals(85.00, $response->json('data.selling_price'));
+        $this->assertEquals($dp2->id, $response->json('data.digital_product.id'));
+    }
+
+    /**
+     * Test 1: Get all unique regions from products
+     */
+    public function test_get_all_regions_from_products(): void
+    {
+        $this->actingAs($this->admin);
+
+        // Create products with different regions (factory handles other fields)
+        Product::factory()->create(['regions' => ['US', 'CA']]);
+        Product::factory()->create(['regions' => ['EU', 'UK']]);
+        Product::factory()->create(['regions' => ['US', 'EU', 'AU']]);
+        Product::factory()->create(['regions' => ['JP', 'KR']]);
+
+        // Create a product with null regions (should be excluded)
+        Product::factory()->create(['regions' => null]);
+
+        // Create a product with empty regions array (should be excluded)
+        Product::factory()->create(['regions' => []]);
+
+        $response = $this->getJson('/api/products/regions');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'error',
+                'data',
+                'message',
+            ])
+            ->assertJson([
+                'error' => false,
+                'message' => 'Regions retrieved successfully.',
+            ]);
+
+        $regions = $response->json('data');
+
+        // Verify all unique regions are returned
+        $this->assertCount(7, $regions);
+
+        // Verify all expected regions are present (order doesn't matter)
+        $this->assertContains('AU', $regions);
+        $this->assertContains('CA', $regions);
+        $this->assertContains('EU', $regions);
+        $this->assertContains('JP', $regions);
+        $this->assertContains('KR', $regions);
+        $this->assertContains('UK', $regions);
+        $this->assertContains('US', $regions);
+    }
+
+    /**
+     * Test 2: Search regions by keyword
+     */
+    public function test_get_regions_with_search(): void
+    {
+        $this->actingAs($this->admin);
+
+        Product::factory()->create(['regions' => ['US', 'CA']]);
+        Product::factory()->create(['regions' => ['EU', 'UK']]);
+        Product::factory()->create(['regions' => ['US', 'EU', 'AU']]);
+        Product::factory()->create(['regions' => ['JP', 'KR']]);
+
+        $response = $this->getJson('/api/products/regions?search=US');
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'error' => false,
+                'message' => 'Regions retrieved successfully.',
+            ]);
+
+        $regions = $response->json('data');
+
+        $this->assertCount(1, $regions);
+
+        // Search that matches nothing
+        $emptyResponse = $this->getJson('/api/products/regions?search=XYZ');
+
+        $emptyResponse->assertStatus(200);
+        $this->assertCount(0, $emptyResponse->json('data'));
+
+        // Invalid search (too long) should fail validation
+        $invalidResponse = $this->getJson('/api/products/regions?search='.str_repeat('a', 256));
+
+        $invalidResponse->assertStatus(422);
+    }
+
+    /**
+     * Test 3: Filter products by region parameter
+     */
+    public function test_filter_products_by_region(): void
+    {
+        $this->actingAs($this->admin);
+
+        // Create products with different regions (factory handles other fields)
+        Product::factory()->create([
+            'name' => 'US Product',
+            'regions' => ['US', 'CA'],
+        ]);
+
+        Product::factory()->create([
+            'name' => 'EU Product',
+            'regions' => ['EU', 'UK'],
+        ]);
+
+        Product::factory()->create([
+            'name' => 'Global Product',
+            'regions' => ['US', 'EU', 'AU'],
+        ]);
+
+        Product::factory()->create([
+            'name' => 'Asia Product',
+            'regions' => ['JP', 'KR'],
+        ]);
+
+        // Create a product without regions
+        Product::factory()->create([
+            'name' => 'No Region Product',
+            'regions' => null,
+        ]);
+
+        // Filter by US region
+        $response = $this->getJson('/api/products?region=US');
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'error' => false,
+                'message' => 'Products retrieved successfully.',
+            ]);
+
+        $products = $response->json('data');
+
+        // Should return only products containing "US" in regions
+        $this->assertCount(2, $products);
+
+        $productNames = array_column($products, 'name');
+        $this->assertContains('US Product', $productNames);
+        $this->assertContains('Global Product', $productNames);
+        $this->assertNotContains('EU Product', $productNames);
+        $this->assertNotContains('Asia Product', $productNames);
+        $this->assertNotContains('No Region Product', $productNames);
+
+        // Filter by EU region
+        $response2 = $this->getJson('/api/products?region=EU');
+
+        $products2 = $response2->json('data');
+        $this->assertCount(2, $products2);
+
+        $productNames2 = array_column($products2, 'name');
+        $this->assertContains('EU Product', $productNames2);
+        $this->assertContains('Global Product', $productNames2);
+
+        // Filter by JP region
+        $response3 = $this->getJson('/api/products?region=JP');
+
+        $products3 = $response3->json('data');
+        $this->assertCount(1, $products3);
+        $this->assertEquals('Asia Product', $products3[0]['name']);
+
+        // Filter by non-existent region
+        $response4 = $this->getJson('/api/products?region=XYZ');
+
+        $products4 = $response4->json('data');
+        $this->assertCount(0, $products4);
     }
 
     /**
