@@ -33,17 +33,23 @@ class PurchaseOrderStatusService
             return;
         }
 
-        $hasFailedSupplier = $suppliers->contains(
+        $allFailed = $suppliers->every(
             fn ($supplier) => $supplier->status === PurchaseOrderSupplierStatus::FAILED->value
         );
 
-        $allSuppliersFailed = $suppliers->every(
+        $anyFailed = $suppliers->contains(
             fn ($supplier) => $supplier->status === PurchaseOrderSupplierStatus::FAILED->value
         );
 
-        if ($allSuppliersFailed) {
+        $anyCompleted = $suppliers->contains(
+            fn ($supplier) => $supplier->status === PurchaseOrderSupplierStatus::COMPLETED->value
+        );
+
+        if ($allFailed) {
             $purchaseOrder->update(['status' => PurchaseOrderStatus::FAILED->value]);
-        } elseif (! $hasFailedSupplier) {
+        } elseif ($anyFailed && $anyCompleted) {
+            $purchaseOrder->update(['status' => PurchaseOrderStatus::PARTIAL->value]);
+        } elseif (! $anyFailed) {
             $purchaseOrder->update(['status' => PurchaseOrderStatus::COMPLETED->value]);
         }
 

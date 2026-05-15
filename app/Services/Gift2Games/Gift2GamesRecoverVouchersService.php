@@ -10,14 +10,18 @@ use Illuminate\Support\Facades\Log;
 use App\Events\NewVouchersAvailable;
 use App\Enums\PurchaseOrderSupplierStatus;
 use App\Services\Voucher\VoucherCipherService;
+use App\Services\Supplier\VoucherCompletenessChecker;
 use App\Services\PurchaseOrder\PurchaseOrderStatusService;
 
 class Gift2GamesRecoverVouchersService
 {
+    private const G2G_SLUGS = ['gift2games', 'gift-2-games-eur', 'gift-2-games-gbp'];
+
     public function __construct(
         private Order $orderClient,
         private VoucherCipherService $voucherCipherService,
         private PurchaseOrderStatusService $purchaseOrderStatusService,
+        private VoucherCompletenessChecker $completenessChecker,
     ) {}
 
     /**
@@ -117,14 +121,6 @@ class Gift2GamesRecoverVouchersService
             return null;
         }
 
-        // Collect existing voucher codes (decrypted) to avoid duplicates
-        $existingCodes = Voucher::where('purchase_order_id', $purchaseOrder->id)
-            ->pluck('code')
-            ->map(fn (string $code) => $this->voucherCipherService->isEncrypted($code)
-                ? $this->voucherCipherService->decryptCode($code)
-                : $code)
-            ->flip(); // use as a set for O(1) lookup
-
         $vouchersAdded = 0;
         $newDigitalProductIds = [];
 
@@ -133,8 +129,19 @@ class Gift2GamesRecoverVouchersService
             $serialNumber = $order['serialNumber'] ?? null;
             $productName = $order['productName'] ?? null;
 
-            // Skip if voucher already stored
-            if ($existingCodes->has($serialCode)) {
+            // Skip if voucher already stored — check by code_hash for O(1) lookup without decryption.
+            // Fall back to serial_number for any legacy records that predate the code_hash column.
+            $codeHash = hash('sha256', $serialCode);
+            $alreadyStored = Voucher::where('purchase_order_id', $purchaseOrder->id)
+                ->where(function ($query) use ($codeHash, $serialNumber) {
+                    $query->where('code_hash', $codeHash);
+                    if ($serialNumber) {
+                        $query->orWhere('serial_number', $serialNumber);
+                    }
+                })
+                ->exists();
+
+            if ($alreadyStored) {
                 continue;
             }
 
@@ -154,15 +161,14 @@ class Gift2GamesRecoverVouchersService
             $encryptedCode = $this->voucherCipherService->encryptCode($serialCode);
 
             Voucher::create([
-                'purchase_order_id' => $purchaseOrder->id,
+                'purchase_order_id'      => $purchaseOrder->id,
                 'purchase_order_item_id' => $purchaseOrderItem->id,
-                'code' => $encryptedCode,
-                'serial_number' => $serialNumber,
-                'status' => 'available',
+                'code'                   => $encryptedCode,
+                'code_hash'              => $codeHash,
+                'serial_number'          => $serialNumber,
+                'status'                 => 'available',
             ]);
 
-            // Add to set so we don't double-insert within the same run
-            $existingCodes->put($serialCode, 1);
             $newDigitalProductIds[] = $purchaseOrderItem->digital_product_id;
             $vouchersAdded++;
         }
@@ -170,24 +176,14 @@ class Gift2GamesRecoverVouchersService
         $purchaseOrder->load('purchaseOrderSuppliers.supplier');
 
         $gift2GamesSupplier = $purchaseOrder->purchaseOrderSuppliers
-            ->first(fn ($pos) => $pos->supplier?->slug === 'gift2games');
+            ->first(fn ($pos) => in_array($pos->supplier?->slug, self::G2G_SLUGS, true));
 
         if ($gift2GamesSupplier) {
-            $supplierItems = $purchaseOrder->items->where('supplier_id', $gift2GamesSupplier->supplier_id);
+            $isComplete = $this->completenessChecker->isComplete($purchaseOrder, $gift2GamesSupplier);
 
-            if ($supplierItems->isNotEmpty()) {
-                $allItemsFulfilled = $supplierItems->every(
-                    function (\App\Models\PurchaseOrderItem $item) use ($purchaseOrder) {
-                        return Voucher::where('purchase_order_id', $purchaseOrder->id)
-                            ->where('purchase_order_item_id', $item->id)
-                            ->count() >= $item->quantity;
-                    }
-                );
-
-                if ($allItemsFulfilled && $gift2GamesSupplier->status !== PurchaseOrderSupplierStatus::COMPLETED->value) {
-                    $gift2GamesSupplier->update(['status' => PurchaseOrderSupplierStatus::COMPLETED]);
-                    $this->purchaseOrderStatusService->updateStatus($purchaseOrder);
-                }
+            if ($isComplete && $gift2GamesSupplier->status !== PurchaseOrderSupplierStatus::COMPLETED->value) {
+                $gift2GamesSupplier->update(['status' => PurchaseOrderSupplierStatus::COMPLETED]);
+                $this->purchaseOrderStatusService->updateStatus($purchaseOrder);
             }
         }
 
@@ -212,8 +208,8 @@ class Gift2GamesRecoverVouchersService
         $productNameLower = strtolower($productName);
 
         return $purchaseOrder->items->first(function (\App\Models\PurchaseOrderItem $item) use ($productNameLower) {
-            $dpName = strtolower((string) ($item->digital_product_name ?? $item->digitalProduct?->name ?? ''));
-            $dpSku = strtolower((string) ($item->digital_product_sku ?? $item->digitalProduct?->sku ?? ''));
+            $dpName = strtolower((string) ($item->digital_product_name ?? $item->digitalProduct->name ?? ''));
+            $dpSku = strtolower((string) ($item->digital_product_sku ?? $item->digitalProduct->sku ?? ''));
 
             return str_contains($dpName, $productNameLower)
                 || str_contains($productNameLower, $dpName)

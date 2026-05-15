@@ -7,4 +7,5 @@ enum PurchaseOrderStatus: string
     case COMPLETED = 'completed';
     case PROCESSING = 'processing';
     case FAILED = 'failed';
+    case PARTIAL = 'partial';
 }
