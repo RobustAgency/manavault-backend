@@ -21,7 +21,7 @@ Schedule::command(SyncEzCardsProductsCommand::class)
     ->runInBackground();
 
 Schedule::command(AddVoucherCodeForEZCardsCommand::class)
-    ->everyMinute()
+    ->everyFiveMinutes()
     ->withoutOverlapping()
     ->runInBackground();
 
