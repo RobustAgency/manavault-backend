@@ -6,10 +6,10 @@ use Illuminate\Support\Facades\Schedule;
 use App\Console\Commands\SyncEzCardsProductsCommand;
 use App\Console\Commands\SyncTikkeryProductsCommand;
 use App\Console\Commands\FetchTikkeryVouchersCommand;
-use App\Console\Commands\SyncGift2GamesProductsCommand;
 use App\Console\Commands\SyncIrewardifyProductsCommand;
 use App\Console\Commands\FetchIrewardifyVouchersCommand;
 use App\Console\Commands\AddVoucherCodeForEZCardsCommand;
+use App\Console\Commands\SyncSupplierProductsCommand;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -35,7 +35,10 @@ Schedule::command(FetchIrewardifyVouchersCommand::class)
     ->withoutOverlapping()
     ->runInBackground();
 
-Schedule::command(SyncGift2GamesProductsCommand::class)
+// Unified supplier sync — covers all suppliers registered in the integration layer.
+// Currently active for: Gift2Games (USD, EUR, GBP).
+// Replace per-supplier sync commands here as each supplier is migrated.
+Schedule::command(SyncSupplierProductsCommand::class)
     ->hourly()
     ->withoutOverlapping()
     ->runInBackground();
