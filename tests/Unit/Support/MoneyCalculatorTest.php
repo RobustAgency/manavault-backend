@@ -2,17 +2,12 @@
 
 namespace Tests\Unit\Support;
 
-use App\Support\MoneyCalculator;
 use Money\Money;
-use Money\Currency;
 use PHPUnit\Framework\TestCase;
+use App\Support\MoneyCalculator;
 
 class MoneyCalculatorTest extends TestCase
 {
-    // -----------------------------------------------------------------------
-    // ::of()
-    // -----------------------------------------------------------------------
-
     public function test_of_parses_decimal_string(): void
     {
         $money = MoneyCalculator::of('10.50', 'usd');
@@ -73,10 +68,6 @@ class MoneyCalculatorTest extends TestCase
         $this->assertSame('0', $money->getAmount());
     }
 
-    // -----------------------------------------------------------------------
-    // ::zero()
-    // -----------------------------------------------------------------------
-
     public function test_zero_returns_money_with_zero_amount(): void
     {
         $money = MoneyCalculator::zero('usd');
@@ -91,10 +82,6 @@ class MoneyCalculatorTest extends TestCase
 
         $this->assertSame('EUR', $money->getCurrency()->getCode());
     }
-
-    // -----------------------------------------------------------------------
-    // ::toFloat()
-    // -----------------------------------------------------------------------
 
     public function test_to_float_converts_money_back_to_float(): void
     {
@@ -115,10 +102,6 @@ class MoneyCalculatorTest extends TestCase
     {
         $this->assertSame(0.0, MoneyCalculator::toFloat(MoneyCalculator::zero('usd')));
     }
-
-    // -----------------------------------------------------------------------
-    // Addition — float precision trap
-    // -----------------------------------------------------------------------
 
     /**
      * The classic PHP float trap: 0.1 + 0.7 != 0.8 in native floats.
@@ -161,10 +144,6 @@ class MoneyCalculatorTest extends TestCase
         $this->assertSame(10.00, MoneyCalculator::toFloat($total));
     }
 
-    // -----------------------------------------------------------------------
-    // Subtraction — discount calculation
-    // -----------------------------------------------------------------------
-
     public function test_subtraction_computes_discounted_price_precisely(): void
     {
         // face_value=25.00, discount=5% → 25.00 - 1.25 = 23.75
@@ -184,10 +163,6 @@ class MoneyCalculatorTest extends TestCase
 
         $this->assertSame(0.0, MoneyCalculator::toFloat($result));
     }
-
-    // -----------------------------------------------------------------------
-    // Multiplication by integer quantity — order subtotals
-    // -----------------------------------------------------------------------
 
     public function test_multiply_by_quantity_computes_subtotal_precisely(): void
     {
@@ -214,10 +189,6 @@ class MoneyCalculatorTest extends TestCase
 
         $this->assertSame(14.50, MoneyCalculator::toFloat($subtotal));
     }
-
-    // -----------------------------------------------------------------------
-    // Percentage markup/markdown — price rule calculations
-    // -----------------------------------------------------------------------
 
     /**
      * Mirrors PricingRuleService::calculateNewPrice() for PERCENTAGE + ADDITION.
@@ -273,10 +244,6 @@ class MoneyCalculatorTest extends TestCase
         $this->assertSame(11.29, MoneyCalculator::toFloat($result));
     }
 
-    // -----------------------------------------------------------------------
-    // Absolute addition/subtraction — price rule ABSOLUTE mode
-    // -----------------------------------------------------------------------
-
     public function test_absolute_addition_is_precise(): void
     {
         // face_value=20.00, +5.00 → 25.00
@@ -296,10 +263,6 @@ class MoneyCalculatorTest extends TestCase
 
         $this->assertSame(16.50, MoneyCalculator::toFloat($result));
     }
-
-    // -----------------------------------------------------------------------
-    // Comparisons — guards used in PricingRuleService and request validators
-    // -----------------------------------------------------------------------
 
     public function test_greater_than_returns_true_when_larger(): void
     {
@@ -335,7 +298,6 @@ class MoneyCalculatorTest extends TestCase
 
     public function test_zero_floor_guard_used_in_pricing_rule(): void
     {
-        // Mirrors: $finalPrice = $calculatedPrice->greaterThan($zero) ? $calculatedPrice : $zero
         $calculatedPrice = MoneyCalculator::of('-5.00', 'usd');
         $zero = MoneyCalculator::zero('usd');
 
@@ -346,16 +308,11 @@ class MoneyCalculatorTest extends TestCase
 
     public function test_cost_price_guard_used_in_pricing_rule(): void
     {
-        // Mirrors: if ($finalPrice->lessThan($costPrice)) return null
         $finalPrice = MoneyCalculator::of('8.00', 'usd');
         $costPrice = MoneyCalculator::of('9.00', 'usd');
 
         $this->assertTrue($finalPrice->lessThan($costPrice));
     }
-
-    // -----------------------------------------------------------------------
-    // End-to-end: sale order total
-    // -----------------------------------------------------------------------
 
     public function test_sale_order_total_matches_sum_of_subtotals(): void
     {
@@ -367,10 +324,6 @@ class MoneyCalculatorTest extends TestCase
 
         $this->assertSame(34.97, MoneyCalculator::toFloat($total));
     }
-
-    // -----------------------------------------------------------------------
-    // End-to-end: discount-based selling price (DigitalProduct model)
-    // -----------------------------------------------------------------------
 
     public function test_discount_selling_price_calculation_is_exact(): void
     {
