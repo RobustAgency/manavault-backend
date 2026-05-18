@@ -13,19 +13,18 @@ use App\Enums\PurchaseOrderSupplierStatus;
 use App\Jobs\PlaceExternalPurchaseOrderJob;
 use App\Repositories\PurchaseOrderRepository;
 use App\Services\PurchaseOrder\GroupBySupplierIdService;
-use App\Services\PurchaseOrder\PurchaseOrderStatusService;
 
 class PurchaseOrderService
 {
     public function __construct(
         private GroupBySupplierIdService $groupBySupplierIdService,
-        private PurchaseOrderStatusService $purchaseOrderStatusService,
         private PurchaseOrderRepository $purchaseOrderRepository,
     ) {}
 
     public function createPurchaseOrder(array $data): PurchaseOrder
     {
         $currency = $data['currency'] ?? 'usd';
+        $saleOrderId = $data['sale_order_id'] ?? null;
         $grouped = $this->groupBySupplierIdService->groupBySupplierId($data['items']);
         $orderNumber = $this->generateOrderNumber();
 
@@ -36,6 +35,7 @@ class PurchaseOrderService
                 'order_number' => $orderNumber,
                 'status' => PurchaseOrderStatus::PROCESSING->value,
                 'currency' => $currency,
+                'sale_order_id' => $saleOrderId,
             ]);
 
             foreach ($grouped as $supplierOrderData) {
@@ -45,8 +45,6 @@ class PurchaseOrderService
 
                 $this->processSupplierItems($purchaseOrder, $supplier, $items, $orderNumber, $currency);
             }
-
-            $this->purchaseOrderStatusService->updateStatus($purchaseOrder);
 
             DB::commit();
 
@@ -139,10 +137,12 @@ class PurchaseOrderService
      */
     public function createPurchaseOrderForDigitalProduct(
         DigitalProduct $digitalProduct,
-        int $quantity
+        int $quantity,
+        ?int $saleOrderId = null,
     ): PurchaseOrder {
         return $this->createPurchaseOrder([
             'currency' => $digitalProduct->currency,
+            'sale_order_id' => $saleOrderId,
             'items' => [
                 [
                     'supplier_id' => $digitalProduct->supplier_id,

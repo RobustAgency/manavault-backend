@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
@@ -17,11 +18,20 @@ class PurchaseOrder extends Model
         'order_number',
         'status',
         'currency',
+        'sale_order_id',
     ];
 
     protected $casts = [
         'total_price' => 'decimal:2',
     ];
+
+    /**
+     * @return BelongsTo<SaleOrder, $this>
+     */
+    public function saleOrder(): BelongsTo
+    {
+        return $this->belongsTo(SaleOrder::class);
+    }
 
     /**
      * @return HasMany<PurchaseOrderSupplier, $this>

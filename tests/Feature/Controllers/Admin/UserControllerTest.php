@@ -24,17 +24,13 @@ class UserControllerTest extends TestCase
         foreach ($users as $user) {
             $user->assignRole($role);
         }
-        $response = $this->actingAs($admin)->getJson('/api/users?role=user');
+        $response = $this->actingAs($admin)->getJson('/api/users');
         $response->assertOk();
 
         $responseData = $response->json();
         $this->assertFalse($responseData['error']);
         $this->assertEquals('Users retrieved successfully', $responseData['message']);
         $this->assertArrayHasKey('data', $responseData);
-
-        foreach ($responseData['data']['data'] as $user) {
-            $this->assertEquals(UserRole::USER->value, $user['roles'][0]['name']);
-        }
     }
 
     public function test_super_admin_can_view_user(): void

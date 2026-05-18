@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\SaleOrder;
 use App\Enums\SaleOrder\Status;
 use App\Events\SaleOrderCompleted;
+use Illuminate\Support\Facades\DB;
 use App\Repositories\ProductRepository;
 use App\Repositories\SaleOrderRepository;
 
@@ -13,26 +14,13 @@ class SaleOrderService
     public function __construct(
         private ProductRepository $productRepository,
         private SaleOrderRepository $saleOrderRepository,
-        private VoucherAllocationService $voucherAllocationService,
         private AutoPurchaseOrderService $autoPurchaseOrderService,
         private DigitalProductAllocationService $digitalProductAllocationService,
     ) {}
 
     public function createOrder(array $data): SaleOrder
     {
-        $existing = $this->saleOrderRepository->getSaleOrderByOrderNumber($data['order_number']);
-
-        if ($existing) {
-            if ($existing->items()->exists()) {
-                logger()->info("Resync skipped for order {$existing->order_number}: items already exist.");
-
-                return $existing->load(['items.digitalProducts']);
-            }
-
-            logger()->info("Resyncing sale order ID: {$existing->id} (order number: {$existing->order_number}) — no items found, reprocessing.");
-            $saleOrder = $existing;
-            $saleOrder->update(['status' => Status::PENDING->value]);
-        } else {
+        return DB::transaction(function () use ($data) {
             $saleOrder = $this->saleOrderRepository->createSaleOrder([
                 'order_number' => $data['order_number'],
                 'source' => SaleOrder::MANASTORE,
@@ -41,19 +29,14 @@ class SaleOrderService
             ]);
 
             logger()->info("Creating sale order with ID: {$saleOrder->id} and order number: {$saleOrder->order_number}");
-        }
-
-        try {
-            $this->validateProductsAndDigitalStock($data['items']);
-
-            $this->triggerAutoPurchaseOrdersIfNeeded($data['items']);
 
             $totalPrice = 0;
-            $fullyAllocated = true;
+            $shortfalls = [];
 
             $saleOrder->update(['status' => Status::PROCESSING->value]);
 
             logger()->info("Processing sale order ID: {$saleOrder->id} with status set to PROCESSING");
+
             foreach ($data['items'] as $itemData) {
                 $product = $this->productRepository->getProductById($itemData['product_id']);
                 $quantity = $itemData['quantity'];
@@ -68,62 +51,44 @@ class SaleOrderService
                     'subtotal' => $subtotal,
                 ]);
 
-                $allocated = $this->digitalProductAllocationService->allocate($item, $product, $quantity);
+                $allocated = $this->digitalProductAllocationService->allocateFromGeneralStock($item, $product, $quantity);
 
                 if ($allocated < $quantity) {
-                    $fullyAllocated = false;
+                    $shortfalls[] = [
+                        'item' => $item,
+                        'product' => $product,
+                        'remaining' => $quantity - $allocated,
+                    ];
                 }
 
                 $totalPrice += $subtotal;
             }
 
-            $finalStatus = $fullyAllocated ? Status::COMPLETED->value : Status::PROCESSING->value;
-            $saleOrder->update([
-                'status' => $finalStatus,
-                'total_price' => $totalPrice,
-            ]);
+            // Create auto-POs for remaining shortfalls after exhausting general stock.
+            foreach ($shortfalls as ['product' => $product, 'remaining' => $remaining]) {
+                $digitalProduct = $product->digitalProduct();
+                if ($digitalProduct !== null) {
+                    $this->autoPurchaseOrderService->handleShortfall($digitalProduct, $remaining, $saleOrder->id);
+                }
+            }
 
-            if ($fullyAllocated) {
-                event(new SaleOrderCompleted($saleOrder));
+            // Refresh to pick up any status changes made synchronously by the ProcessVoucherCodes
+            // listener (e.g. when the queue driver is sync and the supplier returns vouchers immediately).
+            $saleOrder->refresh();
+
+            if ($saleOrder->status !== Status::COMPLETED->value) {
+                $fullyAllocated = empty($shortfalls);
+                $finalStatus = $fullyAllocated ? Status::COMPLETED->value : Status::PROCESSING->value;
+                $saleOrder->update(['status' => $finalStatus, 'total_price' => $totalPrice]);
+
+                if ($fullyAllocated) {
+                    event(new SaleOrderCompleted($saleOrder));
+                }
+            } else {
+                $saleOrder->update(['total_price' => $totalPrice]);
             }
 
             return $saleOrder->load(['items.digitalProducts']);
-
-        } catch (\Exception $e) {
-            logger()->error("Error processing sale order ID: {$saleOrder->id} - {$e->getMessage()}");
-
-            return $saleOrder;
-        }
-    }
-
-    /**
-     * Validate products have digital products assigned
-     */
-    private function validateProductsAndDigitalStock(array $items): void
-    {
-        foreach ($items as $itemData) {
-            $product = $this->productRepository->getProductById($itemData['product_id']);
-            if ($product->digitalProducts->isEmpty()) {
-                throw new \Exception("Product {$product->name} has no digital products assigned.");
-            }
-        }
-    }
-
-    /**
-     * For items where stock is short, dispatch auto-POs via eligible external suppliers.
-     */
-    private function triggerAutoPurchaseOrdersIfNeeded(array $items): void
-    {
-        foreach ($items as $itemData) {
-            $product = $this->productRepository->getProductById($itemData['product_id']);
-            $quantity = $itemData['quantity'];
-            $digitalProduct = $product->digitalProduct();
-            $totalAvailable = $this->voucherAllocationService->getAvailableQuantity($digitalProduct->id);
-
-            if ($totalAvailable < $quantity) {
-                $shortfall = $quantity - $totalAvailable;
-                $this->autoPurchaseOrderService->handleShortfall($digitalProduct, $shortfall);
-            }
-        }
+        });
     }
 }
