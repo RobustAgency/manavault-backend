@@ -20,7 +20,11 @@ class DigitalProductAllocationService
      */
     public function allocateFromGeneralStock(SaleOrderItem $item, Product $product, int $quantity): int
     {
-        $digitalProduct = $this->resolveDigitalProduct($product);
+        $digitalProduct = $product->digitalProduct();
+        if ($digitalProduct === null) {
+            return 0;
+        }
+
         $vouchers = $this->voucherAllocationService->getAvailableVouchers($digitalProduct->id);
 
         return $this->performAllocation($item, $digitalProduct, $vouchers, $quantity);
@@ -32,17 +36,14 @@ class DigitalProductAllocationService
      */
     public function allocateFromLinkedPurchaseOrder(SaleOrderItem $item, Product $product, int $quantity, int $saleOrderId): int
     {
-        $digitalProduct = $this->resolveDigitalProduct($product);
+        $digitalProduct = $product->digitalProduct();
+        if ($digitalProduct === null) {
+            return 0;
+        }
+
         $vouchers = $this->voucherAllocationService->getAvailableVouchersForSaleOrder($digitalProduct->id, $saleOrderId);
 
         return $this->performAllocation($item, $digitalProduct, $vouchers, $quantity);
-    }
-
-    private function resolveDigitalProduct(Product $product): DigitalProduct
-    {
-        $digitalProduct = $product->digitalProduct();
-
-        return $digitalProduct;
     }
 
     /**

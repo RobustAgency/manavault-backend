@@ -3,7 +3,6 @@
 namespace Database\Factories;
 
 use App\Models\Supplier;
-use App\Models\SaleOrder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -19,7 +18,7 @@ class PurchaseOrderFactory extends Factory
     public function definition(): array
     {
         return [
-            'sale_order_id' => SaleOrder::factory(),
+            'sale_order_id' => null,
             'total_price' => $this->faker->randomFloat(2, 50, 1000),
             'order_number' => $this->faker->unique()->regexify('PO-[0-9]{8}'),
             'status' => $this->faker->randomElement(['pending', 'processing', 'completed', 'cancelled']),
