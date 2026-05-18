@@ -135,8 +135,11 @@ class GifteryPlaceOrderService
             throw new \RuntimeException('Failed to check account balance with Giftery. See logs for details.');
         }
 
-        // Calculate total order amount
-        $totalAmount = collect($orderItems)->sum('subtotal');
+        // Calculate total order amount using bcmath to avoid float precision issues.
+        $totalAmount = (float) collect($orderItems)->reduce(
+            fn (string $carry, $item) => bcadd($carry, (string) $item->subtotal, 2),
+            '0'
+        );
 
         $availableBalance = $account['available'] ?? 0;
 

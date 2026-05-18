@@ -7,6 +7,8 @@ use App\Enums\SaleOrder\Status;
 use App\Events\SaleOrderCompleted;
 use App\Repositories\ProductRepository;
 use App\Repositories\SaleOrderRepository;
+use App\Support\MoneyCalculator;
+use Money\Money;
 
 class SaleOrderService
 {
@@ -48,7 +50,7 @@ class SaleOrderService
 
             $this->triggerAutoPurchaseOrdersIfNeeded($data['items']);
 
-            $totalPrice = 0;
+            $totalPrice = null;
             $fullyAllocated = true;
 
             $saleOrder->update(['status' => Status::PROCESSING->value]);
@@ -57,15 +59,16 @@ class SaleOrderService
             foreach ($data['items'] as $itemData) {
                 $product = $this->productRepository->getProductById($itemData['product_id']);
                 $quantity = $itemData['quantity'];
+                $currency = $product->currency ?? 'usd';
 
-                $unitPrice = $product->selling_price;
-                $subtotal = $quantity * $unitPrice;
+                $unitPriceMoney = MoneyCalculator::of($product->selling_price, $currency);
+                $subtotalMoney = $unitPriceMoney->multiply($quantity);
 
                 $item = $saleOrder->items()->create([
                     'product_id' => $product->id,
                     'quantity' => $quantity,
-                    'unit_price' => $unitPrice,
-                    'subtotal' => $subtotal,
+                    'unit_price' => MoneyCalculator::toFloat($unitPriceMoney),
+                    'subtotal' => MoneyCalculator::toFloat($subtotalMoney),
                 ]);
 
                 $allocated = $this->digitalProductAllocationService->allocate($item, $product, $quantity);
@@ -74,13 +77,15 @@ class SaleOrderService
                     $fullyAllocated = false;
                 }
 
-                $totalPrice += $subtotal;
+                $totalPrice = $totalPrice === null
+                    ? $subtotalMoney
+                    : $totalPrice->add($subtotalMoney);
             }
 
             $finalStatus = $fullyAllocated ? Status::COMPLETED->value : Status::PROCESSING->value;
             $saleOrder->update([
                 'status' => $finalStatus,
-                'total_price' => $totalPrice,
+                'total_price' => $totalPrice !== null ? MoneyCalculator::toFloat($totalPrice) : 0,
             ]);
 
             if ($fullyAllocated) {

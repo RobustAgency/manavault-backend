@@ -15,10 +15,11 @@ class IrewardifyPlaceOrderService
 
     public function placeOrder(array $orderItems, string $orderNumber): array
     {
-        $totalPrice = 0;
+        $totalPrice = '0';
         foreach ($orderItems as $item) {
-            $totalPrice += $item->subtotal;
+            $totalPrice = bcadd($totalPrice, (string) $item->subtotal, 2);
         }
+        $totalPrice = (float) $totalPrice;
 
         $this->ensureSufficientBalance($totalPrice);
 

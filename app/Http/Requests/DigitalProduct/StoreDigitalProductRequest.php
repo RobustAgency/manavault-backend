@@ -3,6 +3,7 @@
 namespace App\Http\Requests\DigitalProduct;
 
 use App\Enums\Currency;
+use App\Support\MoneyCalculator;
 use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -94,16 +95,24 @@ class StoreDigitalProductRequest extends FormRequest
                 $sellingPrice = isset($product['selling_price']) ? (float) $product['selling_price'] : null;
                 $faceValue = isset($product['face_value']) ? (float) $product['face_value'] : null;
                 $sellingDiscount = isset($product['selling_discount']) ? (float) $product['selling_discount'] : null;
+                $currency = $product['currency'] ?? 'usd';
 
                 if ($costPrice === null || $sellingPrice === null || $faceValue === null) {
                     continue;
                 }
 
-                $effectiveSellingPrice = $sellingDiscount !== null
-                    ? round($faceValue * (1 - $sellingDiscount / 100), 2)
-                    : $sellingPrice;
+                if ($sellingDiscount !== null) {
+                    $faceValueMoney = MoneyCalculator::of($faceValue, $currency);
+                    $markdownAmount = $faceValueMoney->multiply((string) $sellingDiscount)->divide('100');
+                    $effectiveSellingMoney = $faceValueMoney->subtract($markdownAmount);
+                } else {
+                    $effectiveSellingMoney = MoneyCalculator::of($sellingPrice, $currency);
+                }
 
-                if ($effectiveSellingPrice < $costPrice) {
+                $costPriceMoney = MoneyCalculator::of($costPrice, $currency);
+
+                if ($effectiveSellingMoney->lessThan($costPriceMoney)) {
+                    $effectiveSellingPrice = MoneyCalculator::toFloat($effectiveSellingMoney);
                     $validator->errors()->add(
                         "products.{$index}.selling_price",
                         "The effective selling price ({$effectiveSellingPrice}) must not be less than the cost price ({$costPrice})."
