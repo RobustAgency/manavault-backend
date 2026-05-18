@@ -8,6 +8,7 @@ use App\Services\ImageUploadService;
 use App\Enums\PriceRuleCondition\Operator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection as BaseCollection;
 
 class ProductRepository
 {
@@ -45,6 +46,10 @@ class ProductRepository
 
         if (isset($filters['currency'])) {
             $query->where('currency', $filters['currency']);
+        }
+
+        if (isset($filters['region'])) {
+            $query->whereJsonContains('regions', $filters['region']);
         }
 
         $per_page = $filters['per_page'] ?? 10;
@@ -197,5 +202,18 @@ class ProductRepository
     public function getProductsByBrandId(int $brandId): Collection
     {
         return Product::where('brand_id', $brandId)->get();
+    }
+
+    /**
+     * Get all unique regions from products (database interaction only).
+     *
+     * @return BaseCollection<int, string>
+     */
+    public function getAllProductsRegions(): BaseCollection
+    {
+        return Product::query()
+            ->whereNotNull('regions')
+            ->where('regions', '!=', '[]')
+            ->pluck('regions');
     }
 }

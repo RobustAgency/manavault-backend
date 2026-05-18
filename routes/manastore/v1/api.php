@@ -18,6 +18,7 @@ Route::prefix('/v1')->group(function () {
 
         Route::prefix('/sale-orders')->group(function () {
             Route::post('', [SaleOrderController::class, 'store']);
+            Route::get('/{orderNumber}', [SaleOrderController::class, 'show']);
             Route::get('/{saleOrder}/vouchers', [SaleOrderController::class, 'getVoucherCodes']);
         });
     });

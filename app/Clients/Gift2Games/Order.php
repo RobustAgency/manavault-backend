@@ -21,4 +21,11 @@ class Order extends Client
 
         return $response;
     }
+
+    public function getOrders(): array
+    {
+        $response = $this->getFormClient()->get('/orders');
+
+        return $this->handleResponse($response);
+    }
 }
