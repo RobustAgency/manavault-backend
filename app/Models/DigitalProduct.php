@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\MoneyCalculator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -105,10 +106,18 @@ class DigitalProduct extends Model
 
     public function getProfitMarginAttribute(): float
     {
+        $currency = $this->attributes['currency'] ?? null;
         $costPrice = $this->getAttribute('cost_price');
         $sellingPrice = $this->getSellingPriceAttribute();
 
-        return round($sellingPrice - $costPrice, 2);
+        if ($currency !== null && $sellingPrice !== null) {
+            $sellingMoney = MoneyCalculator::of($sellingPrice, $currency);
+            $costMoney = MoneyCalculator::of($costPrice ?? 0, $currency);
+
+            return MoneyCalculator::toFloat($sellingMoney->subtract($costMoney));
+        }
+
+        return round(($sellingPrice ?? 0) - ($costPrice ?? 0), 2);
     }
 
     /**
@@ -118,10 +127,18 @@ class DigitalProduct extends Model
     {
         $basePrice = (float) ($this->attributes['face_value'] ?? 0);
         $discount = (float) ($this->attributes['selling_discount'] ?? 0);
+        $currency = $this->attributes['currency'] ?? null;
         $latestPriceRule = $this->latestPriceRuleDigitalProduct;
 
         switch ($this->resolvePricingSource()) {
             case 'discount':
+                if ($currency !== null) {
+                    $faceValueMoney = MoneyCalculator::of($basePrice, $currency);
+                    $markdownAmount = $faceValueMoney->multiply((string) $discount)->divide('100');
+
+                    return MoneyCalculator::toFloat($faceValueMoney->subtract($markdownAmount));
+                }
+
                 return round($basePrice * (1 - $discount / 100), 2);
 
             case 'rule':
