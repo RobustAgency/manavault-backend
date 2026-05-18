@@ -10,6 +10,7 @@ use App\Console\Commands\SyncGift2GamesProductsCommand;
 use App\Console\Commands\SyncIrewardifyProductsCommand;
 use App\Console\Commands\FetchIrewardifyVouchersCommand;
 use App\Console\Commands\AddVoucherCodeForEZCardsCommand;
+use App\Console\Commands\PlacePendingPurchaseOrdersCommand;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -21,6 +22,11 @@ Schedule::command(SyncEzCardsProductsCommand::class)
     ->runInBackground();
 
 Schedule::command(AddVoucherCodeForEZCardsCommand::class)
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->runInBackground();
+
+Schedule::command(PlacePendingPurchaseOrdersCommand::class)
     ->everyMinute()
     ->withoutOverlapping()
     ->runInBackground();

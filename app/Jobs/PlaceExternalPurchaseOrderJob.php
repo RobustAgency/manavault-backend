@@ -94,12 +94,6 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
             $gifteryVoucherService->storeVouchers($this->purchaseOrder, $externalOrderResponse);
             $this->purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
 
-        } elseif ($this->supplier->slug === 'ez_cards') {
-
-            Log::info('EzCards order created, vouchers will be fetched separately', [
-                'purchase_order_id' => $this->purchaseOrder->id,
-                'transaction_id' => $transactionId,
-            ]);
         } elseif ($this->supplier->slug === 'irewardify') {
             Log::info('Irewardify order created, vouchers will be fetched separately via orderId', [
                 'purchase_order_id' => $this->purchaseOrder->id,
