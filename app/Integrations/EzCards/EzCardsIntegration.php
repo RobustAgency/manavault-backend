@@ -2,17 +2,19 @@
 
 namespace App\Integrations\EzCards;
 
-use Illuminate\Support\Facades\Log;
-use App\Contracts\SupplierIntegrationContract;
-use App\Actions\Ezcards\PlaceOrder;
 use App\Actions\Ezcards\GetVoucherCodes;
+use App\Actions\Ezcards\PlaceOrder;
+use App\Contracts\SupplierIntegrationContract;
 use App\Models\PurchaseOrder;
+use App\Services\Ezcards\SyncDigitalProduct;
+use Illuminate\Support\Facades\Log;
 
 class EzCardsIntegration implements SupplierIntegrationContract
 {
     public function __construct(
         private readonly PlaceOrder $placeOrderAction,
         private readonly GetVoucherCodes $getVoucherCodesAction,
+        private readonly SyncDigitalProduct $syncDigitalProduct,
     ) {}
 
     public function placeOrder(array $orderItems, string $orderNumber, string $currency, PurchaseOrder $purchaseOrder): array
@@ -49,5 +51,10 @@ class EzCardsIntegration implements SupplierIntegrationContract
     public function isVoucherReturningImmediately(): bool
     {
         return false;
+    }
+
+    public function syncProducts(): void
+    {
+        $this->syncDigitalProduct->processSyncAllProducts();
     }
 }

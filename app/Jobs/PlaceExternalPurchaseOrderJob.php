@@ -12,6 +12,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Services\Giftery\GifteryVoucherService;
 use App\Services\Tikkery\TikkeryVoucherService;
 use App\Services\Gift2Games\Gift2GamesVoucherService;
+use App\Services\Supplier\SupplierIntegrationResolver;
 use App\Services\PurchaseOrder\PurchaseOrderStatusService;
 use App\Services\PurchaseOrder\PurchaseOrderPlacementService;
 
@@ -27,8 +28,6 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
     public int $timeout = 600;
 
     /**
-     * The number of seconds to wait before retrying the job.
-     *
      * @var array<int, int>
      */
     public array $backoff = [30, 60, 120];
@@ -43,12 +42,67 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
     ) {}
 
     public function handle(
+        SupplierIntegrationResolver $resolver,
         PurchaseOrderPlacementService $purchaseOrderPlacementService,
         Gift2GamesVoucherService $gift2GamesVoucherService,
         GifteryVoucherService $gifteryVoucherService,
         TikkeryVoucherService $tikkeryVoucherService,
         PurchaseOrderStatusService $purchaseOrderStatusService,
     ): void {
+        $integration = $resolver->resolve($this->supplier);
+
+        if ($integration !== null) {
+            // ---- Abstraction path (currently: EZCards) ----
+
+            // Atomic guard: if a transaction_id is already recorded, the order was
+            // already placed on a previous attempt — skip straight to status sync.
+            if ($this->purchaseOrderSupplier->transaction_id) {
+                Log::info('PlaceExternalPurchaseOrderJob: order already placed, skipping placement', [
+                    'purchase_order_id' => $this->purchaseOrder->id,
+                    'supplier_slug' => $this->supplier->slug,
+                    'transaction_id' => $this->purchaseOrderSupplier->transaction_id,
+                ]);
+
+                $purchaseOrderStatusService->updateStatus($this->purchaseOrder->refresh());
+
+                return;
+            }
+
+            try {
+                $response = $integration->placeOrder(
+                    $this->purchaseOrderItems,
+                    $this->orderNumber,
+                    $this->currency,
+                    $this->purchaseOrder,
+                );
+
+                $transactionId = $response['transactionId'] ?? ($response['id'] ?? null);
+
+                $this->purchaseOrderSupplier->update([
+                    'transaction_id' => $transactionId,
+                    'status' => PurchaseOrderSupplierStatus::PENDING_VOUCHERS->value,
+                ]);
+
+                Log::info('PlaceExternalPurchaseOrderJob: order placed via integration', [
+                    'purchase_order_id' => $this->purchaseOrder->id,
+                    'supplier_slug' => $this->supplier->slug,
+                    'transaction_id' => $transactionId,
+                ]);
+            } catch (\Exception $e) {
+                $this->purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::FAILED->value]);
+                Log::error('PlaceExternalPurchaseOrderJob: failed to place order via integration', [
+                    'purchase_order_id' => $this->purchaseOrder->id,
+                    'supplier_slug' => $this->supplier->slug,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            $purchaseOrderStatusService->updateStatus($this->purchaseOrder->refresh());
+
+            return;
+        }
+
+        // ---- Legacy path: Gift2Games, Giftery, Tikkery, Irewardify ----
         $externalOrderResponse = [];
         $transactionId = null;
 
@@ -71,7 +125,6 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
                 'transaction_id' => $transactionId,
             ]);
         } catch (\Exception $e) {
-
             $this->purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::FAILED->value]);
             $purchaseOrderStatusService->updateStatus($this->purchaseOrder->refresh());
             Log::error('Failed to place external order', [
@@ -95,6 +148,7 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
             $this->purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
 
         } elseif ($this->supplier->slug === 'irewardify') {
+
             Log::info('Irewardify order created, vouchers will be fetched separately via orderId', [
                 'purchase_order_id' => $this->purchaseOrder->id,
                 'order_id' => $transactionId,
@@ -108,7 +162,6 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
                 $tikkeryVoucherService->storeVouchers($this->purchaseOrder, $externalOrderResponse);
                 $this->purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
             } else {
-                // Order is pending — vouchers will be fetched by the scheduled poller
                 Log::info('Tikkery order is pending, vouchers will be fetched separately', [
                     'purchase_order_id' => $this->purchaseOrder->id,
                     'transaction_id' => $transactionId,

@@ -2,18 +2,19 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Log;
+use App\Enums\PurchaseOrderSupplierStatus;
+use App\Jobs\PlaceExternalPurchaseOrderJob;
 use App\Models\PurchaseOrderItem;
 use App\Models\PurchaseOrderSupplier;
-use App\Enums\PurchaseOrderSupplierStatus;
 use App\Services\Supplier\SupplierIntegrationResolver;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class PlacePendingPurchaseOrdersCommand extends Command
 {
     protected $signature = 'purchase-order:place-pending';
 
-    protected $description = 'Place orders for pending purchase order suppliers that have no transaction ID';
+    protected $description = 'Dispatch order-placement jobs for pending purchase order suppliers registered in the integration layer';
 
     public function __construct(private readonly SupplierIntegrationResolver $resolver)
     {
@@ -24,6 +25,9 @@ class PlacePendingPurchaseOrdersCommand extends Command
     {
         $hasFailures = false;
 
+        // Find supplier records that have no transaction_id yet — order hasn't been placed.
+        // PENDING_VOUCHERS records already have a transaction_id, so the atomic job will
+        // skip re-placement and only sync status when re-dispatched; those are not targeted here.
         $pendingSuppliers = PurchaseOrderSupplier::query()
             ->where('status', PurchaseOrderSupplierStatus::PROCESSING->value)
             ->whereNull('transaction_id')
@@ -38,50 +42,42 @@ class PlacePendingPurchaseOrdersCommand extends Command
 
         foreach ($pendingSuppliers as $purchaseOrderSupplier) {
             $supplier = $purchaseOrderSupplier->supplier;
-            $integration = $this->resolver->resolve($supplier);
 
-            if ($integration === null) {
-
+            if ($this->resolver->resolve($supplier) === null) {
                 continue;
             }
 
             $purchaseOrder = $purchaseOrderSupplier->purchaseOrder;
+
             $items = PurchaseOrderItem::where('purchase_order_id', $purchaseOrderSupplier->purchase_order_id)
                 ->where('supplier_id', $purchaseOrderSupplier->supplier_id)
                 ->with('digitalProduct')
-                ->get();
+                ->get()
+                ->all();
 
             try {
-                $response = $integration->placeOrder(
-                    $items->all(),
+                PlaceExternalPurchaseOrderJob::dispatch(
+                    $purchaseOrder,
+                    $supplier,
+                    $purchaseOrderSupplier,
+                    $items,
                     $purchaseOrder->order_number,
                     $purchaseOrder->currency,
-                    $purchaseOrder,
                 );
 
-                $transactionId = $response['transactionId'] ?? null;
-
-                $purchaseOrderSupplier->update(['transaction_id' => $transactionId]);
-
-                Log::info('Pending purchase order placed successfully', [
-                    'supplier' => $supplier->slug,
+                Log::info('PlacePendingPurchaseOrdersCommand: dispatched job', [
+                    'supplier'                  => $supplier->slug,
+                    'purchase_order_id'         => $purchaseOrder->id,
                     'purchase_order_supplier_id' => $purchaseOrderSupplier->id,
-                    'purchase_order_id' => $purchaseOrder->id,
-                    'order_number' => $purchaseOrder->order_number,
-                    'transaction_id' => $transactionId,
                 ]);
-
             } catch (\Throwable $e) {
                 $hasFailures = true;
 
-                $purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::FAILED->value]);
-
-                Log::error('Failed to place pending purchase order', [
-                    'supplier' => $supplier->slug,
+                Log::error('PlacePendingPurchaseOrdersCommand: failed to dispatch job', [
+                    'supplier'                  => $supplier->slug,
+                    'purchase_order_id'         => $purchaseOrder->id,
                     'purchase_order_supplier_id' => $purchaseOrderSupplier->id,
-                    'purchase_order_id' => $purchaseOrder->id,
-                    'order_number' => $purchaseOrder->order_number,
-                    'error' => $e->getMessage(),
+                    'error'                     => $e->getMessage(),
                 ]);
             }
         }
