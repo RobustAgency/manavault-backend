@@ -21,11 +21,14 @@ class EzcardsVoucherCodeService
         private VoucherCipherService $voucherCipherService
     ) {}
 
+    /**
+     * Process all EZ Cards purchase orders and fetch their voucher codes.
+     */
     public function processAllPurchaseOrders(): bool
     {
+        // Fetch all EZ Cards purchase orders that haven't been fully processed
         $purchaseOrders = $this->getUnprocessedPurchaseOrders();
         Log::info('Found '.count($purchaseOrders).' EZ Cards purchase orders to process.');
-
         foreach ($purchaseOrders as $purchaseOrder) {
             try {
                 $this->processPurchaseOrder($purchaseOrder);
@@ -41,8 +44,14 @@ class EzcardsVoucherCodeService
         return true;
     }
 
+    /**
+     * Get all unprocessed EZ Cards purchase orders.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, PurchaseOrder>
+     */
     private function getUnprocessedPurchaseOrders()
     {
+        // Get purchase order IDs that have EZ Cards suppliers with transaction_id
         $purchaseOrderIds = PurchaseOrderSupplier::whereHas('supplier', function ($query) {
             $query->where('slug', 'ez_cards');
         })->where('status', PurchaseOrderSupplierStatus::PROCESSING->value)
@@ -54,6 +63,9 @@ class EzcardsVoucherCodeService
             ->get();
     }
 
+    /**
+     * Process a purchase order by its ID to fetch and store voucher codes.
+     *     */
     public function processPurchaseOrderById(PurchaseOrder $purchaseOrder): bool
     {
         $purchaseOrder->load(['vouchers', 'items.digitalProduct']);
@@ -61,8 +73,13 @@ class EzcardsVoucherCodeService
         return $this->processPurchaseOrder($purchaseOrder);
     }
 
+    /**
+     * Process a single purchase order to fetch and store voucher codes.
+     */
     public function processPurchaseOrder(PurchaseOrder $purchaseOrder): bool
     {
+
+        // Get the EZ Cards purchase order supplier record
         $purchaseOrderSupplier = PurchaseOrderSupplier::where('purchase_order_id', $purchaseOrder->id)
             ->whereHas('supplier', function ($query) {
                 $query->where('slug', 'ez_cards');
@@ -78,11 +95,11 @@ class EzcardsVoucherCodeService
             return false;
         }
 
-        // Ensure relations are loaded before passing to storeVoucherCodes
-        $purchaseOrder->loadMissing('items.digitalProduct');
-
         $transactionID = (int) $purchaseOrderSupplier->transaction_id;
+
+        // Fetch voucher codes from EZ Cards API
         $voucherCodesResponse = $this->getVoucherCodes->execute($transactionID);
+
         $result = $this->storeVoucherCodes($purchaseOrder, $voucherCodesResponse);
 
         if (empty($result['item_ids'])) {
@@ -112,48 +129,40 @@ class EzcardsVoucherCodeService
     }
 
     /**
+     * Store voucher codes from API response into the database.
+     *
      * @return array{added: int, updated: int, item_ids: int[]}
      */
     private function storeVoucherCodes(PurchaseOrder $purchaseOrder, array $voucherCodesResponse): array
     {
-        $productVouchers = $voucherCodesResponse['data'] ?? [];
-
-        // O(1) SKU lookup instead of O(n) collection search per product
-        $itemsBySku = $purchaseOrder->items->keyBy(fn ($item) => $item->digitalProduct->sku);
-
-        // Pre-fetch all existing vouchers for this order in one query to avoid N+1
-        $allStockIds = collect($productVouchers)
-            ->flatMap(fn ($p) => collect($p['codes'])->pluck('stockId'))
-            ->filter()
-            ->unique()
-            ->values();
-
-        $existingVouchers = $allStockIds->isNotEmpty()
-            ? Voucher::where('purchase_order_id', $purchaseOrder->id)
-                ->whereIn('stock_id', $allStockIds)
-                ->get()
-                ->keyBy('stock_id')
-            : collect();
-
         $vouchersAdded = 0;
         $vouchersUpdated = 0;
         $processedItemIds = [];
-        $toInsert = [];
-        $now = now();
+
+        // Handle response structure - the data array contains items for each product
+        $productVouchers = $voucherCodesResponse['data'] ?? [];
+
+        // Load purchase order items with digital products to match vouchers to items
+        $purchaseOrder->load('items.digitalProduct');
 
         DB::beginTransaction();
         try {
+            // Process each product's vouchers from the API response
             foreach ($productVouchers as $productData) {
                 $sku = $productData['sku'];
                 $codes = $productData['codes'];
 
-                $purchaseOrderItem = $itemsBySku->get($sku);
+                // Find the corresponding purchase order item by matching the SKU
+                $purchaseOrderItem = $purchaseOrder->items->first(function ($item) use ($sku) {
+                    return $item->digitalProduct->sku === $sku;
+                });
 
                 if (! $purchaseOrderItem) {
                     Log::error('EZ Cards returned SKU not found in purchase order', [
                         'purchase_order_id' => $purchaseOrder->id,
                         'sku' => $sku,
                     ]);
+
                     continue;
                 }
 
@@ -169,6 +178,7 @@ class EzcardsVoucherCodeService
                     ]);
                 }
 
+                // Process each voucher code for this product
                 foreach ($codes as $voucherData) {
                     $code = $voucherData['redeemCode'] ?? null;
                     $pinCode = $voucherData['pinCode'] ?? null;
@@ -177,9 +187,15 @@ class EzcardsVoucherCodeService
 
                     $status = ($apiStatus === 'COMPLETED' && $code) ? 'available' : 'processing';
 
+                    // For processing status without code, create placeholder with stockId
                     if (! $code && $status === 'processing' && $stockId) {
-                        if (! $existingVouchers->has($stockId)) {
-                            $toInsert[] = [
+                        // Check if a voucher with this stockId already exists
+                        $exists = Voucher::where('purchase_order_id', $purchaseOrder->id)
+                            ->where('stock_id', $stockId)
+                            ->exists();
+
+                        if (! $exists) {
+                            Voucher::create([
                                 'code' => null,
                                 'purchase_order_id' => $purchaseOrder->id,
                                 'purchase_order_item_id' => $purchaseOrderItem->id,
@@ -187,36 +203,38 @@ class EzcardsVoucherCodeService
                                 'serial_number' => null,
                                 'pin_code' => null,
                                 'stock_id' => $stockId,
-                                'created_at' => $now,
-                                'updated_at' => $now,
-                            ];
+                            ]);
                         }
+
                         continue;
                     }
 
+                    // Skip if no code and not processing
                     if (! $code) {
                         continue;
                     }
 
-                    $existingVoucher = $stockId ? $existingVouchers->get($stockId) : null;
-                    $encryptedCode = $this->voucherCipherService->encryptCode($code);
+                    // Check if voucher already exists by stockId only
+                    $existingVoucher = $stockId
+                        ? Voucher::where('purchase_order_id', $purchaseOrder->id)->where('stock_id', $stockId)->first()
+                        : null;
+
+                    $code = $this->voucherCipherService->encryptCode($code);
 
                     if (! $existingVoucher) {
-                        $toInsert[] = [
-                            'code' => $encryptedCode,
+                        Voucher::create([
+                            'code' => $code,
                             'purchase_order_id' => $purchaseOrder->id,
                             'purchase_order_item_id' => $purchaseOrderItem->id,
                             'status' => $status,
                             'pin_code' => $pinCode,
                             'stock_id' => $stockId,
-                            'created_at' => $now,
-                            'updated_at' => $now,
-                        ];
+                        ]);
                         $vouchersAdded++;
                     } else {
                         $wasProcessing = $existingVoucher->status === 'processing';
                         $existingVoucher->update([
-                            'code' => $encryptedCode,
+                            'code' => $code,
                             'purchase_order_item_id' => $purchaseOrderItem->id,
                             'status' => $status,
                             'pin_code' => $pinCode,
@@ -227,10 +245,6 @@ class EzcardsVoucherCodeService
                         }
                     }
                 }
-            }
-
-            if (! empty($toInsert)) {
-                Voucher::insert($toInsert);
             }
 
             DB::commit();
