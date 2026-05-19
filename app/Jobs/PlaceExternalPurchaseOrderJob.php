@@ -52,10 +52,6 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
         $integration = $resolver->resolve($this->supplier);
 
         if ($integration !== null) {
-            // ---- Abstraction path (currently: EZCards) ----
-
-            // Atomic guard: if a transaction_id is already recorded, the order was
-            // already placed on a previous attempt — skip straight to status sync.
             if ($this->purchaseOrderSupplier->transaction_id) {
                 Log::info('PlaceExternalPurchaseOrderJob: order already placed, skipping placement', [
                     'purchase_order_id' => $this->purchaseOrder->id,
@@ -80,7 +76,7 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
 
                 $this->purchaseOrderSupplier->update([
                     'transaction_id' => $transactionId,
-                    'status' => PurchaseOrderSupplierStatus::PENDING_VOUCHERS->value,
+                    'status' => PurchaseOrderSupplierStatus::PROCESSING->value,
                 ]);
 
                 Log::info('PlaceExternalPurchaseOrderJob: order placed via integration', [

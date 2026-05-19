@@ -2,16 +2,17 @@
 
 namespace Tests\Unit\Services\PurchaseOrder;
 
-use App\Events\NewVouchersAvailable;
-use App\Models\DigitalProduct;
-use App\Models\PurchaseOrder;
-use App\Models\PurchaseOrderItem;
-use App\Models\Supplier;
-use App\Services\PurchaseOrder\PurchaseOrderPlacementService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
+use App\Models\Supplier;
+use App\Models\PurchaseOrder;
+use App\Models\DigitalProduct;
+use App\Models\PurchaseOrderItem;
+use App\Events\NewVouchersAvailable;
+use Illuminate\Support\Facades\Http;
+use App\Integrations\EzCards\EzCards;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Services\PurchaseOrder\PurchaseOrderPlacementService;
 
 class PurchaseOrderPlacementServiceTest extends TestCase
 {
@@ -26,153 +27,92 @@ class PurchaseOrderPlacementServiceTest extends TestCase
         Event::fake([NewVouchersAvailable::class]);
     }
 
-    // ── Gift2Games (USD / EUR / GBP) ──────────────────────────────────────────
+    // ── EZCards
 
-    public function test_routes_gift2games_slug_to_create_order_endpoint(): void
+    public function test_ezcards_places_order_via_orders_endpoint(): void
     {
         Http::fake([
-            '*/check_balance' => Http::response(['status' => true, 'data' => ['userBalance' => 999]], 200),
-            '*/create_order'  => Http::response(['status' => true, 'data' => ['serialCode' => 'CODE-1', 'serialNumber' => 'SN-1']], 200),
+            '*/v2/orders*' => Http::response([
+                'data' => ['transactionId' => 'EZ-TX-001', 'status' => 'pending'],
+            ], 200),
         ]);
 
-        [$supplier, $item, $po] = $this->makeG2GFixtures('gift2games');
+        [, $item, $po] = $this->makeEzCardsFixtures();
 
-        $this->service->placeOrder($supplier, [$item], 'PO-001', 'usd', $po);
+        $result = app(EzCards::class)->placeOrder([$item], 'PO-EZ-001', 'usd', $po);
 
-        Http::assertSent(fn ($r) => str_contains($r->url(), '/create_order'));
+        Http::assertSent(fn ($r) => str_contains($r->url(), '/v2/orders'));
+        $this->assertEquals('EZ-TX-001', $result['transactionId']);
     }
 
-    public function test_routes_gift2games_eur_wallet(): void
+    public function test_ezcards_sends_correct_payload(): void
     {
         Http::fake([
-            '*/check_balance' => Http::response(['status' => true, 'data' => ['userBalance' => 999]], 200),
-            '*/create_order'  => Http::response(['status' => true, 'data' => ['serialCode' => 'CODE-2', 'serialNumber' => 'SN-2']], 200),
+            '*/v2/orders*' => Http::response(['data' => ['transactionId' => 'EZ-TX-002']], 200),
         ]);
 
-        [$supplier, $item, $po] = $this->makeG2GFixtures('gift-2-games-eur');
+        [, $item, $po] = $this->makeEzCardsFixtures('EZ-SKU-001', 3);
 
-        $this->service->placeOrder($supplier, [$item], 'PO-002', 'eur', $po);
+        app(EzCards::class)->placeOrder([$item], 'PO-EZ-002', 'USD', $po);
 
-        Http::assertSent(fn ($r) => str_contains($r->url(), '/create_order'));
+        Http::assertSent(function ($r) {
+            $body = $r->data();
+
+            return str_contains($r->url(), '/v2/orders')
+                && $body['clientOrderNumber'] === 'PO-EZ-002'
+                && $body['products'][0]['sku'] === 'EZ-SKU-001'
+                && $body['products'][0]['quantity'] === 3
+                && $body['payWithCurrency'] === 'USD';
+        });
     }
 
-    public function test_routes_gift2games_gbp_wallet(): void
+    public function test_ezcards_returns_empty_array_when_data_key_missing(): void
     {
         Http::fake([
-            '*/check_balance' => Http::response(['status' => true, 'data' => ['userBalance' => 999]], 200),
-            '*/create_order'  => Http::response(['status' => true, 'data' => ['serialCode' => 'CODE-3', 'serialNumber' => 'SN-3']], 200),
+            '*/v2/orders*' => Http::response(['success' => true], 200),
         ]);
 
-        [$supplier, $item, $po] = $this->makeG2GFixtures('gift-2-games-gbp');
+        [, $item, $po] = $this->makeEzCardsFixtures();
 
-        $this->service->placeOrder($supplier, [$item], 'PO-003', 'gbp', $po);
+        $result = app(EzCards::class)->placeOrder([$item], 'PO-EZ-003', 'usd', $po);
 
-        Http::assertSent(fn ($r) => str_contains($r->url(), '/create_order'));
+        $this->assertSame([], $result);
     }
 
-    // ── Giftery ───────────────────────────────────────────────────────────────
-
-    public function test_routes_giftery_to_reserve_and_confirm_endpoints(): void
+    public function test_ezcards_throws_on_api_failure(): void
     {
         Http::fake([
-            '*/auth*'              => Http::response(['data' => ['accessToken' => 'tok', 'refreshToken' => 'ref', 'expiresIn' => 3600]], 200),
-            '*/accounts'           => Http::response(['statusCode' => 0, 'data' => [['default' => true, 'available' => 999, 'balance' => 999]]], 200),
-            '*products/items/*'    => Http::response(['statusCode' => 0, 'data' => ['inStock' => 10]], 200),
-            '*/operations/reserve' => Http::response(['statusCode' => 0, 'data' => ['transactionUUID' => 'uuid-abc', 'status' => 'reserved']], 200),
-            '*/operations/*'       => Http::response(['statusCode' => 0, 'data' => ['status' => 'confirmed', 'codes' => [['code' => 'GIFT-CODE', 'serial' => 'SN-G']]]], 200),
-            '*'                    => Http::response(['statusCode' => 0, 'data' => []], 200),
+            '*/v2/orders*' => Http::response('Internal Server Error', 500),
         ]);
 
-        $supplier = Supplier::factory()->create(['slug' => 'giftery-api', 'type' => 'external']);
-        $product  = DigitalProduct::factory()->create([
-            'sku'         => '1001',
-            'supplier_id' => $supplier->id,
-            'metadata'    => ['item_id' => 'ITEM-1', 'product_id' => 'PROD-1'],
-        ]);
-        $po   = PurchaseOrder::factory()->create(['order_number' => 'PO-004', 'currency' => 'usd']);
-        $item = PurchaseOrderItem::factory()->create([
-            'purchase_order_id'  => $po->id,
-            'supplier_id'        => $supplier->id,
-            'digital_product_id' => $product->id,
-            'quantity'           => 1,
-            'unit_cost'          => 10.00,
-            'subtotal'           => 10.00,
-        ]);
+        [, $item, $po] = $this->makeEzCardsFixtures();
 
-        $this->service->placeOrder($supplier, [$item], 'PO-004', 'usd', $po);
+        $this->expectException(\Exception::class);
 
-        Http::assertSent(fn ($r) => str_contains($r->url(), '/operations/reserve'));
+        app(EzCards::class)->placeOrder([$item], 'PO-EZ-004', 'usd', $po);
     }
 
-    // ── Tikkery ───────────────────────────────────────────────────────────────
-
-    public function test_routes_tikkery_to_orders_create_endpoint(): void
+    public function test_ezcards_fetches_voucher_codes(): void
     {
         Http::fake([
-            '*/oauth/token'   => Http::response(['access_token' => 'tok', 'refresh_token' => 'ref', 'expires_in' => 3600], 200),
-            '*/balance*'      => Http::response(['balance' => 999.00], 200),
-            '*/products/stock*' => Http::response(['stock' => [['sku' => 'TIK-001', 'stock' => 99]]], 200),
-            '*/orders/create' => Http::response(['transactionId' => 'ti-789', 'isCompleted' => false, 'codes' => []], 200),
-            '*'               => Http::response([], 200),
+            '*/v2/orders/*/codes*' => Http::response([
+                'data' => [['code' => 'VOUCHER-001', 'serial' => 'SN-001']],
+            ], 200),
         ]);
 
-        $supplier = Supplier::factory()->create(['slug' => 'tikkery', 'type' => 'external']);
-        $product  = DigitalProduct::factory()->create(['sku' => 'TIK-001', 'supplier_id' => $supplier->id]);
-        $po       = PurchaseOrder::factory()->create(['order_number' => 'PO-005', 'currency' => 'usd']);
-        $item     = PurchaseOrderItem::factory()->create([
-            'purchase_order_id'  => $po->id,
-            'supplier_id'        => $supplier->id,
-            'digital_product_id' => $product->id,
-            'quantity'           => 1,
-            'unit_cost'          => 15.00,
-            'subtotal'           => 15.00,
-        ]);
+        $po = PurchaseOrder::factory()->create();
 
-        $result = $this->service->placeOrder($supplier, [$item], 'PO-005', 'usd', $po);
+        $result = app(EzCards::class)->fetchVouchers('12345', $po);
 
-        Http::assertSent(fn ($r) => str_contains($r->url(), '/orders/create'));
-        $this->assertArrayHasKey('transactionId', $result);
+        Http::assertSent(fn ($r) => str_contains($r->url(), '/v2/orders/12345/codes'));
+        $this->assertCount(1, $result);
+        $this->assertEquals('VOUCHER-001', $result[0]['code']);
     }
 
-    // ── Irewardify ────────────────────────────────────────────────────────────
-
-    public function test_routes_irewardify_to_checkout_endpoint(): void
-    {
-        Http::fake([
-            '*/customer/login'  => Http::response(['token' => 'ir-tok'], 200),
-            '*/customer/wallet' => Http::response(['data' => ['walletOne' => 999.00]], 200),
-            '*/checkout'        => Http::response(['data' => ['orderId' => 'ir-999']], 200),
-            '*'                 => Http::response(['data' => []], 200),
-        ]);
-
-        $supplier = Supplier::factory()->create(['slug' => 'irewardify', 'type' => 'external']);
-        $product  = DigitalProduct::factory()->create([
-            'sku'         => 'IR-001',
-            'supplier_id' => $supplier->id,
-            'metadata'    => ['variant' => ['item_id' => 'ITEM-1', 'product_id' => 'PROD-1']],
-        ]);
-        $po   = PurchaseOrder::factory()->create(['order_number' => 'PO-006', 'currency' => 'usd']);
-        $item = PurchaseOrderItem::factory()->create([
-            'purchase_order_id'    => $po->id,
-            'supplier_id'          => $supplier->id,
-            'digital_product_id'   => $product->id,
-            'digital_product_sku'  => 'IR-001',
-            'quantity'             => 1,
-            'unit_cost'            => 20.00,
-            'subtotal'             => 20.00,
-        ]);
-
-        $this->service->placeOrder($supplier, [$item], 'PO-006', 'usd', $po);
-
-        Http::assertSent(fn ($r) => str_contains($r->url(), '/checkout'));
-    }
-
-    // ── EZCards — not handled by this service ─────────────────────────────────
-
-    public function test_throws_for_ez_cards_slug(): void
+    public function test_legacy_service_throws_for_ez_cards_slug(): void
     {
         $supplier = Supplier::factory()->create(['slug' => 'ez_cards', 'type' => 'external']);
-        $po       = PurchaseOrder::factory()->create();
+        $po = PurchaseOrder::factory()->create();
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Unknown external supplier: ez_cards');
@@ -185,7 +125,7 @@ class PurchaseOrderPlacementServiceTest extends TestCase
     public function test_throws_for_unknown_supplier_slug(): void
     {
         $supplier = Supplier::factory()->create(['slug' => 'acme-vouchers', 'type' => 'external']);
-        $po       = PurchaseOrder::factory()->create();
+        $po = PurchaseOrder::factory()->create();
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Unknown external supplier: acme-vouchers');
@@ -193,23 +133,23 @@ class PurchaseOrderPlacementServiceTest extends TestCase
         $this->service->placeOrder($supplier, [], 'PO-008', 'usd', $po);
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // ── Helpers
 
     /**
      * @return array{0: Supplier, 1: PurchaseOrderItem, 2: PurchaseOrder}
      */
-    private function makeG2GFixtures(string $slug): array
+    private function makeEzCardsFixtures(string $sku = 'EZ-001', int $quantity = 1): array
     {
-        $supplier = Supplier::factory()->create(['slug' => $slug, 'type' => 'external']);
-        $product  = DigitalProduct::factory()->create(['sku' => '99001', 'cost_price' => 10.00, 'supplier_id' => $supplier->id]);
-        $po       = PurchaseOrder::factory()->create(['order_number' => 'PO-G2G', 'currency' => 'usd']);
-        $item     = PurchaseOrderItem::factory()->create([
-            'purchase_order_id'  => $po->id,
-            'supplier_id'        => $supplier->id,
+        $supplier = Supplier::factory()->create(['slug' => 'ez_cards', 'type' => 'external']);
+        $product = DigitalProduct::factory()->create(['sku' => $sku, 'supplier_id' => $supplier->id]);
+        $po = PurchaseOrder::factory()->create(['order_number' => 'PO-EZ', 'currency' => 'usd']);
+        $item = PurchaseOrderItem::factory()->create([
+            'purchase_order_id' => $po->id,
+            'supplier_id' => $supplier->id,
             'digital_product_id' => $product->id,
-            'quantity'           => 1,
-            'unit_cost'          => 10.00,
-            'subtotal'           => 10.00,
+            'quantity' => $quantity,
+            'unit_cost' => 5.00,
+            'subtotal' => 5.00 * $quantity,
         ]);
 
         return [$supplier, $item, $po];

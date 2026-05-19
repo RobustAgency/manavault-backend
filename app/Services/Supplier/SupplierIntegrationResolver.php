@@ -4,12 +4,12 @@ namespace App\Services\Supplier;
 
 use App\Models\Supplier;
 use App\Contracts\SupplierIntegrationContract;
-use App\Integrations\EzCards\EzCardsIntegration;
+use App\Integrations\EzCards\EzCards;
 
 class SupplierIntegrationResolver
 {
     public function __construct(
-        private readonly EzCardsIntegration $ezCardsIntegration,
+        private readonly EzCards $ezCardsIntegration,
     ) {}
 
     /**

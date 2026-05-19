@@ -2,14 +2,14 @@
 
 namespace App\Integrations\EzCards;
 
-use App\Actions\Ezcards\GetVoucherCodes;
-use App\Actions\Ezcards\PlaceOrder;
-use App\Contracts\SupplierIntegrationContract;
 use App\Models\PurchaseOrder;
-use App\Services\Ezcards\SyncDigitalProduct;
+use App\Actions\Ezcards\PlaceOrder;
 use Illuminate\Support\Facades\Log;
+use App\Actions\Ezcards\GetVoucherCodes;
+use App\Services\Ezcards\SyncDigitalProduct;
+use App\Contracts\SupplierIntegrationContract;
 
-class EzCardsIntegration implements SupplierIntegrationContract
+class EzCards implements SupplierIntegrationContract
 {
     public function __construct(
         private readonly PlaceOrder $placeOrderAction,
@@ -22,20 +22,20 @@ class EzCardsIntegration implements SupplierIntegrationContract
         $products = [];
         foreach ($orderItems as $item) {
             $products[] = [
-                'sku'      => $item->digitalProduct->sku,
+                'sku' => $item->digitalProduct->sku,
                 'quantity' => $item->quantity,
             ];
         }
 
         $response = $this->placeOrderAction->execute([
             'clientOrderNumber' => $orderNumber,
-            'products'          => $products,
-            'payWithCurrency'   => strtoupper($currency),
+            'products' => $products,
+            'payWithCurrency' => strtoupper($currency),
         ]);
 
         Log::info('EzCards order placed', [
             'order_number' => $orderNumber,
-            'response'     => $response,
+            'response' => $response,
         ]);
 
         return $response['data'] ?? [];
@@ -46,11 +46,6 @@ class EzCardsIntegration implements SupplierIntegrationContract
         $response = $this->getVoucherCodesAction->execute((int) $transactionId);
 
         return $response['data'] ?? [];
-    }
-
-    public function isVoucherReturningImmediately(): bool
-    {
-        return false;
     }
 
     public function syncProducts(): void
