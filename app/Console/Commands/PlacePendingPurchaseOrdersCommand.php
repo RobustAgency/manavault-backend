@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
+use App\Models\PurchaseOrderItem;
 use App\Models\PurchaseOrderSupplier;
 use App\Enums\PurchaseOrderSupplierStatus;
 use App\Services\Supplier\SupplierIntegrationResolver;
@@ -21,14 +22,12 @@ class PlacePendingPurchaseOrdersCommand extends Command
 
     public function handle(): int
     {
+        $hasFailures = false;
+
         $pendingSuppliers = PurchaseOrderSupplier::query()
             ->where('status', PurchaseOrderSupplierStatus::PROCESSING->value)
             ->whereNull('transaction_id')
-            ->with([
-                'supplier',
-                'purchaseOrder',
-                'purchaseOrderItems.digitalProduct',
-            ])
+            ->with(['supplier', 'purchaseOrder'])
             ->get();
 
         if ($pendingSuppliers->isEmpty()) {
@@ -47,7 +46,10 @@ class PlacePendingPurchaseOrdersCommand extends Command
             }
 
             $purchaseOrder = $purchaseOrderSupplier->purchaseOrder;
-            $items = $purchaseOrderSupplier->purchaseOrderItems;
+            $items = PurchaseOrderItem::where('purchase_order_id', $purchaseOrderSupplier->purchase_order_id)
+                ->where('supplier_id', $purchaseOrderSupplier->supplier_id)
+                ->with('digitalProduct')
+                ->get();
 
             try {
                 $response = $integration->placeOrder(
@@ -70,6 +72,8 @@ class PlacePendingPurchaseOrdersCommand extends Command
                 ]);
 
             } catch (\Throwable $e) {
+                $hasFailures = true;
+
                 $purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::FAILED->value]);
 
                 Log::error('Failed to place pending purchase order', [
@@ -82,6 +86,6 @@ class PlacePendingPurchaseOrdersCommand extends Command
             }
         }
 
-        return Command::SUCCESS;
+        return $hasFailures ? Command::FAILURE : Command::SUCCESS;
     }
 }

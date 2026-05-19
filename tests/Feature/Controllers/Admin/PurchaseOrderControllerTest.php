@@ -7,7 +7,6 @@ use App\Models\User;
 use App\Models\Supplier;
 use App\Models\PurchaseOrder;
 use App\Models\DigitalProduct;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -172,28 +171,6 @@ class PurchaseOrderControllerTest extends TestCase
             'cost_price' => 22.88,
         ]);
 
-        Http::fake([
-            '*/v2/orders' => Http::response([
-                'requestId' => 'test-request-id',
-                'data' => [
-                    'transactionId' => '1234',
-                    'clientOrderNumber' => 'PO-20251117-TEST',
-                    'status' => 'PROCESSING',
-                    'grandTotal' => [
-                        'amount' => '45.76',
-                        'currency' => 'USD',
-                    ],
-                    'products' => [
-                        [
-                            'sku' => 'AAU-QB-Q1J',
-                            'quantity' => 2,
-                            'status' => 'PROCESSING',
-                        ],
-                    ],
-                ],
-            ], 200),
-        ]);
-
         $data = [
             'currency' => 'usd',
             'items' => [
@@ -219,11 +196,6 @@ class PurchaseOrderControllerTest extends TestCase
         $this->assertDatabaseHas('purchase_orders', [
             'status' => 'processing',
         ]);
-
-        Http::assertSent(function ($request) {
-            return str_contains($request->url(), '/v2/orders') &&
-                   $request->method() === 'POST';
-        });
     }
 
     public function test_admin_create_purchase_order_with_multiple_items(): void

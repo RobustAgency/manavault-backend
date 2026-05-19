@@ -13,12 +13,14 @@ use App\Enums\PurchaseOrderSupplierStatus;
 use App\Jobs\PlaceExternalPurchaseOrderJob;
 use App\Repositories\PurchaseOrderRepository;
 use App\Services\PurchaseOrder\GroupBySupplierIdService;
+use App\Services\Supplier\SupplierIntegrationResolver;
 
 class PurchaseOrderService
 {
     public function __construct(
         private GroupBySupplierIdService $groupBySupplierIdService,
         private PurchaseOrderRepository $purchaseOrderRepository,
+        private SupplierIntegrationResolver $supplierIntegrationResolver,
     ) {}
 
     public function createPurchaseOrder(array $data): PurchaseOrder
@@ -108,7 +110,7 @@ class PurchaseOrderService
 
         $purchaseOrder->update(['total_price' => $totalPrice]);
 
-        if ($supplier->type === SupplierType::EXTERNAL->value) {
+        if ($supplier->type === SupplierType::EXTERNAL->value && $this->supplierIntegrationResolver->resolve($supplier) === null) {
             PlaceExternalPurchaseOrderJob::dispatch(
                 $purchaseOrder,
                 $supplier,
