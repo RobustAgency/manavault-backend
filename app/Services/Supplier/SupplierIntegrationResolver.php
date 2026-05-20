@@ -3,8 +3,8 @@
 namespace App\Services\Supplier;
 
 use App\Models\Supplier;
+use App\Integrations\EzCards;
 use App\Contracts\SupplierIntegrationContract;
-use App\Integrations\EzCards\EzCards;
 
 class SupplierIntegrationResolver
 {

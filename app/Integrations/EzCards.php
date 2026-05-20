@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Integrations\EzCards;
+namespace App\Integrations;
 
 use App\Models\PurchaseOrder;
 use App\Actions\Ezcards\PlaceOrder;

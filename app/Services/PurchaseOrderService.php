@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\Log;
 use App\Enums\PurchaseOrderSupplierStatus;
 use App\Jobs\PlaceExternalPurchaseOrderJob;
 use App\Repositories\PurchaseOrderRepository;
-use App\Services\Supplier\SupplierIntegrationResolver;
 use App\Services\PurchaseOrder\GroupBySupplierIdService;
 
 class PurchaseOrderService
@@ -20,7 +19,6 @@ class PurchaseOrderService
     public function __construct(
         private GroupBySupplierIdService $groupBySupplierIdService,
         private PurchaseOrderRepository $purchaseOrderRepository,
-        private SupplierIntegrationResolver $supplierIntegrationResolver,
     ) {}
 
     public function createPurchaseOrder(array $data): PurchaseOrder
