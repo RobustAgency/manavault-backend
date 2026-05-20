@@ -9,9 +9,11 @@ use App\Enums\PriceRule\ActionMode;
 use App\Enums\PriceRule\ActionOperator;
 use App\Repositories\PriceRuleRepository;
 use App\Repositories\DigitalProductRepository;
+use App\Support\MoneyCalculator;
 use Illuminate\Pagination\LengthAwarePaginator;
 use App\Repositories\PriceRuleConditionRepository;
 use App\Repositories\PriceRuleDigitalProductRepository;
+use Money\Money;
 
 class PricingRuleService
 {
@@ -209,48 +211,63 @@ class PricingRuleService
         string $actionOperator,
         mixed $actionValue,
     ): ?array {
-        $baseValue = (float) $digitalProduct->face_value;
-        $originalSellingPrice = (float) $digitalProduct->selling_price;
+        $currency = $digitalProduct->currency;
+        $baseValue = MoneyCalculator::of($digitalProduct->face_value, $currency);
+        $originalSellingPrice = MoneyCalculator::of((string) ($digitalProduct->selling_price ?? 0), $currency);
         $calculatedPrice = $this->calculateNewPrice($digitalProduct, $actionMode, $actionValue, $actionOperator);
-        $costPrice = (float) ($digitalProduct->getAttribute('cost_price') ?? 0);
+        $costPrice = MoneyCalculator::of($digitalProduct->getAttribute('cost_price') ?? 0, $currency);
+        $zero = MoneyCalculator::zero($currency);
 
         // Never allow the price to go below 0.
-        $finalSellingPrice = (float) max($calculatedPrice, 0);
+        $finalPrice = $calculatedPrice->greaterThan($zero) ? $calculatedPrice : $zero;
 
         // Safety net: the SQL filter in getDigitalProductsByConditions already excludes
         // products where the calculated price would fall below cost_price. This guard
         // protects against any caller that bypasses the SQL filter (e.g. floating-point
         // edge cases or future call sites).
-        if ($finalSellingPrice < $costPrice) {
+        if ($finalPrice->lessThan($costPrice)) {
             return null;
         }
 
         return [
             'digital_product_id' => $digitalProduct->id,
             'digital_product_name' => $digitalProduct->name,
-            'original_selling_price' => $originalSellingPrice,
-            'base_value' => $baseValue,
+            'original_selling_price' => MoneyCalculator::toFloat($originalSellingPrice),
+            'base_value' => MoneyCalculator::toFloat($baseValue),
             'action_mode' => $actionMode,
             'action_operator' => $actionOperator,
             'action_value' => (float) $actionValue,
-            'calculated_price' => $calculatedPrice,
-            'final_selling_price' => $finalSellingPrice,
-            'current_selling_price' => $originalSellingPrice,
-            'new_selling_price' => $finalSellingPrice,
+            'calculated_price' => MoneyCalculator::toFloat($calculatedPrice),
+            'final_selling_price' => MoneyCalculator::toFloat($finalPrice),
+            'current_selling_price' => MoneyCalculator::toFloat($originalSellingPrice),
+            'new_selling_price' => MoneyCalculator::toFloat($finalPrice),
         ];
     }
 
     /**
      * Calculate the new price for a product based on the price rule action.
+     * Returns a Money object to avoid floating-point precision issues.
      */
-    private function calculateNewPrice(DigitalProduct $digitalProduct, string $actionMode, mixed $actionValue, string $actionOperator): float
+    private function calculateNewPrice(DigitalProduct $digitalProduct, string $actionMode, mixed $actionValue, string $actionOperator): Money
     {
-        $base = (float) $digitalProduct->face_value;
+        $currency = $digitalProduct->currency;
+        $basePrice = MoneyCalculator::of($digitalProduct->face_value, $currency);
+        $isAddition = $actionOperator === ActionOperator::ADDITION->value;
 
-        return match ($actionMode) {
-            ActionMode::PERCENTAGE->value => $base + ($base * ($actionValue / 100)) * ($actionOperator === ActionOperator::ADDITION->value ? 1 : -1),
-            ActionMode::ABSOLUTE->value => $base + ($actionValue * ($actionOperator === ActionOperator::ADDITION->value ? 1 : -1)),
-            default => $base,
-        };
+        if ($actionMode === ActionMode::PERCENTAGE->value) {
+            // Compute base * (actionValue / 100) using integer arithmetic:
+            // multiply by actionValue first, then divide by 100 to avoid float imprecision.
+            $markup = $basePrice->multiply((string) $actionValue)->divide('100');
+
+            return $isAddition ? $basePrice->add($markup) : $basePrice->subtract($markup);
+        }
+
+        if ($actionMode === ActionMode::ABSOLUTE->value) {
+            $absoluteAmount = MoneyCalculator::of($actionValue, $currency);
+
+            return $isAddition ? $basePrice->add($absoluteAmount) : $basePrice->subtract($absoluteAmount);
+        }
+
+        return $basePrice;
     }
 }

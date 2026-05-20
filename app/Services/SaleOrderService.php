@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\SaleOrder;
 use App\Enums\SaleOrder\Status;
+use App\Support\MoneyCalculator;
 use App\Events\SaleOrderCompleted;
 use Illuminate\Support\Facades\DB;
 use App\Repositories\ProductRepository;
@@ -30,7 +31,8 @@ class SaleOrderService
 
             logger()->info("Creating sale order with ID: {$saleOrder->id} and order number: {$saleOrder->order_number}");
 
-            $totalPrice = 0;
+            $totalPrice = null;
+            $fullyAllocated = true;
             $shortfalls = [];
 
             $saleOrder->update(['status' => Status::PROCESSING->value]);
@@ -40,15 +42,16 @@ class SaleOrderService
             foreach ($data['items'] as $itemData) {
                 $product = $this->productRepository->getProductById($itemData['product_id']);
                 $quantity = $itemData['quantity'];
+                $currency = $product->currency ?? 'usd';
 
-                $unitPrice = $product->selling_price;
-                $subtotal = $quantity * $unitPrice;
+                $unitPriceMoney = MoneyCalculator::of($product->selling_price, $currency);
+                $subtotalMoney = $unitPriceMoney->multiply($quantity);
 
                 $item = $saleOrder->items()->create([
                     'product_id' => $product->id,
                     'quantity' => $quantity,
-                    'unit_price' => $unitPrice,
-                    'subtotal' => $subtotal,
+                    'unit_price' => MoneyCalculator::toFloat($unitPriceMoney),
+                    'subtotal' => MoneyCalculator::toFloat($subtotalMoney),
                 ]);
 
                 $allocated = $this->digitalProductAllocationService->allocateFromGeneralStock($item, $product, $quantity);
@@ -61,7 +64,9 @@ class SaleOrderService
                     ];
                 }
 
-                $totalPrice += $subtotal;
+                $totalPrice = $totalPrice === null
+                    ? $subtotalMoney
+                    : $totalPrice->add($subtotalMoney);
             }
 
             // Create auto-POs for remaining shortfalls after exhausting general stock.
@@ -79,7 +84,7 @@ class SaleOrderService
             if ($saleOrder->status !== Status::COMPLETED->value) {
                 $fullyAllocated = empty($shortfalls);
                 $finalStatus = $fullyAllocated ? Status::COMPLETED->value : Status::PROCESSING->value;
-                $saleOrder->update(['status' => $finalStatus, 'total_price' => $totalPrice]);
+                $saleOrder->update(['status' => $finalStatus, 'total_price' => MoneyCalculator::toFloat($totalPrice)]);
 
                 if ($fullyAllocated) {
                     event(new SaleOrderCompleted($saleOrder));

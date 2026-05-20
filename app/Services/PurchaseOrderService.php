@@ -7,6 +7,7 @@ use App\Enums\SupplierType;
 use App\Models\PurchaseOrder;
 use App\Models\DigitalProduct;
 use App\Enums\PurchaseOrderStatus;
+use App\Support\MoneyCalculator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Enums\PurchaseOrderSupplierStatus;
@@ -62,24 +63,25 @@ class PurchaseOrderService
         string $orderNumber,
         string $currency,
     ): void {
-        $totalPrice = (float) $purchaseOrder->total_price;
+        $totalPriceMoney = MoneyCalculator::of((string) $purchaseOrder->total_price, $currency);
         $orderItems = [];
 
         foreach ($items as $item) {
             /** @var DigitalProduct $digitalProduct */
             $digitalProduct = DigitalProduct::findOrFail($item['digital_product_id']);
             $quantity = $item['quantity'];
-            $unitCost = $digitalProduct->cost_price;
-            $subtotal = $quantity * $unitCost;
 
-            $totalPrice += $subtotal;
+            $unitCostMoney = MoneyCalculator::of($digitalProduct->cost_price, $currency);
+            $subtotalMoney = $unitCostMoney->multiply($quantity);
+
+            $totalPriceMoney = $totalPriceMoney->add($subtotalMoney);
 
             $orderItems[] = [
                 'digital_product_id' => $digitalProduct->id,
                 'digital_product' => $digitalProduct,
                 'quantity' => $quantity,
-                'unit_cost' => (float) $unitCost,
-                'subtotal' => (float) $subtotal,
+                'unit_cost' => MoneyCalculator::toFloat($unitCostMoney),
+                'subtotal' => MoneyCalculator::toFloat($subtotalMoney),
             ];
         }
 
@@ -106,7 +108,7 @@ class PurchaseOrderService
             ]);
         }
 
-        $purchaseOrder->update(['total_price' => $totalPrice]);
+        $purchaseOrder->update(['total_price' => MoneyCalculator::toFloat($totalPriceMoney)]);
 
         if ($supplier->type === SupplierType::EXTERNAL->value) {
             PlaceExternalPurchaseOrderJob::dispatch(
