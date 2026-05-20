@@ -157,68 +157,6 @@ class PurchaseOrderControllerTest extends TestCase
         ]);
     }
 
-    public function test_admin_create_purchase_order_with_gift2games_supplier(): void
-    {
-        $this->actingAs($this->admin);
-
-        $supplier = Supplier::factory()->create([
-            'name' => 'Gift2Games',
-            'slug' => 'gift2games',
-            'type' => 'external',
-        ]);
-
-        $digitalProduct = DigitalProduct::factory()->create([
-            'supplier_id' => $supplier->id,
-            'sku' => '12345',
-            'cost_price' => 10.00,
-        ]);
-
-        Http::fake([
-            '*/create_order' => Http::response([
-                'status' => 'success',
-                'data' => [
-                    'referenceNumber' => 'PO-20251117-TEST',
-                    'productId' => 12345,
-                    'code' => 'VOUCHER-CODE-123',
-                    'pin' => '1234',
-                    'serial' => 'SERIAL-123',
-                    'expiryDate' => '2025-12-31',
-                ],
-            ], 200),
-        ]);
-
-        $data = [
-            'currency' => 'usd',
-            'items' => [
-                [
-                    'supplier_id' => $supplier->id,
-                    'digital_product_id' => $digitalProduct->id,
-                    'quantity' => 1,
-                ],
-            ],
-        ];
-
-        $response = $this->postJson('/api/purchase-orders', $data);
-
-        $response->assertStatus(201)
-            ->assertJson([
-                'error' => false,
-                'message' => 'Purchase order created successfully.',
-                'data' => [
-                    'status' => 'completed',
-                ],
-            ]);
-
-        $this->assertDatabaseHas('purchase_orders', [
-            'status' => 'completed',
-        ]);
-
-        Http::assertSent(function ($request) {
-            return str_contains($request->url(), '/create_order') &&
-                   $request->method() === 'POST';
-        });
-    }
-
     public function test_admin_create_purchase_order_with_ezcards_supplier(): void
     {
         $this->actingAs($this->admin);

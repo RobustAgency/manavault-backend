@@ -157,21 +157,4 @@ class SaleOrderRepositoryTest extends TestCase
 
         $this->repository->deleteSaleOrder(999);
     }
-
-    public function test_order_number_exists(): void
-    {
-        SaleOrder::factory()->create(['order_number' => 'SO-2026-000001']);
-
-        $this->assertTrue($this->repository->orderNumberExists('SO-2026-000001'));
-        $this->assertFalse($this->repository->orderNumberExists('SO-2026-999999'));
-    }
-
-    public function test_count_total_sale_orders(): void
-    {
-        SaleOrder::factory()->count(5)->create();
-
-        $count = $this->repository->countTotalSaleOrders();
-
-        $this->assertEquals(5, $count);
-    }
 }

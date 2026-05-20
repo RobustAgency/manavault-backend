@@ -51,12 +51,22 @@ class VoucherRepository
         return $voucher->code;
     }
 
+    public function updateVoucherStatus(int $voucherId, string $status): void
+    {
+        $voucher = Voucher::findOrFail($voucherId);
+        $voucher->status = $status;
+        $voucher->save();
+    }
+
     /**
+     * Vouchers from purchase orders that have no sale order attached.
+     *
      * @return Collection<int, \App\Models\Voucher>
      */
-    public function getAvailableVouchersForDigitalProduct(int $digitalProductId): Collection
+    public function getAvailableVouchers(int $digitalProductId): Collection
     {
-        $vouchers = $this->availableVouchersQuery($digitalProductId)
+        $vouchers = $this->baseAvailableVouchersQuery($digitalProductId)
+            ->whereHas('purchaseOrder', fn ($q) => $q->whereNull('sale_order_id'))
             ->orderBy('created_at')
             ->lockForUpdate()
             ->get();
@@ -68,31 +78,41 @@ class VoucherRepository
     }
 
     /**
-     * Get available quantity (count of unallocated vouchers) for a digital product.
+     * Count of vouchers from purchase orders that have no sale order attached.
      */
-    public function getAvailableQuantity(int $digitalProductId): int
+    public function getAvailableVouchersCount(int $digitalProductId): int
     {
-        return $this->availableVouchersQuery($digitalProductId)->count();
-    }
-
-    public function updateVoucherStatus(int $voucherId, string $status): void
-    {
-        $voucher = Voucher::findOrFail($voucherId);
-        $voucher->status = $status;
-        $voucher->save();
+        return $this->baseAvailableVouchersQuery($digitalProductId)
+            ->whereHas('purchaseOrder', fn ($q) => $q->whereNull('sale_order_id'))
+            ->count();
     }
 
     /**
-     * Get a query builder for available vouchers of a digital product.
+     * Vouchers from purchase orders that belong to the given sale order.
      *
+     * @return Collection<int, \App\Models\Voucher>
+     */
+    public function getAvailableVouchersForSaleOrder(int $digitalProductId, int $saleOrderId): Collection
+    {
+        $vouchers = $this->baseAvailableVouchersQuery($digitalProductId)
+            ->whereHas('purchaseOrder', fn ($q) => $q->where('sale_order_id', $saleOrderId))
+            ->orderBy('created_at')
+            ->lockForUpdate()
+            ->get();
+
+        /** @var Collection<int, \App\Models\Voucher> $keyed */
+        $keyed = $vouchers->keyBy('id');
+
+        return $keyed;
+    }
+
+    /**
      * @return Builder<Voucher>
      */
-    private function availableVouchersQuery(int $digitalProductId): Builder
+    private function baseAvailableVouchersQuery(int $digitalProductId): Builder
     {
         return Voucher::query()
             ->where('status', VoucherCodeStatus::AVAILABLE->value)
-            ->whereHas('purchaseOrderItem', function ($q) use ($digitalProductId) {
-                $q->where('digital_product_id', $digitalProductId);
-            });
+            ->whereHas('purchaseOrderItem', fn ($q) => $q->where('digital_product_id', $digitalProductId));
     }
 }

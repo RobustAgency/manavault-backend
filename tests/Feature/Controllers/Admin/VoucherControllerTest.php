@@ -5,6 +5,7 @@ namespace Tests\Feature\Controllers\Admin;
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Voucher;
+use App\Models\SaleOrder;
 use App\Models\PurchaseOrder;
 use App\Models\DigitalProduct;
 use App\Models\PurchaseOrderItem;
@@ -41,7 +42,11 @@ class VoucherControllerTest extends TestCase
         Event::fake();
         $this->actingAs($this->admin);
 
-        $purchaseOrder = PurchaseOrder::factory()->create();
+        $saleOrder = SaleOrder::factory()->create();
+
+        $purchaseOrder = PurchaseOrder::factory()->create([
+            'sale_order_id' => $saleOrder->id,
+        ]);
         $digitalProduct = DigitalProduct::factory()->create();
 
         PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->withQuantity(3)->create([

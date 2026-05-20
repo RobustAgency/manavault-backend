@@ -2,6 +2,9 @@
 
 namespace App\Http\Requests\SaleOrder;
 
+use App\Models\Product;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreSaleOrderRequest extends FormRequest
@@ -20,7 +23,7 @@ class StoreSaleOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'order_number' => ['required', 'string', 'max:255', 'unique:sale_orders,order_number'],
+            'order_number' => ['required', 'string', 'max:255'],
             'source' => ['nullable', 'string', 'max:255'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
@@ -46,6 +49,45 @@ class StoreSaleOrderRequest extends FormRequest
             'items.*.quantity.integer' => 'Quantity must be an integer.',
             'items.*.quantity.min' => 'Quantity must be at least 1.',
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            /** @var array<int, array<string, mixed>> $items */
+            $items = $this->input('items', []);
+            $productIds = collect($items)->pluck('product_id')->filter()->unique();
+
+            if ($productIds->isEmpty()) {
+                return;
+            }
+
+            $products = Product::whereIn('id', $productIds)
+                ->with('digitalProducts')
+                ->get()
+                ->keyBy('id');
+
+            foreach ($items as $index => $item) {
+                $productId = $item['product_id'] ?? null;
+
+                if (! $productId || ! isset($products[$productId])) {
+                    continue;
+                }
+
+                if ($products[$productId]->digitalProducts->isEmpty()) {
+                    Log::warning('Sale order rejected: product has no active digital product assigned.', [
+                        'product_id' => $productId,
+                        'product_name' => $products[$productId]->name,
+                        'order_number' => $this->input('order_number'),
+                    ]);
+
+                    $validator->errors()->add(
+                        "items.{$index}.product_id",
+                        "Product \"{$products[$productId]->name}\" has no active digital product assigned."
+                    );
+                }
+            }
+        });
     }
 
     /**
