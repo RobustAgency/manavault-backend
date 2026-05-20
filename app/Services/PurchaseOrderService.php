@@ -12,8 +12,8 @@ use Illuminate\Support\Facades\Log;
 use App\Enums\PurchaseOrderSupplierStatus;
 use App\Jobs\PlaceExternalPurchaseOrderJob;
 use App\Repositories\PurchaseOrderRepository;
-use App\Services\PurchaseOrder\GroupBySupplierIdService;
 use App\Services\Supplier\SupplierIntegrationResolver;
+use App\Services\PurchaseOrder\GroupBySupplierIdService;
 
 class PurchaseOrderService
 {
@@ -110,7 +110,7 @@ class PurchaseOrderService
 
         $purchaseOrder->update(['total_price' => $totalPrice]);
 
-        if ($supplier->type === SupplierType::EXTERNAL->value && $this->supplierIntegrationResolver->resolve($supplier) === null) {
+        if ($supplier->type === SupplierType::EXTERNAL->value) {
             PlaceExternalPurchaseOrderJob::dispatch(
                 $purchaseOrder,
                 $supplier,
