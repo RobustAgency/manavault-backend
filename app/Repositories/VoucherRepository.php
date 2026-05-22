@@ -75,6 +75,13 @@ class VoucherRepository
         return $this->availableVouchersQuery($digitalProductId)->count();
     }
 
+    public function existsByDigitalProductAndHash(int $digitalProductId, string $hash): bool
+    {
+        return Voucher::where('digital_product_id', $digitalProductId)
+            ->where('code_hash', $hash)
+            ->exists();
+    }
+
     public function updateVoucherStatus(int $voucherId, string $status): void
     {
         $voucher = Voucher::findOrFail($voucherId);

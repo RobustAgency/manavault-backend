@@ -15,6 +15,8 @@ class Voucher extends Model
 
     protected $fillable = [
         'code',
+        'code_hash',
+        'digital_product_id',
         'purchase_order_id',
         'purchase_order_item_id',
         'serial_number',
@@ -42,5 +44,13 @@ class Voucher extends Model
     public function purchaseOrderItem(): BelongsTo
     {
         return $this->belongsTo(PurchaseOrderItem::class);
+    }
+
+    /**
+     * @return BelongsTo<DigitalProduct, $this>
+     */
+    public function digitalProduct(): BelongsTo
+    {
+        return $this->belongsTo(DigitalProduct::class);
     }
 }

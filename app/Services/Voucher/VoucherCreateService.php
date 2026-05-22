@@ -5,7 +5,9 @@ namespace App\Services\Voucher;
 use App\Models\Voucher;
 use App\DTOs\VoucherDTO;
 use App\Models\PurchaseOrder;
+use Illuminate\Support\Facades\Log;
 use App\Events\NewVouchersAvailable;
+use Illuminate\Database\QueryException;
 use App\Services\PurchaseOrder\PurchaseOrderStatusService;
 
 class VoucherCreateService
@@ -14,7 +16,8 @@ class VoucherCreateService
         private VoucherPurchaseOrderValidator $voucherPurchaseOrderValidator,
         private VoucherFileImportService $voucherFileImportService,
         private VoucherCipherService $voucherCipherService,
-        private PurchaseOrderStatusService $purchaseOrderStatusService
+        private PurchaseOrderStatusService $purchaseOrderStatusService,
+        private VoucherDeduplicationService $voucherDeduplicationService,
     ) {}
 
     /**
@@ -75,18 +78,41 @@ class VoucherCreateService
                 continue;
             }
 
-            // Encrypt the code
+            $digitalProductId = $purchaseOrderItem->digital_product_id;
+
+            if ($this->voucherDeduplicationService->isDuplicate($digitalProductId, $voucherDTO->code)) {
+                Log::info('Skipping duplicate voucher code', [
+                    'digital_product_id' => $digitalProductId,
+                    'purchase_order_id' => $purchaseOrderID,
+                ]);
+
+                continue;
+            }
+
             $encryptedCode = $this->voucherCipherService->encryptCode($voucherDTO->code);
 
-            // Create voucher record
-            Voucher::create([
-                'purchase_order_id' => $purchaseOrderID,
-                'purchase_order_item_id' => $purchaseOrderItem->id,
-                'code' => $encryptedCode,
-                'serial_number' => $voucherDTO->serial_number,
-                'pin_code' => $voucherDTO->pin_code,
-                'status' => 'available',
-            ]);
+            try {
+                Voucher::create([
+                    'purchase_order_id' => $purchaseOrderID,
+                    'purchase_order_item_id' => $purchaseOrderItem->id,
+                    'code' => $encryptedCode,
+                    'serial_number' => $voucherDTO->serial_number,
+                    'pin_code' => $voucherDTO->pin_code,
+                    'status' => 'available',
+                    'digital_product_id' => $digitalProductId,
+                    'code_hash' => $this->voucherDeduplicationService->computeHash($voucherDTO->code),
+                ]);
+            } catch (QueryException $e) {
+                if ($e->getCode() === '23000') {
+                    Log::warning('Voucher code unique constraint violation (race condition)', [
+                        'digital_product_id' => $digitalProductId,
+                        'purchase_order_id' => $purchaseOrderID,
+                    ]);
+
+                    continue;
+                }
+                throw $e;
+            }
         }
 
         return true;
