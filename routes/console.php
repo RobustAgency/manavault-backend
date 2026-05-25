@@ -3,9 +3,9 @@
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
-use App\Console\Commands\SyncEzCardsProductsCommand;
 use App\Console\Commands\SyncTikkeryProductsCommand;
 use App\Console\Commands\FetchTikkeryVouchersCommand;
+use App\Console\Commands\SyncSupplierProductsCommand;
 use App\Console\Commands\SyncGift2GamesProductsCommand;
 use App\Console\Commands\SyncIrewardifyProductsCommand;
 use App\Console\Commands\FetchIrewardifyVouchersCommand;
@@ -16,7 +16,7 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::command(SyncEzCardsProductsCommand::class)
+Schedule::command(SyncSupplierProductsCommand::class)
     ->hourly()
     ->withoutOverlapping()
     ->runInBackground();
