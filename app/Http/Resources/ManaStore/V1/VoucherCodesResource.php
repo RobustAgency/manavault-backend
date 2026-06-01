@@ -39,6 +39,7 @@ class VoucherCodesResource
 
             if (! empty($codes)) {
                 $formattedCodes[] = [
+                    'id' => $item->product_id,
                     'title' => $item->product->name,
                     'codes' => $codes,
                 ];
