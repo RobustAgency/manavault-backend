@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\PurchaseOrderItemStatus;
 use Illuminate\Database\Eloquent\Model;
+use App\Contracts\SupplierIntegrationContract;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -21,9 +23,12 @@ class PurchaseOrderItem extends Model
         'quantity',
         'unit_cost',
         'subtotal',
+        'transaction_id',
+        'status',
     ];
 
     protected $casts = [
+        'status' => PurchaseOrderItemStatus::class,
         'quantity' => 'integer',
         'unit_cost' => 'decimal:2',
         'subtotal' => 'decimal:2',
@@ -43,5 +48,15 @@ class PurchaseOrderItem extends Model
     public function digitalProduct(): BelongsTo
     {
         return $this->belongsTo(DigitalProduct::class);
+    }
+
+    public function getSupplier(): ?SupplierIntegrationContract
+    {
+        $supplier = Supplier::find($this->supplier_id);
+
+        return match ($supplier->slug) {
+            'ez_cards' => $this->ezCardsIntegration,
+            default => null,
+        };
     }
 }

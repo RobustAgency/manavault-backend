@@ -2,8 +2,10 @@
 
 namespace App\Jobs;
 
+use Money\Currency;
 use App\Models\Supplier;
 use App\Models\PurchaseOrder;
+use App\Models\PurchaseOrderItem;
 use Illuminate\Support\Facades\Log;
 use App\Models\PurchaseOrderSupplier;
 use App\Enums\PurchaseOrderSupplierStatus;
@@ -36,6 +38,7 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
         private readonly PurchaseOrder $purchaseOrder,
         private readonly Supplier $supplier,
         private readonly PurchaseOrderSupplier $purchaseOrderSupplier,
+        /** @var array<int, PurchaseOrderItem> */
         private readonly array $purchaseOrderItems,
         private readonly string $orderNumber,
         private readonly string $currency,
@@ -49,51 +52,22 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
         TikkeryVoucherService $tikkeryVoucherService,
         PurchaseOrderStatusService $purchaseOrderStatusService,
     ): void {
+        // We only get items here for a single supplier.
+        // grouping by supplier is done in service and then this job is dispatched.
         $integration = $resolver->resolve($this->supplier);
 
         if ($integration !== null) {
-            if ($this->purchaseOrderSupplier->transaction_id) {
-                Log::info('PlaceExternalPurchaseOrderJob: order already placed, skipping placement', [
-                    'purchase_order_id' => $this->purchaseOrder->id,
-                    'supplier_slug' => $this->supplier->slug,
-                    'transaction_id' => $this->purchaseOrderSupplier->transaction_id,
-                ]);
-
-                $purchaseOrderStatusService->updateStatus($this->purchaseOrder->refresh());
-
-                return;
+            // Important: We are assuming here that all purchase order items belongs to a single supplier.
+            foreach ($this->purchaseOrderItems as $orderItem) {
+                try {
+                    $orderItem->getSupplier()?->placeOrder($orderItem);
+                } catch (\Exception $e) {
+                    Log::error('PlaceExternalPurchaseOrderJob: failed to place order via integration', [
+                        'purchase_order_id' => $this->purchaseOrder->id,
+                        'supplier_slug' => $this->supplier->slug,
+                        'error' => $e->getMessage(),
+                    ]);
             }
-
-            try {
-                $response = $integration->placeOrder(
-                    $this->purchaseOrderItems,
-                    $this->orderNumber,
-                    $this->currency,
-                    $this->purchaseOrder,
-                );
-
-                $transactionId = $response['transactionId'] ?? ($response['id'] ?? null);
-
-                $this->purchaseOrderSupplier->update([
-                    'transaction_id' => $transactionId,
-                    'status' => PurchaseOrderSupplierStatus::PROCESSING->value,
-                ]);
-
-                Log::info('PlaceExternalPurchaseOrderJob: order placed via integration', [
-                    'purchase_order_id' => $this->purchaseOrder->id,
-                    'supplier_slug' => $this->supplier->slug,
-                    'transaction_id' => $transactionId,
-                ]);
-            } catch (\Exception $e) {
-                $this->purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::FAILED->value]);
-                Log::error('PlaceExternalPurchaseOrderJob: failed to place order via integration', [
-                    'purchase_order_id' => $this->purchaseOrder->id,
-                    'supplier_slug' => $this->supplier->slug,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-
-            $purchaseOrderStatusService->updateStatus($this->purchaseOrder->refresh());
 
             return;
         }

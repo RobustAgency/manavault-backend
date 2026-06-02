@@ -3,13 +3,14 @@
 namespace App\Contracts;
 
 use App\Models\PurchaseOrder;
+use App\Models\PurchaseOrderItem;
 
 interface SupplierIntegrationContract
 {
     /**
      * Place an order with the supplier and return the raw response data.
      */
-    public function placeOrder(array $orderItems, string $orderNumber, string $currency, PurchaseOrder $purchaseOrder): array;
+    public function placeOrder(PurchaseOrderItem $purchaseOrderItem): void;
 
     /**
      * Fetch vouchers from the supplier for a given transaction/order ID.

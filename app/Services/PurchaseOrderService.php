@@ -33,7 +33,8 @@ class PurchaseOrderService
             $purchaseOrder = $this->purchaseOrderRepository->createPurchaseOrder([
                 'total_price' => 0,
                 'order_number' => $orderNumber,
-                'status' => PurchaseOrderStatus::PROCESSING->value,
+                'status' => PurchaseOrderStatus::PROCESSING->value, // FIXME: Won't be needed in future, as we'll calculate based on item status.
+                // Could be used for easy querying of pending/processing orders.
                 'currency' => $currency,
                 'sale_order_id' => $saleOrderId,
             ]);
@@ -70,9 +71,9 @@ class PurchaseOrderService
             $digitalProduct = DigitalProduct::findOrFail($item['digital_product_id']);
             $quantity = $item['quantity'];
             $unitCost = $digitalProduct->cost_price;
-            $subtotal = $quantity * $unitCost;
+            $subtotal = $quantity * $unitCost; // FIXME: Use money package here.
 
-            $totalPrice += $subtotal;
+            $totalPrice += $subtotal; // FIXME: Use money package here.
 
             $orderItems[] = [
                 'digital_product_id' => $digitalProduct->id,

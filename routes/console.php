@@ -28,7 +28,7 @@ Schedule::command(AddVoucherCodeForEZCardsCommand::class)
 
 Schedule::command(PlacePendingPurchaseOrdersCommand::class)
     ->everyMinute()
-    ->withoutOverlapping()
+    ->withoutOverlapping(expiresAt: 120) // 2 minutes
     ->runInBackground();
 
 Schedule::command(SyncIrewardifyProductsCommand::class)
