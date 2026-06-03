@@ -382,4 +382,94 @@ class PurchaseOrderServiceTest extends TestCase
         $this->assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
         $this->assertNull($purchaseOrder->sale_order_id);
     }
+
+    public function test_multiple_external_suppliers_dispatch_separate_jobs(): void
+    {
+        Queue::fake();
+
+        $gift2games = Supplier::factory()->create([
+            'name' => 'Gift2Games',
+            'slug' => 'gift2games',
+            'type' => 'external',
+        ]);
+
+        $ezcards = Supplier::factory()->create([
+            'name' => 'EzCards',
+            'slug' => 'ez_cards',
+            'type' => 'external',
+        ]);
+
+        $product1 = DigitalProduct::factory()->create([
+            'sku' => 'G2G-SKU-001',
+            'cost_price' => 10.00,
+        ]);
+
+        $product2 = DigitalProduct::factory()->create([
+            'sku' => 'EZC-SKU-001',
+            'cost_price' => 20.00,
+        ]);
+
+        $data = [
+            'items' => [
+                [
+                    'supplier_id' => $gift2games->id,
+                    'digital_product_id' => $product1->id,
+                    'quantity' => 2,
+                ],
+                [
+                    'supplier_id' => $ezcards->id,
+                    'digital_product_id' => $product2->id,
+                    'quantity' => 1,
+                ],
+            ],
+        ];
+
+        $purchaseOrder = $this->service->createPurchaseOrder($data);
+
+        Queue::assertPushed(PlaceExternalPurchaseOrderJob::class, 2);
+        $this->assertEquals(40.00, $purchaseOrder->total_price);
+    }
+
+    public function test_purchase_order_item_stores_correct_fields(): void
+    {
+        Queue::fake();
+
+        $supplier = Supplier::factory()->create([
+            'name' => 'EzCards',
+            'slug' => 'ez_cards',
+            'type' => 'external',
+        ]);
+
+        $digitalProduct = DigitalProduct::factory()->create([
+            'name' => 'Amazon Gift Card',
+            'sku' => 'AMZ-GC-001',
+            'brand' => 'Amazon',
+            'cost_price' => 15.00,
+        ]);
+
+        $data = [
+            'items' => [
+                [
+                    'supplier_id' => $supplier->id,
+                    'digital_product_id' => $digitalProduct->id,
+                    'quantity' => 3,
+                ],
+            ],
+        ];
+
+        $purchaseOrder = $this->service->createPurchaseOrder($data);
+
+        $this->assertDatabaseHas('purchase_order_items', [
+            'purchase_order_id' => $purchaseOrder->id,
+            'supplier_id' => $supplier->id,
+            'digital_product_id' => $digitalProduct->id,
+            'digital_product_name' => 'Amazon Gift Card',
+            'digital_product_sku' => 'AMZ-GC-001',
+            'digital_product_brand' => 'Amazon',
+            'quantity' => 3,
+            'unit_cost' => 15.00,
+            'subtotal' => 45.00,
+            'transaction_id' => null,
+        ]);
+    }
 }

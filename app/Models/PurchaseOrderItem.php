@@ -6,6 +6,7 @@ use App\Enums\PurchaseOrderItemStatus;
 use Illuminate\Database\Eloquent\Model;
 use App\Contracts\SupplierIntegrationContract;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Services\Supplier\SupplierIntegrationResolver;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class PurchaseOrderItem extends Model
@@ -54,9 +55,6 @@ class PurchaseOrderItem extends Model
     {
         $supplier = Supplier::find($this->supplier_id);
 
-        return match ($supplier->slug) {
-            'ez_cards' => $this->ezCardsIntegration,
-            default => null,
-        };
+        return app(SupplierIntegrationResolver::class)->resolve($supplier);
     }
 }

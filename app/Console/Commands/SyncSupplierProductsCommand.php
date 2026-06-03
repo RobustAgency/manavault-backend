@@ -8,7 +8,7 @@ use App\Services\Supplier\SupplierIntegrationResolver;
 
 class SyncSupplierProductsCommand extends Command
 {
-    protected $signature = 'supplier:sync-products {supplier : Supplier slug}';
+    protected $signature = 'supplier:sync-products {supplier : slug}';
 
     protected $description = 'Sync digital products from a supplier via its integration';
 

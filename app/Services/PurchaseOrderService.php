@@ -28,8 +28,7 @@ class PurchaseOrderService
         $grouped = $this->groupBySupplierIdService->groupBySupplierId($data['items']);
         $orderNumber = $this->generateOrderNumber();
 
-        DB::beginTransaction();
-        try {
+        return DB::transaction(function () use ($grouped, $orderNumber, $currency, $saleOrderId) {
             $purchaseOrder = $this->purchaseOrderRepository->createPurchaseOrder([
                 'total_price' => 0,
                 'order_number' => $orderNumber,
@@ -47,13 +46,8 @@ class PurchaseOrderService
                 $this->processSupplierItems($purchaseOrder, $supplier, $items, $orderNumber, $currency);
             }
 
-            DB::commit();
-
             return $purchaseOrder;
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw new \RuntimeException('Failed to create purchase order: '.$e->getMessage());
-        }
+        });
     }
 
     private function processSupplierItems(

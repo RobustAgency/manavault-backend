@@ -2,7 +2,6 @@
 
 namespace App\Contracts;
 
-use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 
 interface SupplierIntegrationContract
@@ -13,9 +12,9 @@ interface SupplierIntegrationContract
     public function placeOrder(PurchaseOrderItem $purchaseOrderItem): void;
 
     /**
-     * Fetch vouchers from the supplier for a given transaction/order ID.
+     * Update an existing order with the supplier.
      */
-    public function fetchVouchers(string $transactionId, PurchaseOrder $purchaseOrder): array;
+    public function updateOrder(PurchaseOrderItem $purchaseOrderItem): void;
 
     /**
      * Sync this supplier's product catalogue to the local digital_products table.

@@ -9,11 +9,14 @@ use Illuminate\Support\Facades\DB;
 use App\Actions\Ezcards\PlaceOrder;
 use Illuminate\Support\Facades\Log;
 use App\Events\NewVouchersAvailable;
+use App\Models\PurchaseOrderSupplier;
 use App\Enums\PurchaseOrderItemStatus;
 use App\Actions\Ezcards\GetVoucherCodes;
 use App\Enums\PurchaseOrderSupplierStatus;
 use App\Services\Ezcards\SyncDigitalProduct;
 use App\Contracts\SupplierIntegrationContract;
+use App\Services\Voucher\VoucherCipherService;
+use App\Services\PurchaseOrder\PurchaseOrderStatusService;
 
 class EzCards implements SupplierIntegrationContract
 {
@@ -21,6 +24,8 @@ class EzCards implements SupplierIntegrationContract
         private readonly PlaceOrder $placeOrderAction,
         private readonly GetVoucherCodes $getVoucherCodesAction,
         private readonly SyncDigitalProduct $syncDigitalProduct,
+        private readonly VoucherCipherService $voucherCipherService,
+        private readonly PurchaseOrderStatusService $purchaseOrderStatusService,
     ) {}
 
     public function placeOrder(PurchaseOrderItem $purchaseOrderItem): void
@@ -54,38 +59,35 @@ class EzCards implements SupplierIntegrationContract
             'order_item_id' => $purchaseOrderItem->id,
             'response' => $response,
         ]);
-        $transactionId = $response['transactionId'] ?? ($response['id'] ?? null);
-        $purchaseOrderItem->update(['transaction_id' => $transactionId]);
-
-        // $products = [];
-
-        // foreach ($orderItems as $item) {
-        //     $products[] = [
-        //         'sku' => $item->digitalProduct->sku,
-        //         'quantity' => $item->quantity,
-        //     ];
-        // }
-
-        // $response = $this->placeOrderAction->execute([
-        //     'clientOrderNumber' => $orderNumber,
-        //     'products' => $products,
-        //     'payWithCurrency' => strtoupper($currency),
-        // ]);
-
-        // Log::info('EzCards order placed', [
-        //     'order_number' => $orderNumber,
-        //     'response' => $response,
-        // ]);
-
-        // return $response['data'] ?? [];
+        $transactionId = $response['data']['transactionId'] ?? null;
+        $purchaseOrderItem->update(['transaction_id' => $transactionId, 'status' => PurchaseOrderItemStatus::PROCESSING]);
     }
 
-    public function updateOrder(PurchaseOrderItem $purchaseOrderItem): array
+    public function updateOrder(PurchaseOrderItem $purchaseOrderItem): void
     {
-        // Once we realise vouchers for all purcahase order items, we'll then update the status of purchase order supplier.
-        // We will do this based on purchase order item status.
         $response = $this->getVoucherCodesAction->execute((int) $purchaseOrderItem->transaction_id);
-        $isSuccess = $this->storeVoucherCodes($purchaseOrderItem->purchaseOrder, $response);
+
+        /** @var array<int, array<string, mixed>> $responseData */
+        $responseData = $response['data'] ?? [];
+        /** @var \Illuminate\Support\Collection<int, array<string, mixed>> $codes */
+        $codes = collect($responseData)->flatMap(fn (array $product): array => $product['codes'] ?? []);
+
+        $allCompleted = $codes->isNotEmpty() && $codes->every(
+            fn ($code) => ($code['status'] ?? null) === 'COMPLETED'
+        );
+
+        if (! $allCompleted) {
+            logger()->debug('EzCards order not completed yet.', [
+                'order_item_id' => $purchaseOrderItem->id,
+                'transaction_id' => $purchaseOrderItem->transaction_id,
+                'response' => $response,
+            ]);
+
+            return;
+        }
+
+        $purchaseOrder = $purchaseOrderItem->purchaseOrder;
+        $isSuccess = $this->storeVoucherCodes($purchaseOrder, $purchaseOrderItem, $response);
 
         if (! $isSuccess) {
             Log::error('Failed to store vouchers for EzCards order', [
@@ -94,152 +96,64 @@ class EzCards implements SupplierIntegrationContract
                 'response' => $response,
             ]);
 
-            return [];
+            return;
         }
 
-        $purchaseOrderItem->update(['status' => PurchaseOrderItemStatus::COMPLETED]);
+        $purchaseOrderItem->update(['status' => PurchaseOrderItemStatus::FULFILLED]);
 
-        // for legacy purposes.
-        $otherPurchaseOrderItems = PurchaseOrderItem::where('supplier_id', $purchaseOrderItem->supplier_id)
-            ->where('purchase_order_id', $purchaseOrderItem->purchase_order_id);
+        $allCompleted = PurchaseOrderItem::where('supplier_id', $purchaseOrderItem->supplier_id)
+            ->where('purchase_order_id', $purchaseOrderItem->purchase_order_id)
+            ->get()
+            ->every(fn (PurchaseOrderItem $item) => $item->status === PurchaseOrderItemStatus::FULFILLED);
 
-        $otherPurchaseOrderItems->every(function (PurchaseOrderItem $item) {
-            return $item->status === PurchaseOrderItemStatus::COMPLETED;
-        });
-        if ($otherPurchaseOrderItems) {
+        if ($allCompleted) {
             PurchaseOrderSupplier::where('supplier_id', $purchaseOrderItem->supplier_id)
                 ->where('purchase_order_id', $purchaseOrderItem->purchase_order_id)
                 ->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
         }
 
         $this->purchaseOrderStatusService->updateStatus($purchaseOrder);
-
-        return $response['data'] ?? [];
     }
 
-    private function storeVoucherCodes(PurchaseOrder $purchaseOrder, array $voucherCodesResponse): int
+    private function storeVoucherCodes(PurchaseOrder $purchaseOrder, PurchaseOrderItem $purchaseOrderItem, array $voucherCodesResponse): bool
     {
-        $vouchersAdded = 0;
-
-        // Handle response structure - the data array contains items for each product
         $productVouchers = $voucherCodesResponse['data'] ?? [];
 
-        // Load purchase order items with digital products to match vouchers to items
-        $purchaseOrder->load('items.digitalProduct');
+        $purchaseOrderItem->load('digitalProduct');
 
         DB::beginTransaction();
         try {
-            // Process each product's vouchers from the API response
             foreach ($productVouchers as $productData) {
-                $sku = $productData['sku'];
-                $codes = $productData['codes'];
+                $codes = $productData['codes'] ?? [];
 
-                // Find the corresponding purchase order item by matching the SKU
-                $purchaseOrderItem = $purchaseOrder->items->first(function ($item) use ($sku) {
-                    return $item->digitalProduct->sku === $sku;
-                });
-
-                if (! $purchaseOrderItem) {
-                    Log::warning('No purchase order item found for EzCards voucher', [
-                        'sku' => $sku,
-                        'purchase_order_id' => $purchaseOrder->id,
-                    ]);
-
-                    continue;
-                }
-
-                // Process each voucher code for this product
                 foreach ($codes as $voucherData) {
-                    $code = $voucherData['redeemCode'] ?? null;
+                    $code = $voucherData['redeemCode'];
                     $pinCode = $voucherData['pinCode'] ?? null;
                     $stockId = $voucherData['stockId'] ?? null;
-                    $apiStatus = $voucherData['status'];
-
-                    // Determine voucher status based on API status and code availability
-                    if ($apiStatus === 'COMPLETED' && $code) {
-                        $status = 'available';
-                    } elseif ($apiStatus === 'PROCESSING' || ! $code) {
-                        $status = 'processing';
-                    } else {
-                        $status = 'available';
-                    }
-
-                    // For processing status without code, create placeholder with stockId
-                    if (! $code && $status === 'processing' && $stockId) {
-                        // Check if a voucher with this stockId already exists
-                        $exists = Voucher::where('purchase_order_id', $purchaseOrder->id)
-                            ->where('stock_id', $stockId)
-                            ->exists();
-
-                        if (! $exists) {
-                            Voucher::create([
-                                'code' => null,
-                                'purchase_order_id' => $purchaseOrder->id,
-                                'purchase_order_item_id' => $purchaseOrderItem->id,
-                                'status' => $status,
-                                'serial_number' => null,
-                                'pin_code' => null,
-                                'stock_id' => $stockId,
-                            ]);
-                            $vouchersAdded++;
-                        }
-
-                        continue;
-                    }
-
-                    // Skip if no code and not processing
-                    if (! $code) {
-                        continue;
-                    }
-
-                    // Check if voucher code already exists (by code or by stockId)
-                    $existingVoucher = Voucher::where('purchase_order_id', $purchaseOrder->id)
-                        ->where(function ($query) use ($code, $stockId) {
-                            $query->where('code', $code);
-                            if ($stockId) {
-                                $query->orWhere('stock_id', $stockId);
-                            }
-                        })
-                        ->first();
 
                     $code = $this->voucherCipherService->encryptCode($code);
-
-                    if (! $existingVoucher) {
-                        Voucher::create([
-                            'code' => $code,
-                            'purchase_order_id' => $purchaseOrder->id,
-                            'purchase_order_item_id' => $purchaseOrderItem->id,
-                            'status' => $status,
-                            'pin_code' => $pinCode,
-                            'stock_id' => $stockId,
-                        ]);
-                        $vouchersAdded++;
-                    } else {
-                        // Update existing voucher if status or code changed
-                        $existingVoucher->update([
-                            'code' => $code,
-                            'purchase_order_item_id' => $purchaseOrderItem->id,
-                            'status' => $status,
-                            'pin_code' => $pinCode,
-                            'stock_id' => $stockId,
-                        ]);
-                    }
+                    Voucher::create([
+                        'code' => $code,
+                        'purchase_order_id' => $purchaseOrderItem->purchase_order_id,
+                        'purchase_order_item_id' => $purchaseOrderItem->id,
+                        'status' => 'available',
+                        'pin_code' => $pinCode,
+                        'stock_id' => $stockId,
+                    ]);
                 }
             }
 
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            throw $e;
+
+            return false;
         }
 
-        // Notify listeners that new vouchers are available so pending sale orders can be fulfilled
-        if ($vouchersAdded > 0) {
-            $digitalProductIds = $purchaseOrder->items->pluck('digital_product_id')->unique()->values()->all();
-            event(new NewVouchersAvailable($digitalProductIds, $purchaseOrder->id, $purchaseOrder->sale_order_id));
-        }
+        $digitalProductIds = $purchaseOrderItem->digitalProduct->pluck('id')->toArray();
+        event(new NewVouchersAvailable($digitalProductIds, $purchaseOrder->id, $purchaseOrder->sale_order_id));
 
-        return $vouchersAdded;
+        return true;
     }
 
     public function syncProducts(): void

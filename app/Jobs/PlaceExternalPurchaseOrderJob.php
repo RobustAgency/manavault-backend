@@ -2,7 +2,6 @@
 
 namespace App\Jobs;
 
-use Money\Currency;
 use App\Models\Supplier;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
@@ -67,6 +66,7 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
                         'supplier_slug' => $this->supplier->slug,
                         'error' => $e->getMessage(),
                     ]);
+                }
             }
 
             return;
