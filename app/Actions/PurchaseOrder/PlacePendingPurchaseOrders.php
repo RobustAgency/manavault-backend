@@ -2,21 +2,19 @@
 
 namespace App\Actions\PurchaseOrder;
 
+use App\Models\PurchaseOrderItem;
+use Illuminate\Support\Facades\Log;
+use App\Models\PurchaseOrderSupplier;
 use App\Enums\PurchaseOrderSupplierStatus;
 use App\Jobs\PlaceExternalPurchaseOrderJob;
-use App\Models\PurchaseOrderItem;
-use App\Models\PurchaseOrderSupplier;
 use App\Services\Supplier\SupplierIntegrationResolver;
-use Illuminate\Support\Facades\Log;
 
 class PlacePendingPurchaseOrders
 {
     public function __construct(private readonly SupplierIntegrationResolver $resolver) {}
 
-    public function execute(): bool
+    public function execute(): void
     {
-        $hasFailures = false;
-
         $pendingSuppliers = PurchaseOrderSupplier::query()
             ->where('status', PurchaseOrderSupplierStatus::PROCESSING->value)
             ->whereNull('transaction_id')
@@ -49,22 +47,18 @@ class PlacePendingPurchaseOrders
                 );
 
                 Log::info('PlacePendingPurchaseOrders: dispatched job', [
-                    'supplier'                   => $supplier->slug,
-                    'purchase_order_id'          => $purchaseOrder->id,
+                    'supplier' => $supplier->slug,
+                    'purchase_order_id' => $purchaseOrder->id,
                     'purchase_order_supplier_id' => $purchaseOrderSupplier->id,
                 ]);
             } catch (\Throwable $e) {
-                $hasFailures = true;
-
                 Log::error('PlacePendingPurchaseOrders: failed to dispatch job', [
-                    'supplier'                   => $supplier->slug,
-                    'purchase_order_id'          => $purchaseOrder->id,
+                    'supplier' => $supplier->slug,
+                    'purchase_order_id' => $purchaseOrder->id,
                     'purchase_order_supplier_id' => $purchaseOrderSupplier->id,
-                    'error'                      => $e->getMessage(),
+                    'error' => $e->getMessage(),
                 ]);
             }
         }
-
-        return $hasFailures;
     }
 }

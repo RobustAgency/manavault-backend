@@ -40,10 +40,9 @@ class PlacePendingPurchaseOrdersTest extends TestCase
             'transaction_id'    => null,
         ]);
 
-        $hasFailures = $this->action->execute();
+        $this->action->execute();
 
         Queue::assertPushed(PlaceExternalPurchaseOrderJob::class, 1);
-        $this->assertFalse($hasFailures);
     }
 
     public function test_skips_supplier_not_in_integration(): void
@@ -60,10 +59,9 @@ class PlacePendingPurchaseOrdersTest extends TestCase
             'transaction_id'    => null,
         ]);
 
-        $hasFailures = $this->action->execute();
+        $this->action->execute();
 
         Queue::assertNotPushed(PlaceExternalPurchaseOrderJob::class);
-        $this->assertFalse($hasFailures);
     }
 
     public function test_skips_supplier_that_already_has_transaction_id(): void
@@ -80,10 +78,9 @@ class PlacePendingPurchaseOrdersTest extends TestCase
             'transaction_id'    => 'TXN-already-placed',
         ]);
 
-        $hasFailures = $this->action->execute();
+        $this->action->execute();
 
         Queue::assertNotPushed(PlaceExternalPurchaseOrderJob::class);
-        $this->assertFalse($hasFailures);
     }
 
     public function test_skips_supplier_with_non_processing_status(): void
@@ -100,10 +97,9 @@ class PlacePendingPurchaseOrdersTest extends TestCase
             'transaction_id'    => null,
         ]);
 
-        $hasFailures = $this->action->execute();
+        $this->action->execute();
 
         Queue::assertNotPushed(PlaceExternalPurchaseOrderJob::class);
-        $this->assertFalse($hasFailures);
     }
 
     public function test_only_dispatches_for_integrated_suppliers_when_mixed(): void
@@ -152,9 +148,8 @@ class PlacePendingPurchaseOrdersTest extends TestCase
             'supplier_id'       => $supplier->id,
         ]);
 
-        $hasFailures = $this->action->execute();
+        $this->action->execute();
 
         Queue::assertPushed(PlaceExternalPurchaseOrderJob::class, 1);
-        $this->assertFalse($hasFailures);
     }
 }

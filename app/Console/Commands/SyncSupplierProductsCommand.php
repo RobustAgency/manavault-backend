@@ -3,14 +3,15 @@
 namespace App\Console\Commands;
 
 use App\Models\Supplier;
+use App\Enums\SupplierType;
 use Illuminate\Console\Command;
 use App\Services\Supplier\SupplierIntegrationResolver;
 
 class SyncSupplierProductsCommand extends Command
 {
-    protected $signature = 'supplier:sync-products {supplier : slug}';
+    protected $signature = 'supplier:sync-products';
 
-    protected $description = 'Sync digital products from a supplier via its integration';
+    protected $description = 'Sync digital products from all external suppliers that have an integration';
 
     public function __construct(private readonly SupplierIntegrationResolver $resolver)
     {
@@ -19,27 +20,23 @@ class SyncSupplierProductsCommand extends Command
 
     public function handle(): int
     {
-        $slug = (string) $this->argument('supplier');
+        $suppliers = Supplier::where('type', SupplierType::EXTERNAL->value)->get();
 
-        $supplier = Supplier::where('slug', $slug)->first();
+        foreach ($suppliers as $supplier) {
+            $supplierIntegration = $this->resolver->resolve($supplier);
 
-        $integration = $this->resolver->resolve($supplier);
+            if ($supplierIntegration === null) {
+                continue;
+            }
 
-        if ($integration === null) {
-            $this->error("No integration registered for supplier: {$slug}");
+            $this->info("Syncing products for: {$supplier->slug}");
 
-            return Command::INVALID;
-        }
-
-        $this->info("Starting {$slug} product sync...");
-
-        try {
-            $integration->syncProducts();
-            $this->info('Sync completed successfully.');
-        } catch (\Throwable $e) {
-            $this->error('Sync failed: '.$e->getMessage());
-
-            return Command::FAILURE;
+            try {
+                $supplierIntegration->syncProducts();
+                $this->info("Done: {$supplier->slug}");
+            } catch (\Throwable $e) {
+                $this->error("Failed [{$supplier->slug}]: {$e->getMessage()}");
+            }
         }
 
         return Command::SUCCESS;

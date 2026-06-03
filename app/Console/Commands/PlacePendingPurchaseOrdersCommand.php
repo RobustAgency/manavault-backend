@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Actions\PurchaseOrder\PlacePendingPurchaseOrders;
 use Illuminate\Console\Command;
+use App\Actions\PurchaseOrder\PlacePendingPurchaseOrders;
 
 class PlacePendingPurchaseOrdersCommand extends Command
 {
@@ -13,6 +13,10 @@ class PlacePendingPurchaseOrdersCommand extends Command
 
     public function handle(PlacePendingPurchaseOrders $action): int
     {
-        return $action->execute() ? Command::FAILURE : Command::SUCCESS;
+        logger()->info('PlacePendingPurchaseOrdersCommand: started');
+
+        $action->execute();
+
+        return Command::SUCCESS;
     }
 }
