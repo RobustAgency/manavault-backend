@@ -106,7 +106,7 @@ class PlaceExternalPurchaseOrderJobTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
-    // Gift2Games (legacy path)
+    // Gift2Games (new-style integration)
     // -------------------------------------------------------------------------
 
     public function test_places_order_and_stores_vouchers_for_gift2games(): void
@@ -133,6 +133,7 @@ class PlaceExternalPurchaseOrderJobTest extends TestCase
             'serial_number' => 'GSN-001',
             'status' => 'available',
         ]);
+        $this->assertEquals(PurchaseOrderItemStatus::FULFILLED, $setup['item']->fresh()->status);
         $this->assertEquals(
             PurchaseOrderSupplierStatus::COMPLETED->value,
             $setup['pos']->fresh()->status
@@ -161,8 +162,6 @@ class PlaceExternalPurchaseOrderJobTest extends TestCase
 
     public function test_stores_no_vouchers_when_gift2games_order_creation_fails_mid_loop(): void
     {
-        // Gift2GamesPlaceOrderService catches per-item exceptions and continues,
-        // FIXME: so the job still marks the supplier COMPLETED even when all order calls fail.
         $setup = $this->createOrderSetup('gift2games', '12345');
 
         Http::fake([
@@ -170,17 +169,15 @@ class PlaceExternalPurchaseOrderJobTest extends TestCase
                 'status' => true,
                 'data' => ['userBalance' => '500.00'],
             ], 200),
-            '*/create_order' => Http::response([
-                'status' => false,
-                'error' => ['message' => 'Product not found'],
-            ], 200),
+            '*/create_order' => Http::response(['status' => false, 'error' => ['message' => 'Product not found']], 200),
         ]);
 
         $this->dispatchJob($setup);
 
         $this->assertDatabaseCount('vouchers', 0);
+        $this->assertEquals(PurchaseOrderItemStatus::PENDING, $setup['item']->fresh()->status);
         $this->assertEquals(
-            PurchaseOrderSupplierStatus::COMPLETED->value,
+            PurchaseOrderSupplierStatus::PROCESSING->value,
             $setup['pos']->fresh()->status
         );
     }
