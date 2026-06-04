@@ -42,7 +42,7 @@ class SaleOrderService
                 $quantity = $itemData['quantity'];
 
                 $unitPrice = $product->selling_price;
-                $subtotal = $quantity * $unitPrice;
+                $subtotal = $quantity * $unitPrice; // FIXME: Use money package here.
 
                 $item = $saleOrder->items()->create([
                     'product_id' => $product->id,

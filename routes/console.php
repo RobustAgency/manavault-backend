@@ -3,19 +3,20 @@
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
-use App\Console\Commands\SyncEzCardsProductsCommand;
 use App\Console\Commands\SyncTikkeryProductsCommand;
 use App\Console\Commands\FetchTikkeryVouchersCommand;
+use App\Console\Commands\SyncSupplierProductsCommand;
 use App\Console\Commands\SyncGift2GamesProductsCommand;
 use App\Console\Commands\SyncIrewardifyProductsCommand;
 use App\Console\Commands\FetchIrewardifyVouchersCommand;
 use App\Console\Commands\AddVoucherCodeForEZCardsCommand;
+use App\Console\Commands\PlacePendingPurchaseOrdersCommand;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::command(SyncEzCardsProductsCommand::class)
+Schedule::command(SyncSupplierProductsCommand::class)
     ->hourly()
     ->withoutOverlapping()
     ->runInBackground();
@@ -23,6 +24,11 @@ Schedule::command(SyncEzCardsProductsCommand::class)
 Schedule::command(AddVoucherCodeForEZCardsCommand::class)
     ->everyMinute()
     ->withoutOverlapping()
+    ->runInBackground();
+
+Schedule::command(PlacePendingPurchaseOrdersCommand::class)
+    ->everyMinute()
+    ->withoutOverlapping(expiresAt: 120) // 2 minutes
     ->runInBackground();
 
 Schedule::command(SyncIrewardifyProductsCommand::class)

@@ -32,7 +32,7 @@ class AutoPurchaseOrderServiceTest extends TestCase
     }
 
     /**
-     * Shortfall with a Gift2Games (external) supplier → PO dispatched, returns true.
+     * Shortfall with a Gift2Games (external) supplier → PO dispatched.
      */
     public function test_handles_shortfall_with_external_gift2games_supplier(): void
     {
@@ -54,13 +54,11 @@ class AutoPurchaseOrderServiceTest extends TestCase
             )
             ->willReturn($this->createMock(PurchaseOrder::class));
 
-        $result = $this->service->handleShortfall($digitalProduct, 5);
-
-        $this->assertTrue($result);
+        $this->service->handleShortfall($digitalProduct, 5);
     }
 
     /**
-     * Shortfall with an Ezcards (external) supplier → PO dispatched, returns true.
+     * Shortfall with an Ezcards (external) supplier → PO dispatched.
      */
     public function test_handles_shortfall_with_ezcards_supplier(): void
     {
@@ -82,13 +80,11 @@ class AutoPurchaseOrderServiceTest extends TestCase
             )
             ->willReturn($this->createMock(PurchaseOrder::class));
 
-        $result = $this->service->handleShortfall($digitalProduct, 3);
-
-        $this->assertTrue($result);
+        $this->service->handleShortfall($digitalProduct, 3);
     }
 
     /**
-     * Shortfall with an internal supplier → PO is still dispatched, returns true.
+     * Shortfall with an internal supplier → PO is still dispatched.
      */
     public function test_handles_shortfall_with_internal_supplier(): void
     {
@@ -110,8 +106,6 @@ class AutoPurchaseOrderServiceTest extends TestCase
             )
             ->willReturn($this->createMock(PurchaseOrder::class));
 
-        $result = $this->service->handleShortfall($digitalProduct, 4);
-
-        $this->assertTrue($result);
+        $this->service->handleShortfall($digitalProduct, 4);
     }
 }
