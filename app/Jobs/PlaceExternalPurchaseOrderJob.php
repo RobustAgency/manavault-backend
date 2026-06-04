@@ -110,6 +110,7 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
         if ($this->isGift2GamesSupplier()) {
 
             $gift2GamesVoucherService->storeVouchers($this->purchaseOrder, $externalOrderResponse);
+            // FIXME: The job still marks the supplier COMPLETED even when all order calls fail.
             $this->purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
 
         } elseif ($this->supplier->slug === 'giftery-api') {
