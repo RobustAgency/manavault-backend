@@ -51,8 +51,12 @@ class SaleOrderCodesControllerTest extends TestCase
             ]);
 
         $response->assertJsonCount(2, 'data');
-        $response->assertJsonPath('data.0.id', $entries[0]->id);
+        $response->assertJsonPath('data.0.sale_order_id', $saleOrder->id);
         $response->assertJsonPath('data.0.order_number', $saleOrder->order_number);
+        $response->assertJsonPath('data.0.digital_product_id', $entries[0]->digital_product_id);
+        $response->assertJsonCount(1, 'data.0.voucher_codes');
+        $response->assertJsonPath('data.0.voucher_codes.0.id', $entries[0]->id);
+        $response->assertJsonPath('data.1.voucher_codes.0.id', $entries[1]->id);
     }
 
     public function test_unauthorized_admin_is_blocked_from_viewing_sale_order_codes(): void

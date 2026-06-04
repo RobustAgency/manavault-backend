@@ -64,7 +64,7 @@ class Gift2GamesPlaceOrderService
         }
 
         if (! empty($newDigitalProductIds)) {
-            event(new NewVouchersAvailable(array_unique($newDigitalProductIds)));
+            event(new NewVouchersAvailable(array_unique($newDigitalProductIds), $purchaseOrder->id, $purchaseOrder->sale_order_id));
         }
     }
 
