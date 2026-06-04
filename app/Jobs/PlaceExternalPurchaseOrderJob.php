@@ -135,5 +135,4 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
 
         $purchaseOrderStatusService->updateStatus($this->purchaseOrder->refresh());
     }
-
 }
