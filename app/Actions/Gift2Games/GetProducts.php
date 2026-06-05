@@ -8,10 +8,10 @@ class GetProducts
 {
     public function __construct(private ClientFactory $clientFactory) {}
 
-    public function execute(string $supplierSlug = 'gift2games'): array
+    public function execute(string $supplierSlug): array
     {
-        $productsClient = $this->clientFactory->makeProductsClient($supplierSlug);
+        $client = $this->clientFactory->make($supplierSlug);
 
-        return $productsClient->fetchList();
+        return $client->fetchList();
     }
 }

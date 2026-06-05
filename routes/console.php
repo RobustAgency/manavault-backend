@@ -6,10 +6,8 @@ use Illuminate\Support\Facades\Schedule;
 use App\Console\Commands\SyncTikkeryProductsCommand;
 use App\Console\Commands\FetchTikkeryVouchersCommand;
 use App\Console\Commands\SyncSupplierProductsCommand;
-use App\Console\Commands\SyncGift2GamesProductsCommand;
 use App\Console\Commands\SyncIrewardifyProductsCommand;
 use App\Console\Commands\FetchIrewardifyVouchersCommand;
-use App\Console\Commands\AddVoucherCodeForEZCardsCommand;
 use App\Console\Commands\PlacePendingPurchaseOrdersCommand;
 
 Artisan::command('inspire', function () {
@@ -18,11 +16,6 @@ Artisan::command('inspire', function () {
 
 Schedule::command(SyncSupplierProductsCommand::class)
     ->hourly()
-    ->withoutOverlapping()
-    ->runInBackground();
-
-Schedule::command(AddVoucherCodeForEZCardsCommand::class)
-    ->everyMinute()
     ->withoutOverlapping()
     ->runInBackground();
 
@@ -38,11 +31,6 @@ Schedule::command(SyncIrewardifyProductsCommand::class)
 
 Schedule::command(FetchIrewardifyVouchersCommand::class)
     ->everyMinute()
-    ->withoutOverlapping()
-    ->runInBackground();
-
-Schedule::command(SyncGift2GamesProductsCommand::class)
-    ->hourly()
     ->withoutOverlapping()
     ->runInBackground();
 

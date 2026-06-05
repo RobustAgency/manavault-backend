@@ -8,7 +8,7 @@ class Client extends BaseApiClient
 {
     private string $configPrefixOverride;
 
-    public function __construct(string $configPrefix = 'services.gift2games')
+    public function __construct(string $configPrefix)
     {
         $this->configPrefixOverride = $configPrefix;
         parent::__construct();
@@ -44,5 +44,38 @@ class Client extends BaseApiClient
     protected function getRetryDelay(): int
     {
         return 0;
+    }
+
+    public function createOrder(array $orderData): array
+    {
+        $response = $this->getFormClient()->post('/create_order', $orderData);
+        $response = $this->handleResponse($response);
+
+        if (! $response['status']) {
+            throw new \RuntimeException('Order creation failed: '.$response['error']['message']);
+        }
+
+        return $response;
+    }
+
+    public function getOrders(): array
+    {
+        $response = $this->getFormClient()->get('/orders');
+
+        return $this->handleResponse($response);
+    }
+
+    public function fetchList(): array
+    {
+        $response = $this->getClient()->get('products');
+
+        return $this->handleResponse($response);
+    }
+
+    public function checkBalance(): array
+    {
+        $response = $this->getClient()->get('check_balance');
+
+        return $this->handleResponse($response);
     }
 }

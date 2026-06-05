@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Events\NewVouchersAvailable;
 use App\Enums\PurchaseOrderItemStatus;
 use Illuminate\Database\Eloquent\Model;
 use App\Contracts\SupplierIntegrationContract;
@@ -34,6 +35,25 @@ class PurchaseOrderItem extends Model
         'unit_cost' => 'decimal:2',
         'subtotal' => 'decimal:2',
     ];
+
+    protected static function booted(): void
+    {
+        static::updated(function (self $item): void {
+            if (
+                $item->wasChanged('status')
+                && $item->status === PurchaseOrderItemStatus::FULFILLED
+                && $item->digital_product_id !== null
+            ) {
+                $saleOrderId = $item->purchaseOrder->sale_order_id ?? null;
+
+                event(new NewVouchersAvailable(
+                    digitalProductIds: [$item->digital_product_id],
+                    purchaseOrderId: $item->purchase_order_id,
+                    saleOrderId: $saleOrderId,
+                ));
+            }
+        });
+    }
 
     /**
      * @return BelongsTo<PurchaseOrder, $this>

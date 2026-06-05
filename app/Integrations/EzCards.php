@@ -8,7 +8,6 @@ use App\Models\PurchaseOrderItem;
 use Illuminate\Support\Facades\DB;
 use App\Actions\Ezcards\PlaceOrder;
 use Illuminate\Support\Facades\Log;
-use App\Events\NewVouchersAvailable;
 use App\Models\PurchaseOrderSupplier;
 use App\Enums\PurchaseOrderItemStatus;
 use App\Actions\Ezcards\GetVoucherCodes;
@@ -149,9 +148,6 @@ class EzCards implements SupplierIntegrationContract
 
             return false;
         }
-
-        $digitalProductIds = $purchaseOrderItem->digitalProduct->pluck('id')->toArray();
-        event(new NewVouchersAvailable($digitalProductIds, $purchaseOrder->id, $purchaseOrder->sale_order_id));
 
         return true;
     }

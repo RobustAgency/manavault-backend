@@ -7,10 +7,10 @@ use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\SaleOrderResource;
 use App\Repositories\SaleOrderRepository;
-use App\Services\SaleOrder\ManavaultOrderCodeService;
 use App\Http\Requests\SaleOrder\ListSaleOrderRequest;
-use App\Actions\SaleOrder\DownloadManavaultCodesZipArchive;
+use App\Services\SaleOrder\ManavaultOrderCodeService;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Actions\SaleOrder\DownloadManavaultCodesZipArchive;
 
 class SaleOrderController extends Controller
 {

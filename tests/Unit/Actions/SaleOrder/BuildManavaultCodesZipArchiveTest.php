@@ -2,12 +2,12 @@
 
 namespace Tests\Unit\Actions\SaleOrder;
 
-use Tests\TestCase;
 use ZipArchive;
+use Tests\TestCase;
 use App\Models\SaleOrder;
 use Illuminate\Support\Collection;
-use App\Actions\SaleOrder\BuildManavaultCodesZipArchive;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Actions\SaleOrder\BuildManavaultCodesZipArchive;
 
 class BuildManavaultCodesZipArchiveTest extends TestCase
 {

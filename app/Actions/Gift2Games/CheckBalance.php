@@ -8,10 +8,10 @@ class CheckBalance
 {
     public function __construct(private ClientFactory $clientFactory) {}
 
-    public function execute(string $supplierSlug = 'gift2games'): array
+    public function execute(string $supplierSlug): array
     {
-        $balanceClient = $this->clientFactory->makeBalanceClient($supplierSlug);
+        $client = $this->clientFactory->make($supplierSlug);
 
-        return $balanceClient->checkBalance();
+        return $client->checkBalance();
     }
 }

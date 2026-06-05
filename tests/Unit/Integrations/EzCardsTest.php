@@ -3,15 +3,14 @@
 namespace Tests\Unit\Integrations;
 
 use Tests\TestCase;
-use App\Models\Voucher;
 use App\Models\Supplier;
 use App\Integrations\EzCards;
 use App\Models\PurchaseOrder;
 use App\Models\DigitalProduct;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Support\Facades\Http;
-use App\Enums\PurchaseOrderItemStatus;
 use App\Models\PurchaseOrderSupplier;
+use App\Enums\PurchaseOrderItemStatus;
 use App\Enums\PurchaseOrderSupplierStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -20,9 +19,13 @@ class EzCardsTest extends TestCase
     use RefreshDatabase;
 
     private Supplier $supplier;
+
     private DigitalProduct $product;
+
     private PurchaseOrder $purchaseOrder;
+
     private PurchaseOrderSupplier $purchaseOrderSupplier;
+
     private PurchaseOrderItem $item;
 
     protected function setUp(): void

@@ -70,7 +70,7 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
             return;
         }
 
-        // ---- Legacy path: Gift2Games, Giftery, Tikkery, Irewardify ----
+        // ---- Legacy path: Giftery, Tikkery, Irewardify ----
         $externalOrderResponse = [];
         $transactionId = null;
 

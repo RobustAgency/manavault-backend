@@ -8,12 +8,12 @@ class CreateOrder
 {
     public function __construct(private ClientFactory $clientFactory) {}
 
-    public function execute(array $orderData, string $supplierSlug = 'gift2games'): array
+    public function execute(array $orderData, string $supplierSlug): array
     {
-        $orderClient = $this->clientFactory->makeOrderClient($supplierSlug);
+        $client = $this->clientFactory->make($supplierSlug);
 
         try {
-            $orderResponse = $orderClient->createOrder($orderData);
+            $orderResponse = $client->createOrder($orderData);
         } catch (\RuntimeException $e) {
             throw new \RuntimeException($e->getMessage());
         }
