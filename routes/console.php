@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
+use App\Console\Commands\UpdatePurchaseOrderItems;
 use App\Console\Commands\SyncTikkeryProductsCommand;
 use App\Console\Commands\FetchTikkeryVouchersCommand;
 use App\Console\Commands\SyncSupplierProductsCommand;
@@ -16,6 +17,11 @@ Artisan::command('inspire', function () {
 
 Schedule::command(SyncSupplierProductsCommand::class)
     ->hourly()
+    ->withoutOverlapping()
+    ->runInBackground();
+
+Schedule::command(UpdatePurchaseOrderItems::class)
+    ->everyMinute()
     ->withoutOverlapping()
     ->runInBackground();
 
