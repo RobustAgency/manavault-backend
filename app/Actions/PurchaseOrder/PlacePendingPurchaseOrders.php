@@ -17,6 +17,7 @@ class PlacePendingPurchaseOrders
     {
         $pendingSuppliers = PurchaseOrderSupplier::query()
             ->where('status', PurchaseOrderSupplierStatus::PROCESSING->value)
+            ->whereNull('transaction_id')
             ->with(['supplier', 'purchaseOrder'])
             ->get();
 
