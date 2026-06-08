@@ -4,7 +4,6 @@ use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 use App\Console\Commands\UpdatePurchaseOrderItems;
-use App\Console\Commands\SyncTikkeryProductsCommand;
 use App\Console\Commands\FetchTikkeryVouchersCommand;
 use App\Console\Commands\SyncSupplierProductsCommand;
 use App\Console\Commands\SyncIrewardifyProductsCommand;
@@ -37,11 +36,6 @@ Schedule::command(SyncIrewardifyProductsCommand::class)
 
 Schedule::command(FetchIrewardifyVouchersCommand::class)
     ->everyMinute()
-    ->withoutOverlapping()
-    ->runInBackground();
-
-Schedule::command(SyncTikkeryProductsCommand::class)
-    ->hourly()
     ->withoutOverlapping()
     ->runInBackground();
 

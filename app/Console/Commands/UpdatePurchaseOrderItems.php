@@ -27,7 +27,6 @@ class UpdatePurchaseOrderItems extends Command
      */
     public function handle(): int
     {
-        // It will work for ezcard only as it is the one settinng this status
         $purchaseOrderItems = PurchaseOrderItem::where('status', PurchaseOrderItemStatus::PROCESSING)->get();
         foreach ($purchaseOrderItems as $item) {
             $item->getSupplier()?->updateOrder($item);
