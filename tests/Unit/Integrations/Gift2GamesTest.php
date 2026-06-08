@@ -3,7 +3,6 @@
 namespace Tests\Unit\Integrations;
 
 use Tests\TestCase;
-use App\Models\Voucher;
 use App\Models\Supplier;
 use App\Models\PurchaseOrder;
 use App\Models\DigitalProduct;
@@ -29,8 +28,6 @@ class Gift2GamesTest extends TestCase
 
     private PurchaseOrder $purchaseOrder;
 
-    private PurchaseOrderSupplier $purchaseOrderSupplier;
-
     private PurchaseOrderItem $item;
 
     protected function setUp(): void
@@ -43,7 +40,7 @@ class Gift2GamesTest extends TestCase
             'order_number' => 'PO-TEST-001',
             'currency' => 'USD',
         ]);
-        $this->purchaseOrderSupplier = PurchaseOrderSupplier::factory()->create([
+        PurchaseOrderSupplier::factory()->create([
             'purchase_order_id' => $this->purchaseOrder->id,
             'supplier_id' => $this->supplier->id,
             'status' => PurchaseOrderSupplierStatus::PROCESSING->value,
@@ -162,7 +159,7 @@ class Gift2GamesTest extends TestCase
         $this->setupBatchForUpdateOrder(pendingCount: 1);
 
         Http::fake([
-            '*/create_order' => Http::response(['status' => true, 'data' => ['serialCode' => 'CODE-001', 'serialNumber' => 'SN-001']], 200),
+            '*/create_order' => Http::response(['status' => true, 'data' => ['orderId' => 'ORD-001', 'serialCode' => 'CODE-001', 'serialNumber' => 'SN-001']], 200),
         ]);
 
         $this->makeIntegration()->updateOrder($this->item->fresh());
@@ -183,9 +180,9 @@ class Gift2GamesTest extends TestCase
 
         Http::fake([
             '*/create_order' => Http::sequence()
-                ->push(['status' => true, 'data' => ['serialCode' => 'CODE-001', 'serialNumber' => 'SN-001']], 200)
-                ->push(['status' => true, 'data' => ['serialCode' => 'CODE-002', 'serialNumber' => 'SN-002']], 200)
-                ->push(['status' => true, 'data' => ['serialCode' => 'CODE-003', 'serialNumber' => 'SN-003']], 200),
+                ->push(['status' => true, 'data' => ['orderId' => 'ORD-001', 'serialCode' => 'CODE-001', 'serialNumber' => 'SN-001']], 200)
+                ->push(['status' => true, 'data' => ['orderId' => 'ORD-002', 'serialCode' => 'CODE-002', 'serialNumber' => 'SN-002']], 200)
+                ->push(['status' => true, 'data' => ['orderId' => 'ORD-003', 'serialCode' => 'CODE-003', 'serialNumber' => 'SN-003']], 200),
         ]);
 
         $this->makeIntegration()->updateOrder($this->item->fresh());
@@ -198,7 +195,7 @@ class Gift2GamesTest extends TestCase
         $batchNumber = $this->setupBatchForUpdateOrder(pendingCount: 1);
 
         Http::fake([
-            '*/create_order' => Http::response(['status' => true, 'data' => ['serialCode' => 'CODE-001', 'serialNumber' => 'SN-001']], 200),
+            '*/create_order' => Http::response(['status' => true, 'data' => ['orderId' => 'ORD-001', 'serialCode' => 'CODE-001', 'serialNumber' => 'SN-001']], 200),
         ]);
 
         $this->makeIntegration()->updateOrder($this->item->fresh());
@@ -216,7 +213,7 @@ class Gift2GamesTest extends TestCase
         $this->setupBatchForUpdateOrder(pendingCount: 1);
 
         Http::fake([
-            '*/create_order' => Http::response(['status' => true, 'data' => ['serialCode' => 'CODE-001', 'serialNumber' => 'SN-001']], 200),
+            '*/create_order' => Http::response(['status' => true, 'data' => ['orderId' => 'ORD-001', 'serialCode' => 'CODE-001', 'serialNumber' => 'SN-001']], 200),
         ]);
 
         $this->makeIntegration()->updateOrder($this->item->fresh());
@@ -230,7 +227,7 @@ class Gift2GamesTest extends TestCase
         $this->setupBatchForUpdateOrder(pendingCount: 1, fulfilledCount: 1);
 
         Http::fake([
-            '*/create_order' => Http::response(['status' => true, 'data' => ['serialCode' => 'CODE-NEW', 'serialNumber' => 'SN-NEW']], 200),
+            '*/create_order' => Http::response(['status' => true, 'data' => ['orderId' => 'ORD-NEW', 'serialCode' => 'CODE-NEW', 'serialNumber' => 'SN-NEW']], 200),
         ]);
 
         $this->makeIntegration()->updateOrder($this->item->fresh());
@@ -265,21 +262,41 @@ class Gift2GamesTest extends TestCase
         $this->assertEquals(PurchaseOrderItemStatus::PROCESSING, $this->item->fresh()->status);
     }
 
-    public function test_update_order_stops_processing_remaining_items_on_api_error(): void
+    public function test_update_order_continues_processing_remaining_items_despite_partial_failure(): void
     {
         $this->item->update(['quantity' => 3]);
         $this->setupBatchForUpdateOrder(pendingCount: 3);
 
         Http::fake([
             '*/create_order' => Http::sequence()
-                ->push(['status' => true, 'data' => ['serialCode' => 'CODE-001', 'serialNumber' => 'SN-001']], 200)
-                ->push(['status' => false, 'error' => ['message' => 'API error']], 200),
+                ->push(['status' => true, 'data' => ['orderId' => 'ORD-001', 'serialCode' => 'CODE-001', 'serialNumber' => 'SN-001']], 200)
+                ->push(['status' => false, 'error' => ['message' => 'API error']], 200)
+                ->push(['status' => true, 'data' => ['orderId' => 'ORD-003', 'serialCode' => 'CODE-003', 'serialNumber' => 'SN-003']], 200),
         ]);
 
         $this->makeIntegration()->updateOrder($this->item->fresh());
 
-        // Only the first voucher was created before the error stopped processing
-        $this->assertDatabaseCount('vouchers', 1);
+        // The failed slot is skipped; the other two succeed
+        $this->assertDatabaseCount('vouchers', 2);
+        // One order is still pending, so the item stays PROCESSING
+        $this->assertEquals(PurchaseOrderItemStatus::PROCESSING, $this->item->fresh()->status);
+    }
+
+    public function test_update_order_processes_all_pending_orders_across_multiple_chunks(): void
+    {
+        $this->item->update(['quantity' => 6]);
+        $this->setupBatchForUpdateOrder(pendingCount: 6);
+
+        Http::fake([
+            '*/create_order' => Http::response(['status' => true, 'data' => ['orderId' => 'ORD-001', 'serialCode' => 'CODE-001', 'serialNumber' => 'SN-001']], 200),
+        ]);
+
+        $this->makeIntegration()->updateOrder($this->item->fresh());
+
+        // Both chunks (5 + 1) must be processed — all 6 vouchers created
+        $this->assertDatabaseCount('vouchers', 6);
+        $this->assertEquals(PurchaseOrderItemStatus::FULFILLED, $this->item->fresh()->status);
+        Http::assertSentCount(6);
     }
 
     public function test_update_order_fires_new_vouchers_available_event(): void
@@ -289,7 +306,7 @@ class Gift2GamesTest extends TestCase
         $this->setupBatchForUpdateOrder(pendingCount: 1);
 
         Http::fake([
-            '*/create_order' => Http::response(['status' => true, 'data' => ['serialCode' => 'CODE-001', 'serialNumber' => 'SN-001']], 200),
+            '*/create_order' => Http::response(['status' => true, 'data' => ['orderId' => 'ORD-001', 'serialCode' => 'CODE-001', 'serialNumber' => 'SN-001']], 200),
         ]);
 
         $this->makeIntegration()->updateOrder($this->item->fresh());

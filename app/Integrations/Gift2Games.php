@@ -7,7 +7,6 @@ use App\Models\Gift2GamesOrder;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Support\Facades\Log;
 use App\Enums\Gift2GamesOrderStatus;
-use App\Events\NewVouchersAvailable;
 use App\Models\PurchaseOrderSupplier;
 use App\Enums\PurchaseOrderItemStatus;
 use App\Actions\Gift2Games\CreateOrder;
@@ -47,47 +46,49 @@ class Gift2Games implements SupplierIntegrationContract
         $batchNumber = $item->transaction_id;
         $purchaseOrder = $item->purchaseOrder;
 
-        $pendingBatcheItems = Gift2GamesOrder::where('batch_number', $batchNumber)
+        $pendingOrders = Gift2GamesOrder::where('batch_number', $batchNumber)
             ->where('status', '!=', Gift2GamesOrderStatus::FULFILLED)
             ->get();
 
-        $newDigitalProductIds = [];
+        $orderData = [
+            'productId' => (int) $item->digitalProduct->sku,
+            'referenceNumber' => 'order_item_id_'.$item->id,
+        ];
 
-        foreach ($pendingBatcheItems as $batchItem) {
-            try {
-                $response = $this->createOrder->execute([
-                    'productId' => (int) $item->digitalProduct->sku,
-                    'referenceNumber' => 'order_item_id_'.$item->id,
-                ], $this->supplierSlug);
-            } catch (\Exception $e) {
-                Log::error('Gift2Games updateOrder error: '.$e->getMessage());
+        foreach ($pendingOrders->chunk(5) as $chunk) {
+            $responses = $this->createOrder->execute($orderData, $this->supplierSlug, $chunk->count());
 
-                return;
+            foreach ($chunk->values() as $index => $order) {
+                $response = $responses[$index];
+
+                if ($response === null) {
+                    Log::error('Gift2Games updateOrder error', [
+                        'supplier_slug' => $this->supplierSlug,
+                        'product_item_id' => $item->id,
+                        'sku' => $item->digitalProduct->sku ?? null,
+                    ]);
+
+                    continue;
+                }
+
+                $voucherData = $response['data'];
+                $voucherCode = isset($voucherData['serialCode'])
+                    ? $this->voucherCipherService->encryptCode($voucherData['serialCode'])
+                    : null;
+
+                Voucher::create([
+                    'purchase_order_id' => $purchaseOrder->id,
+                    'purchase_order_item_id' => $item->id,
+                    'code' => $voucherCode,
+                    'serial_number' => $voucherData['serialNumber'] ?? null,
+                    'status' => 'available',
+                ]);
+
+                $order->update([
+                    'transaction_id' => $voucherData['orderId'],
+                    'status' => Gift2GamesOrderStatus::FULFILLED,
+                ]);
             }
-
-            $voucherData = $response['data'];
-            $voucherCode = isset($voucherData['serialCode'])
-                ? $this->voucherCipherService->encryptCode($voucherData['serialCode'])
-                : null;
-
-            Voucher::create([
-                'purchase_order_id' => $purchaseOrder->id,
-                'purchase_order_item_id' => $item->id,
-                'code' => $voucherCode,
-                'serial_number' => $voucherData['serialNumber'] ?? null,
-                'status' => 'available',
-            ]);
-
-            $batchItem->update([
-                'transaction_id' => $voucherData['orderId'],
-                'status' => Gift2GamesOrderStatus::FULFILLED,
-            ]);
-
-            $newDigitalProductIds[] = $item->digital_product_id;
-        }
-
-        if (! empty($newDigitalProductIds)) {
-            event(new NewVouchersAvailable(array_unique($newDigitalProductIds), $purchaseOrder->id, $purchaseOrder->sale_order_id));
         }
 
         $hasPending = Gift2GamesOrder::where('batch_number', $batchNumber)

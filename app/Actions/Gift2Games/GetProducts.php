@@ -12,6 +12,6 @@ class GetProducts
     {
         $client = $this->clientFactory->make($supplierSlug);
 
-        return $client->fetchList();
+        return $client->getProducts();
     }
 }

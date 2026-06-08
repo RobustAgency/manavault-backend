@@ -3,6 +3,8 @@
 namespace App\Clients\Gift2Games;
 
 use App\Clients\BaseApiClient;
+use Illuminate\Http\Client\Pool;
+use Illuminate\Support\Facades\Http;
 
 class Client extends BaseApiClient
 {
@@ -46,16 +48,38 @@ class Client extends BaseApiClient
         return 0;
     }
 
-    public function createOrder(array $orderData): array
+    public function createOrders(array $orderData, int $count): array
     {
-        $response = $this->getFormClient()->post('/create_order', $orderData);
-        $response = $this->handleResponse($response);
+        $headers = array_diff_key($this->getHeaders(), ['Content-Type' => '']);
+        $baseUrl = $this->baseUrl;
 
-        if (! $response['status']) {
-            throw new \RuntimeException('Order creation failed: '.$response['error']['message']);
-        }
+        $responses = Http::pool(function (Pool $pool) use ($orderData, $count, $headers, $baseUrl) {
+            $requests = [];
+            for ($i = 0; $i < $count; $i++) {
+                $requests[] = $pool->asForm()
+                    ->withHeaders($headers)
+                    ->baseUrl($baseUrl)
+                    ->post('/create_order', $orderData);
+            }
 
-        return $response;
+            return $requests;
+        });
+
+        logger()->info('Gift2Games createOrders responses', ['responses' => $responses]);
+
+        return array_map(function ($response) {
+            if ($response instanceof \Throwable || $response->failed()) {
+                return null;
+            }
+
+            $data = $response->json();
+
+            if (! ($data['status'] ?? false)) {
+                return null;
+            }
+
+            return $data;
+        }, $responses);
     }
 
     public function getOrders(): array
@@ -65,7 +89,7 @@ class Client extends BaseApiClient
         return $this->handleResponse($response);
     }
 
-    public function fetchList(): array
+    public function getProducts(): array
     {
         $response = $this->getClient()->get('products');
 

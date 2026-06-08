@@ -11,43 +11,66 @@ class CreateOrderTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_execute_successfully_creates_order(): void
-    {
-        $orderData = [
-            'productId' => 12345,
-            'referenceNumber' => 'PO-20251117-ABC123',
-        ];
+    private array $orderData = [
+        'productId' => 12345,
+        'referenceNumber' => 'order_item_id_1',
+    ];
 
+    public function test_execute_returns_indexed_response_array_for_single_order(): void
+    {
         $expectedResponse = [
             'status' => true,
             'data' => [
+                'orderId' => 'ORD-001',
                 'serialCode' => 'GIFT-CODE-123',
                 'serialNumber' => 'SN-456',
             ],
         ];
 
+        Http::fake(['*/create_order' => Http::response($expectedResponse, 200)]);
+
+        $results = app(CreateOrder::class)->execute($this->orderData, 'gift2games', 1);
+
+        $this->assertCount(1, $results);
+        $this->assertEquals($expectedResponse, $results[0]);
+        Http::assertSentCount(1);
+    }
+
+    public function test_execute_fires_correct_number_of_parallel_requests(): void
+    {
         Http::fake([
-            '*/create_order' => Http::response($expectedResponse, 200),
+            '*/create_order' => Http::response([
+                'status' => true,
+                'data' => ['orderId' => 'ORD-001', 'serialCode' => 'CODE-1', 'serialNumber' => 'SN-1'],
+            ], 200),
         ]);
 
-        $result = app(CreateOrder::class)->execute($orderData, 'gift2games');
+        $results = app(CreateOrder::class)->execute($this->orderData, 'gift2games', 5);
 
-        $this->assertEquals($expectedResponse, $result);
-        $this->assertTrue($result['status']);
-        $this->assertArrayHasKey('data', $result);
+        $this->assertCount(5, $results);
+        Http::assertSentCount(5);
+    }
+
+    public function test_execute_sends_correct_order_data_in_request(): void
+    {
+        Http::fake([
+            '*/create_order' => Http::response([
+                'status' => true,
+                'data' => ['orderId' => 'ORD-001', 'serialCode' => 'CODE-1', 'serialNumber' => 'SN-1'],
+            ], 200),
+        ]);
+
+        app(CreateOrder::class)->execute(['productId' => 12345, 'referenceNumber' => 'order_item_id_1'], 'gift2games', 1);
 
         Http::assertSent(function ($request) {
-            return str_contains($request->url(), '/create_order');
+            return str_contains($request->url(), '/create_order')
+                && $request['productId'] == 12345
+                && $request['referenceNumber'] === 'order_item_id_1';
         });
     }
 
-    public function test_execute_throws_exception_when_order_creation_fails(): void
+    public function test_execute_returns_null_when_api_status_is_false(): void
     {
-        $orderData = [
-            'productId' => 12345,
-            'referenceNumber' => 'PO-20251117-ABC123',
-        ];
-
         Http::fake([
             '*/create_order' => Http::response([
                 'status' => false,
@@ -55,42 +78,73 @@ class CreateOrderTest extends TestCase
             ], 200),
         ]);
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Order creation failed: Invalid product ID');
+        $results = app(CreateOrder::class)->execute($this->orderData, 'gift2games', 1);
 
-        app(CreateOrder::class)->execute($orderData, 'gift2games');
+        $this->assertCount(1, $results);
+        $this->assertNull($results[0]);
     }
 
-    public function test_execute_handles_api_error_response(): void
+    public function test_execute_returns_null_for_http_error_response(): void
     {
-        $orderData = [
-            'productId' => 99999,
-            'referenceNumber' => 'PO-20251117-XYZ789',
-        ];
+        Http::fake([
+            '*/create_order' => Http::response(['error' => 'Internal Server Error'], 500),
+        ]);
 
+        $results = app(CreateOrder::class)->execute($this->orderData, 'gift2games', 1);
+
+        $this->assertCount(1, $results);
+        $this->assertNull($results[0]);
+    }
+
+    public function test_execute_returns_null_for_timeout_response(): void
+    {
+        Http::fake(['*/create_order' => Http::response(null, 408)]);
+
+        $results = app(CreateOrder::class)->execute($this->orderData, 'gift2games', 1);
+
+        $this->assertCount(1, $results);
+        $this->assertNull($results[0]);
+    }
+
+    public function test_execute_handles_partial_failures_in_pool(): void
+    {
+        Http::fake([
+            '*/create_order' => Http::sequence()
+                ->push(['status' => true, 'data' => ['orderId' => 'ORD-1', 'serialCode' => 'CODE-1', 'serialNumber' => 'SN-1']], 200)
+                ->push(['status' => false, 'error' => ['message' => 'Product unavailable']], 200)
+                ->push(['status' => true, 'data' => ['orderId' => 'ORD-3', 'serialCode' => 'CODE-3', 'serialNumber' => 'SN-3']], 200),
+        ]);
+
+        $results = app(CreateOrder::class)->execute($this->orderData, 'gift2games', 3);
+
+        $this->assertCount(3, $results);
+        $this->assertCount(2, array_filter($results, fn ($r) => $r !== null));
+        $this->assertCount(1, array_filter($results, fn ($r) => $r === null));
+        Http::assertSentCount(3);
+    }
+
+    public function test_execute_returns_all_null_when_all_requests_fail(): void
+    {
         Http::fake([
             '*/create_order' => Http::response([
                 'status' => false,
-                'error' => ['message' => 'Product not found'],
+                'error' => ['message' => 'Service unavailable'],
             ], 200),
         ]);
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Order creation failed: Product not found');
+        $results = app(CreateOrder::class)->execute($this->orderData, 'gift2games', 3);
 
-        app(CreateOrder::class)->execute($orderData, 'gift2games');
+        $this->assertCount(3, $results);
+        $this->assertEquals(array_fill(0, 3, null), $results);
+        Http::assertSentCount(3);
     }
 
-    public function test_execute_with_complete_voucher_data(): void
+    public function test_execute_preserves_full_voucher_data_in_response(): void
     {
-        $orderData = [
-            'productId' => 54321,
-            'referenceNumber' => 'PO-20251117-DEF456',
-        ];
-
         $expectedResponse = [
             'status' => true,
             'data' => [
+                'orderId' => 'ORD-789',
                 'serialCode' => 'COMPLETE-CODE-789',
                 'serialNumber' => 'SN-789',
                 'pinCode' => 'PIN-1234',
@@ -98,106 +152,59 @@ class CreateOrderTest extends TestCase
             ],
         ];
 
-        Http::fake([
-            '*/create_order' => Http::response($expectedResponse, 200),
-        ]);
+        Http::fake(['*/create_order' => Http::response($expectedResponse, 200)]);
 
-        $result = app(CreateOrder::class)->execute($orderData, 'gift2games');
+        $results = app(CreateOrder::class)->execute(
+            ['productId' => 54321, 'referenceNumber' => 'order_item_id_2'],
+            'gift2games',
+            1
+        );
 
-        $this->assertEquals($expectedResponse, $result);
-        $this->assertEquals('COMPLETE-CODE-789', $result['data']['serialCode']);
-        $this->assertEquals('SN-789', $result['data']['serialNumber']);
-        $this->assertEquals('PIN-1234', $result['data']['pinCode']);
+        $this->assertEquals($expectedResponse, $results[0]);
+        $this->assertEquals('COMPLETE-CODE-789', $results[0]['data']['serialCode']);
+        $this->assertEquals('SN-789', $results[0]['data']['serialNumber']);
+        $this->assertEquals('PIN-1234', $results[0]['data']['pinCode']);
     }
 
-    public function test_execute_handles_network_timeout(): void
-    {
-        Http::fake([
-            '*/create_order' => Http::response(null, 408),
-        ]);
-
-        $this->expectException(\Exception::class);
-
-        app(CreateOrder::class)->execute(['productId' => 11111, 'referenceNumber' => 'PO-20251117-GHI789'], 'gift2games');
-    }
-
-    public function test_execute_handles_500_server_error(): void
-    {
-        Http::fake([
-            '*/create_order' => Http::response(['error' => 'Internal Server Error'], 500),
-        ]);
-
-        $this->expectException(\Exception::class);
-
-        app(CreateOrder::class)->execute(['productId' => 22222, 'referenceNumber' => 'PO-20251117-JKL012'], 'gift2games');
-    }
-
-    public function test_http_request_contains_correct_headers(): void
-    {
-        Http::fake([
-            '*/create_order' => Http::response([
-                'status' => true,
-                'data' => ['serialCode' => 'TEST-CODE-001'],
-            ], 200),
-        ]);
-
-        app(CreateOrder::class)->execute(['productId' => 33333, 'referenceNumber' => 'PO-20251117-MNO345'], 'gift2games');
-
-        Http::assertSent(function ($request) {
-            return $request->hasHeader('Content-Type') &&
-                   str_contains($request->url(), '/create_order');
-        });
-    }
-
-    public function test_execute_creates_order_using_eur_wallet(): void
+    public function test_execute_creates_orders_using_eur_wallet(): void
     {
         $expectedResponse = [
             'status' => true,
-            'data' => [
-                'serialCode' => 'EUR-CODE-001',
-                'serialNumber' => 'SN-EUR-001',
-            ],
+            'data' => ['orderId' => 'ORD-EUR-001', 'serialCode' => 'EUR-CODE-001', 'serialNumber' => 'SN-EUR-001'],
         ];
 
-        Http::fake([
-            '*/create_order' => Http::response($expectedResponse, 200),
-        ]);
+        Http::fake(['*/create_order' => Http::response($expectedResponse, 200)]);
 
-        $result = app(CreateOrder::class)->execute(
-            ['productId' => 44444, 'referenceNumber' => 'PO-20251117-EUR001'],
-            'gift-2-games-eur'
+        $results = app(CreateOrder::class)->execute(
+            ['productId' => 44444, 'referenceNumber' => 'order_item_id_3'],
+            'gift-2-games-eur',
+            1
         );
 
-        $this->assertEquals($expectedResponse, $result);
-        $this->assertTrue($result['status']);
-        $this->assertEquals('EUR-CODE-001', $result['data']['serialCode']);
-
+        $this->assertCount(1, $results);
+        $this->assertNotNull($results[0]);
+        $this->assertEquals('EUR-CODE-001', $results[0]['data']['serialCode']);
         Http::assertSent(fn ($request) => str_contains($request->url(), '/create_order'));
     }
 
-    public function test_execute_creates_order_using_gbp_wallet(): void
+    public function test_execute_creates_orders_using_gbp_wallet(): void
     {
         $expectedResponse = [
             'status' => true,
-            'data' => [
-                'serialCode' => 'GBP-CODE-001',
-                'serialNumber' => 'SN-GBP-001',
-            ],
+            'data' => ['orderId' => 'ORD-GBP-001', 'serialCode' => 'GBP-CODE-001', 'serialNumber' => 'SN-GBP-001'],
         ];
 
-        Http::fake([
-            '*/create_order' => Http::response($expectedResponse, 200),
-        ]);
+        Http::fake(['*/create_order' => Http::response($expectedResponse, 200)]);
 
-        $result = app(CreateOrder::class)->execute(
-            ['productId' => 55555, 'referenceNumber' => 'PO-20251117-GBP001'],
-            'gift-2-games-gbp'
+        $results = app(CreateOrder::class)->execute(
+            ['productId' => 55555, 'referenceNumber' => 'order_item_id_4'],
+            'gift-2-games-gbp',
+            1
         );
 
-        $this->assertEquals($expectedResponse, $result);
-        $this->assertTrue($result['status']);
-        $this->assertEquals('GBP-CODE-001', $result['data']['serialCode']);
-
+        $this->assertCount(1, $results);
+        $this->assertNotNull($results[0]);
+        $this->assertEquals('GBP-CODE-001', $results[0]['data']['serialCode']);
         Http::assertSent(fn ($request) => str_contains($request->url(), '/create_order'));
     }
 
@@ -207,8 +214,9 @@ class CreateOrderTest extends TestCase
         $this->expectExceptionMessage('Unknown Gift2Games supplier slug: gift-2-games-unknown');
 
         app(CreateOrder::class)->execute(
-            ['productId' => 66666, 'referenceNumber' => 'PO-20251117-UNKNOWN'],
-            'gift-2-games-unknown'
+            ['productId' => 66666, 'referenceNumber' => 'order_item_id_5'],
+            'gift-2-games-unknown',
+            1
         );
     }
 }
