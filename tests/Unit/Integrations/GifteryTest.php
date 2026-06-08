@@ -206,7 +206,6 @@ class GifteryTest extends TestCase
             'purchase_order_id' => $this->purchaseOrder->id,
             'purchase_order_item_id' => $this->item->id,
             'serial_number' => 'SN-001',
-            'pin_code' => '1234',
             'status' => 'available',
         ]);
         $this->assertEquals(PurchaseOrderItemStatus::FULFILLED, $this->item->fresh()->status);
