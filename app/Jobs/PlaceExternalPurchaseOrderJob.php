@@ -10,7 +10,6 @@ use App\Models\PurchaseOrderSupplier;
 use App\Enums\PurchaseOrderSupplierStatus;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use App\Services\Giftery\GifteryVoucherService;
 use App\Services\Tikkery\TikkeryVoucherService;
 use App\Services\Supplier\SupplierIntegrationResolver;
 use App\Services\PurchaseOrder\PurchaseOrderStatusService;
@@ -45,7 +44,6 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
     public function handle(
         SupplierIntegrationResolver $resolver,
         PurchaseOrderPlacementService $purchaseOrderPlacementService,
-        GifteryVoucherService $gifteryVoucherService,
         TikkeryVoucherService $tikkeryVoucherService,
         PurchaseOrderStatusService $purchaseOrderStatusService,
     ): void {
@@ -70,7 +68,7 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
             return;
         }
 
-        // ---- Legacy path: Giftery, Tikkery, Irewardify ----
+        // ---- Legacy path: Tikkery, Irewardify ----
         $externalOrderResponse = [];
         $transactionId = null;
 
@@ -105,12 +103,7 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
             return;
         }
 
-        if ($this->supplier->slug === 'giftery-api') {
-
-            $gifteryVoucherService->storeVouchers($this->purchaseOrder, $externalOrderResponse);
-            $this->purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
-
-        } elseif ($this->supplier->slug === 'irewardify') {
+        if ($this->supplier->slug === 'irewardify') {
 
             Log::info('Irewardify order created, vouchers will be fetched separately via orderId', [
                 'purchase_order_id' => $this->purchaseOrder->id,
