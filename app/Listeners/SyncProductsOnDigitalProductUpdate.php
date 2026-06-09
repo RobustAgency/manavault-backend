@@ -21,6 +21,10 @@ class SyncProductsOnDigitalProductUpdate
             $event->digitalProduct->id
         );
 
+        if (empty($productIds)) {
+            return;
+        }
+
         $this->dispatchProductSyncWebhook->execute(self::EVENT_NAME, $productIds);
     }
 }
