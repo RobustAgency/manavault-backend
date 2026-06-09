@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Models\DigitalProduct;
 use Illuminate\Http\JsonResponse;
-use App\Events\DigitalStockUpdate;
 use App\Http\Controllers\Controller;
 use App\Services\DigitalProductImportService;
 use App\Http\Resources\DigitalProductResource;
@@ -73,8 +72,6 @@ class DigitalProductController extends Controller
         $validated = $request->validated();
 
         $digitalProduct = $this->repository->updateDigitalProduct($digitalProduct, $validated);
-
-        event(new DigitalStockUpdate($digitalProduct));
 
         return response()->json([
             'error' => false,
