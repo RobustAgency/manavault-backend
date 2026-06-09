@@ -7,14 +7,11 @@ use App\Models\Gift2GamesOrder;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Support\Facades\Log;
 use App\Enums\Gift2GamesOrderStatus;
-use App\Models\PurchaseOrderSupplier;
 use App\Enums\PurchaseOrderItemStatus;
 use App\Actions\Gift2Games\CreateOrder;
-use App\Enums\PurchaseOrderSupplierStatus;
 use App\Contracts\SupplierIntegrationContract;
 use App\Services\Voucher\VoucherCipherService;
 use App\Services\Gift2Games\SyncDigitalProducts;
-use App\Services\PurchaseOrder\PurchaseOrderStatusService;
 
 class Gift2Games implements SupplierIntegrationContract
 {
@@ -23,7 +20,6 @@ class Gift2Games implements SupplierIntegrationContract
         private readonly CreateOrder $createOrder,
         private readonly SyncDigitalProducts $syncDigitalProducts,
         private readonly VoucherCipherService $voucherCipherService,
-        private readonly PurchaseOrderStatusService $purchaseOrderStatusService,
     ) {}
 
     public function placeOrder(PurchaseOrderItem $item): void
@@ -91,24 +87,12 @@ class Gift2Games implements SupplierIntegrationContract
             }
         }
 
-        $hasPending = Gift2GamesOrder::where('batch_number', $batchNumber)
+        $hasPending = Gift2GamesOrder::where('batch_number', $item->transaction_id)
             ->where('status', '!=', Gift2GamesOrderStatus::FULFILLED)
             ->exists();
 
         if (! $hasPending) {
             $item->update(['status' => PurchaseOrderItemStatus::FULFILLED]);
-            $allCompleted = PurchaseOrderItem::where('supplier_id', $item->supplier_id)
-                ->where('purchase_order_id', $item->purchase_order_id)
-                ->get()
-                ->every(fn (PurchaseOrderItem $item) => $item->status === PurchaseOrderItemStatus::FULFILLED);
-
-            if ($allCompleted) {
-                PurchaseOrderSupplier::where('supplier_id', $item->supplier_id)
-                    ->where('purchase_order_id', $item->purchase_order_id)
-                    ->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
-            }
-
-            $this->purchaseOrderStatusService->updateStatus($purchaseOrder);
         }
     }
 

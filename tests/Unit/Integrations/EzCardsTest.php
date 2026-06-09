@@ -9,9 +9,7 @@ use App\Models\PurchaseOrder;
 use App\Models\DigitalProduct;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Support\Facades\Http;
-use App\Models\PurchaseOrderSupplier;
 use App\Enums\PurchaseOrderItemStatus;
-use App\Enums\PurchaseOrderSupplierStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class EzCardsTest extends TestCase
@@ -24,8 +22,6 @@ class EzCardsTest extends TestCase
 
     private PurchaseOrder $purchaseOrder;
 
-    private PurchaseOrderSupplier $purchaseOrderSupplier;
-
     private PurchaseOrderItem $item;
 
     protected function setUp(): void
@@ -35,12 +31,6 @@ class EzCardsTest extends TestCase
         $this->supplier = Supplier::factory()->create(['slug' => 'ez_cards']);
         $this->product = DigitalProduct::factory()->forSupplier($this->supplier)->create(['sku' => 'EZC-001']);
         $this->purchaseOrder = PurchaseOrder::factory()->create(['currency' => 'USD']);
-        $this->purchaseOrderSupplier = PurchaseOrderSupplier::factory()->create([
-            'purchase_order_id' => $this->purchaseOrder->id,
-            'supplier_id' => $this->supplier->id,
-            'status' => PurchaseOrderSupplierStatus::PROCESSING->value,
-            'transaction_id' => null,
-        ]);
         $this->item = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $this->purchaseOrder->id,
             'supplier_id' => $this->supplier->id,
@@ -141,73 +131,4 @@ class EzCardsTest extends TestCase
         $this->assertEquals(PurchaseOrderItemStatus::FULFILLED, $this->item->fresh()->status);
     }
 
-    public function test_update_order_marks_supplier_completed_when_all_items_fulfilled(): void
-    {
-        $item2 = PurchaseOrderItem::factory()->create([
-            'purchase_order_id' => $this->purchaseOrder->id,
-            'supplier_id' => $this->supplier->id,
-            'digital_product_id' => $this->product->id,
-            'quantity' => 1,
-            'unit_cost' => 5.00,
-            'subtotal' => 5.00,
-            'transaction_id' => '8888',
-            'status' => PurchaseOrderItemStatus::FULFILLED->value,
-        ]);
-
-        $this->item->update(['transaction_id' => '9999', 'status' => PurchaseOrderItemStatus::PROCESSING->value]);
-
-        Http::fake([
-            '*/v2/orders/*/codes' => Http::response([
-                'data' => [
-                    [
-                        'codes' => [
-                            ['status' => 'COMPLETED', 'redeemCode' => 'FINAL-CODE', 'pinCode' => null, 'stockId' => null],
-                        ],
-                    ],
-                ],
-            ], 200),
-        ]);
-
-        app(EzCards::class)->updateOrder($this->item->fresh());
-
-        $this->assertEquals(
-            PurchaseOrderSupplierStatus::COMPLETED->value,
-            $this->purchaseOrderSupplier->fresh()->status
-        );
-    }
-
-    public function test_update_order_does_not_mark_supplier_completed_when_other_items_still_pending(): void
-    {
-        PurchaseOrderItem::factory()->create([
-            'purchase_order_id' => $this->purchaseOrder->id,
-            'supplier_id' => $this->supplier->id,
-            'digital_product_id' => $this->product->id,
-            'quantity' => 1,
-            'unit_cost' => 5.00,
-            'subtotal' => 5.00,
-            'transaction_id' => '7777',
-            'status' => PurchaseOrderItemStatus::PROCESSING->value,
-        ]);
-
-        $this->item->update(['transaction_id' => '9999', 'status' => PurchaseOrderItemStatus::PROCESSING->value]);
-
-        Http::fake([
-            '*/v2/orders/*/codes' => Http::response([
-                'data' => [
-                    [
-                        'codes' => [
-                            ['status' => 'COMPLETED', 'redeemCode' => 'PARTIAL-CODE', 'pinCode' => null, 'stockId' => null],
-                        ],
-                    ],
-                ],
-            ], 200),
-        ]);
-
-        app(EzCards::class)->updateOrder($this->item->fresh());
-
-        $this->assertEquals(
-            PurchaseOrderSupplierStatus::PROCESSING->value,
-            $this->purchaseOrderSupplier->fresh()->status
-        );
-    }
 }

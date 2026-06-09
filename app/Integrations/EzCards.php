@@ -8,14 +8,11 @@ use App\Models\PurchaseOrderItem;
 use Illuminate\Support\Facades\DB;
 use App\Actions\Ezcards\PlaceOrder;
 use Illuminate\Support\Facades\Log;
-use App\Models\PurchaseOrderSupplier;
 use App\Enums\PurchaseOrderItemStatus;
 use App\Actions\Ezcards\GetVoucherCodes;
-use App\Enums\PurchaseOrderSupplierStatus;
 use App\Services\Ezcards\SyncDigitalProduct;
 use App\Contracts\SupplierIntegrationContract;
 use App\Services\Voucher\VoucherCipherService;
-use App\Services\PurchaseOrder\PurchaseOrderStatusService;
 
 class EzCards implements SupplierIntegrationContract
 {
@@ -24,7 +21,6 @@ class EzCards implements SupplierIntegrationContract
         private readonly GetVoucherCodes $getVoucherCodesAction,
         private readonly SyncDigitalProduct $syncDigitalProduct,
         private readonly VoucherCipherService $voucherCipherService,
-        private readonly PurchaseOrderStatusService $purchaseOrderStatusService,
     ) {}
 
     public function placeOrder(PurchaseOrderItem $purchaseOrderItem): void
@@ -99,19 +95,6 @@ class EzCards implements SupplierIntegrationContract
         }
 
         $purchaseOrderItem->update(['status' => PurchaseOrderItemStatus::FULFILLED]);
-
-        $allCompleted = PurchaseOrderItem::where('supplier_id', $purchaseOrderItem->supplier_id)
-            ->where('purchase_order_id', $purchaseOrderItem->purchase_order_id)
-            ->get()
-            ->every(fn (PurchaseOrderItem $item) => $item->status === PurchaseOrderItemStatus::FULFILLED);
-
-        if ($allCompleted) {
-            PurchaseOrderSupplier::where('supplier_id', $purchaseOrderItem->supplier_id)
-                ->where('purchase_order_id', $purchaseOrderItem->purchase_order_id)
-                ->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
-        }
-
-        $this->purchaseOrderStatusService->updateStatus($purchaseOrder);
     }
 
     private function storeVoucherCodes(PurchaseOrder $purchaseOrder, PurchaseOrderItem $purchaseOrderItem, array $voucherCodesResponse): bool
