@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Events\DigitalProductUpdated;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -55,6 +56,10 @@ class DigitalProduct extends Model
     protected $appends = [
         'cost_price_discount',
         'profit_margin',
+    ];
+
+    protected $dispatchesEvents = [
+        'updated' => DigitalProductUpdated::class,
     ];
 
     /**
