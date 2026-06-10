@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\Product;
+use App\Models\ProductSupplier;
 use Illuminate\Http\UploadedFile;
 use App\Services\ImageUploadService;
 use App\Enums\PriceRuleCondition\Operator;
@@ -188,9 +189,9 @@ class ProductRepository
 
     public function getProductIdsByDigitalProductId(int $digitalProductId): array
     {
-        return Product::query()
-            ->whereHas('digitalProducts', fn ($q) => $q->where('digital_products.id', $digitalProductId))
-            ->pluck('id')
+        return ProductSupplier::query()
+            ->where('digital_product_id', $digitalProductId)
+            ->pluck('product_id')
             ->all();
     }
 
