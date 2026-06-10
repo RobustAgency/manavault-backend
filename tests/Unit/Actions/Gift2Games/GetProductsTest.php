@@ -13,100 +13,56 @@ class GetProductsTest extends TestCase
 
     public function test_execute_successfully_fetches_products(): void
     {
-        // Arrange
         $expectedResponse = [
             'status' => true,
             'data' => [
-                [
-                    'id' => 1,
-                    'name' => 'Amazon Gift Card $25',
-                    'price' => 25.00,
-                    'currency' => 'USD',
-                ],
-                [
-                    'id' => 2,
-                    'name' => 'iTunes Gift Card $50',
-                    'price' => 50.00,
-                    'currency' => 'USD',
-                ],
+                ['id' => 1, 'name' => 'Amazon Gift Card $25', 'price' => 25.00, 'currency' => 'USD'],
+                ['id' => 2, 'name' => 'iTunes Gift Card $50', 'price' => 50.00, 'currency' => 'USD'],
             ],
         ];
 
-        Http::fake([
-            '*/products' => Http::response($expectedResponse, 200),
-        ]);
+        Http::fake(['*/products' => Http::response($expectedResponse, 200)]);
 
-        $getProductsAction = app(GetProducts::class);
+        $result = app(GetProducts::class)->execute('gift2games');
 
-        // Act
-        $result = $getProductsAction->execute();
-
-        // Assert
         $this->assertEquals($expectedResponse, $result);
-        $this->assertArrayHasKey('data', $result);
         $this->assertCount(2, $result['data']);
 
-        // Verify the HTTP request was made
-        Http::assertSent(function ($request) {
-            return str_contains($request->url(), '/products') &&
-                   $request->method() === 'GET';
-        });
+        Http::assertSent(fn ($r) => str_contains($r->url(), '/products') && $r->method() === 'GET');
     }
 
-    public function test_execute_returns_empty_array_when_no_products(): void
+    public function test_execute_returns_empty_data_when_no_products(): void
     {
-        // Arrange
-        $expectedResponse = [
-            'status' => true,
-            'data' => [],
-        ];
+        $expectedResponse = ['status' => true, 'data' => []];
 
-        Http::fake([
-            '*/products' => Http::response($expectedResponse, 200),
-        ]);
+        Http::fake(['*/products' => Http::response($expectedResponse, 200)]);
 
-        $getProductsAction = app(GetProducts::class);
+        $result = app(GetProducts::class)->execute('gift2games');
 
-        // Act
-        $result = $getProductsAction->execute();
-
-        // Assert
         $this->assertEquals($expectedResponse, $result);
-        $this->assertArrayHasKey('data', $result);
         $this->assertEmpty($result['data']);
     }
 
     public function test_execute_handles_api_error(): void
     {
-        // Arrange
-        Http::fake([
-            '*/products' => Http::response(['error' => 'Service unavailable'], 503),
-        ]);
+        Http::fake(['*/products' => Http::response(['error' => 'Service unavailable'], 503)]);
 
-        $getProductsAction = app(GetProducts::class);
-
-        // Assert & Act
         $this->expectException(\Exception::class);
-        $getProductsAction->execute();
+
+        app(GetProducts::class)->execute('gift2games');
     }
 
     public function test_execute_handles_unauthorized_error(): void
     {
-        // Arrange
-        Http::fake([
-            '*/products' => Http::response(['error' => 'Unauthorized'], 401),
-        ]);
+        Http::fake(['*/products' => Http::response(['error' => 'Unauthorized'], 401)]);
 
-        $getProductsAction = app(GetProducts::class);
-
-        // Assert & Act
         $this->expectException(\Exception::class);
-        $getProductsAction->execute();
+
+        app(GetProducts::class)->execute('gift2games');
     }
 
     public function test_execute_with_complete_product_details(): void
     {
-        // Arrange
         $expectedResponse = [
             'status' => true,
             'data' => [
@@ -124,18 +80,11 @@ class GetProductsTest extends TestCase
             ],
         ];
 
-        Http::fake([
-            '*/products' => Http::response($expectedResponse, 200),
-        ]);
+        Http::fake(['*/products' => Http::response($expectedResponse, 200)]);
 
-        $getProductsAction = app(GetProducts::class);
+        $result = app(GetProducts::class)->execute('gift2games');
 
-        // Act
-        $result = $getProductsAction->execute();
-
-        // Assert
         $this->assertEquals($expectedResponse, $result);
-        $this->assertArrayHasKey('data', $result);
         $this->assertEquals(123, $result['data'][0]['id']);
         $this->assertEquals('PlayStation Store Gift Card $100', $result['data'][0]['name']);
         $this->assertEquals(100.00, $result['data'][0]['price']);
@@ -144,197 +93,89 @@ class GetProductsTest extends TestCase
 
     public function test_execute_handles_network_timeout(): void
     {
-        // Arrange
-        Http::fake([
-            '*/products' => Http::response(null, 408), // Request Timeout
-        ]);
+        Http::fake(['*/products' => Http::response(null, 408)]);
 
-        $getProductsAction = app(GetProducts::class);
-
-        // Assert & Act
         $this->expectException(\Exception::class);
-        $getProductsAction->execute();
+
+        app(GetProducts::class)->execute('gift2games');
     }
 
     public function test_execute_handles_large_product_list(): void
     {
-        // Arrange
-        $products = [];
-        for ($i = 1; $i <= 100; $i++) {
-            $products[] = [
-                'id' => $i,
-                'name' => "Product $i",
-                'price' => $i * 10,
-                'currency' => 'USD',
-            ];
-        }
+        $products = array_map(fn ($i) => ['id' => $i, 'name' => "Product $i", 'price' => $i * 10, 'currency' => 'USD'], range(1, 100));
+        $expectedResponse = ['status' => true, 'data' => $products];
 
-        $expectedResponse = [
-            'status' => true,
-            'data' => $products,
-        ];
+        Http::fake(['*/products' => Http::response($expectedResponse, 200)]);
 
-        Http::fake([
-            '*/products' => Http::response($expectedResponse, 200),
-        ]);
+        $result = app(GetProducts::class)->execute('gift2games');
 
-        $getProductsAction = app(GetProducts::class);
-
-        // Act
-        $result = $getProductsAction->execute();
-
-        // Assert
-        $this->assertEquals($expectedResponse, $result);
         $this->assertCount(100, $result['data']);
         $this->assertEquals(1, $result['data'][0]['id']);
         $this->assertEquals(100, $result['data'][99]['id']);
     }
 
-    public function test_http_request_is_sent_with_correct_method(): void
+    public function test_http_request_uses_get_method(): void
     {
-        // Arrange
-        $expectedResponse = [
-            'status' => true,
-            'data' => [],
-        ];
+        Http::fake(['*/products' => Http::response(['status' => true, 'data' => []], 200)]);
 
-        Http::fake([
-            '*/products' => Http::response($expectedResponse, 200),
-        ]);
+        app(GetProducts::class)->execute('gift2games');
 
-        $getProductsAction = app(GetProducts::class);
-
-        // Act
-        $result = $getProductsAction->execute();
-
-        // Assert
-        Http::assertSent(function ($request) {
-            return $request->method() === 'GET' &&
-                   str_contains($request->url(), '/products');
-        });
-    }
-
-    public function test_execute_handles_malformed_response(): void
-    {
-        // Arrange
-        Http::fake([
-            '*/products' => Http::response('Invalid JSON response', 200),
-        ]);
-
-        $getProductsAction = app(GetProducts::class);
-
-        // Assert & Act
-        $this->expectException(\TypeError::class);
-        $getProductsAction->execute();
+        Http::assertSent(fn ($r) => $r->method() === 'GET' && str_contains($r->url(), '/products'));
     }
 
     public function test_execute_with_pagination_metadata(): void
     {
-        // Arrange
         $expectedResponse = [
             'status' => true,
-            'data' => [
-                [
-                    'id' => 1,
-                    'name' => 'Product 1',
-                    'price' => 25.00,
-                ],
-            ],
-            'meta' => [
-                'current_page' => 1,
-                'total_pages' => 5,
-                'total_items' => 50,
-                'per_page' => 10,
-            ],
+            'data' => [['id' => 1, 'name' => 'Product 1', 'price' => 25.00]],
+            'meta' => ['current_page' => 1, 'total_pages' => 5, 'total_items' => 50, 'per_page' => 10],
         ];
 
-        Http::fake([
-            '*/products' => Http::response($expectedResponse, 200),
-        ]);
+        Http::fake(['*/products' => Http::response($expectedResponse, 200)]);
 
-        $getProductsAction = app(GetProducts::class);
+        $result = app(GetProducts::class)->execute('gift2games');
 
-        // Act
-        $result = $getProductsAction->execute();
-
-        // Assert
         $this->assertEquals($expectedResponse, $result);
         $this->assertArrayHasKey('meta', $result);
         $this->assertEquals(1, $result['meta']['current_page']);
         $this->assertEquals(5, $result['meta']['total_pages']);
     }
 
-    public function test_execute_uses_eur_wallet_when_supplier_slug_is_eur(): void
+    public function test_execute_uses_eur_wallet(): void
     {
-        // Arrange
         $expectedResponse = [
             'status' => true,
-            'data' => [
-                [
-                    'id' => 1,
-                    'name' => 'Amazon Gift Card €25',
-                    'price' => 25.00,
-                    'currency' => 'EUR',
-                ],
-            ],
+            'data' => [['id' => 1, 'name' => 'Amazon Gift Card €25', 'price' => 25.00, 'currency' => 'EUR']],
         ];
 
-        Http::fake([
-            '*/products' => Http::response($expectedResponse, 200),
-        ]);
+        Http::fake(['*/products' => Http::response($expectedResponse, 200)]);
 
-        $getProductsAction = app(GetProducts::class);
+        $result = app(GetProducts::class)->execute('gift-2-games-eur');
 
-        // Act
-        $result = $getProductsAction->execute('gift-2-games-eur');
-
-        // Assert
         $this->assertEquals($expectedResponse, $result);
-        Http::assertSent(function ($request) {
-            return str_contains($request->url(), '/products') &&
-                   $request->method() === 'GET';
-        });
+        Http::assertSent(fn ($r) => str_contains($r->url(), '/products') && $r->method() === 'GET');
     }
 
-    public function test_execute_uses_gbp_wallet_when_supplier_slug_is_gbp(): void
+    public function test_execute_uses_gbp_wallet(): void
     {
-        // Arrange
         $expectedResponse = [
             'status' => true,
-            'data' => [
-                [
-                    'id' => 1,
-                    'name' => 'Amazon Gift Card £25',
-                    'price' => 25.00,
-                    'currency' => 'GBP',
-                ],
-            ],
+            'data' => [['id' => 1, 'name' => 'Amazon Gift Card £25', 'price' => 25.00, 'currency' => 'GBP']],
         ];
 
-        Http::fake([
-            '*/products' => Http::response($expectedResponse, 200),
-        ]);
+        Http::fake(['*/products' => Http::response($expectedResponse, 200)]);
 
-        $getProductsAction = app(GetProducts::class);
+        $result = app(GetProducts::class)->execute('gift-2-games-gbp');
 
-        // Act
-        $result = $getProductsAction->execute('gift-2-games-gbp');
-
-        // Assert
         $this->assertEquals($expectedResponse, $result);
-        Http::assertSent(function ($request) {
-            return str_contains($request->url(), '/products') &&
-                   $request->method() === 'GET';
-        });
+        Http::assertSent(fn ($r) => str_contains($r->url(), '/products') && $r->method() === 'GET');
     }
 
     public function test_execute_throws_exception_for_unknown_supplier_slug(): void
     {
-        $getProductsAction = app(GetProducts::class);
-
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Unknown Gift2Games supplier slug: gift-2-games-unknown');
 
-        $getProductsAction->execute('gift-2-games-unknown');
+        app(GetProducts::class)->execute('gift-2-games-unknown');
     }
 }

@@ -12,7 +12,6 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Services\Giftery\GifteryVoucherService;
 use App\Services\Tikkery\TikkeryVoucherService;
-use App\Services\Gift2Games\Gift2GamesVoucherService;
 use App\Services\Supplier\SupplierIntegrationResolver;
 use App\Services\PurchaseOrder\PurchaseOrderStatusService;
 use App\Services\PurchaseOrder\PurchaseOrderPlacementService;
@@ -46,7 +45,6 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
     public function handle(
         SupplierIntegrationResolver $resolver,
         PurchaseOrderPlacementService $purchaseOrderPlacementService,
-        Gift2GamesVoucherService $gift2GamesVoucherService,
         GifteryVoucherService $gifteryVoucherService,
         TikkeryVoucherService $tikkeryVoucherService,
         PurchaseOrderStatusService $purchaseOrderStatusService,
@@ -72,7 +70,7 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
             return;
         }
 
-        // ---- Legacy path: Gift2Games, Giftery, Tikkery, Irewardify ----
+        // ---- Legacy path: Giftery, Tikkery, Irewardify ----
         $externalOrderResponse = [];
         $transactionId = null;
 
@@ -107,13 +105,7 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
             return;
         }
 
-        if ($this->isGift2GamesSupplier()) {
-
-            $gift2GamesVoucherService->storeVouchers($this->purchaseOrder, $externalOrderResponse);
-            // FIXME: The job still marks the supplier COMPLETED even when all order calls fail.
-            $this->purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
-
-        } elseif ($this->supplier->slug === 'giftery-api') {
+        if ($this->supplier->slug === 'giftery-api') {
 
             $gifteryVoucherService->storeVouchers($this->purchaseOrder, $externalOrderResponse);
             $this->purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
@@ -142,11 +134,5 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
         }
 
         $purchaseOrderStatusService->updateStatus($this->purchaseOrder->refresh());
-    }
-
-    private function isGift2GamesSupplier(): bool
-    {
-        return str_starts_with($this->supplier->slug, 'gift2games')
-            || str_starts_with($this->supplier->slug, 'gift-2-games');
     }
 }

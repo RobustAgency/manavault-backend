@@ -8,7 +8,6 @@ use App\Http\Controllers\Controller;
 use App\Services\PurchaseOrderService;
 use App\Http\Resources\PurchaseOrderResource;
 use App\Repositories\PurchaseOrderRepository;
-use App\Services\Ezcards\EzcardsVoucherCodeService;
 use App\Http\Requests\PurchaseOrder\ListPurchaseOrderRequest;
 use App\Http\Requests\PurchaseOrder\StorePurchaseOrderRequest;
 
@@ -17,7 +16,6 @@ class PurchaseOrderController extends Controller
     public function __construct(
         private PurchaseOrderService $purchaseOrderService,
         private PurchaseOrderRepository $purchaseOrderRepository,
-        private EzcardsVoucherCodeService $ezcardsVoucherCodeService
     ) {}
 
     /**
@@ -67,26 +65,5 @@ class PurchaseOrderController extends Controller
             'data' => new PurchaseOrderResource($purchaseOrder),
             'message' => 'Purchase order retrieved successfully.',
         ]);
-    }
-
-    /**
-     * Process a purchase order by ID to fetch and store voucher codes.
-     */
-    public function purchaseOrderVouchers(PurchaseOrder $purchaseOrder): JsonResponse
-    {
-        try {
-            $this->ezcardsVoucherCodeService->processPurchaseOrderById($purchaseOrder);
-
-            return response()->json([
-                'error' => false,
-                'data' => null,
-                'message' => 'Purchase order vouchers processed successfully.',
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => true,
-                'message' => 'Failed to process vouchers: '.$e->getMessage(),
-            ], 500);
-        }
     }
 }

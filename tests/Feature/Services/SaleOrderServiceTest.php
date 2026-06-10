@@ -557,19 +557,7 @@ class SaleOrderServiceTest extends TestCase
         // 0 vouchers available — full shortfall
         $purchaseOrderCount = PurchaseOrder::count();
 
-        Http::fake([
-            '*/create_order' => Http::response([
-                'status' => 'success',
-                'data' => [
-                    'referenceNumber' => 'REF-G2G-001',
-                    'productId' => 99,
-                    'code' => 'VOUCHER-001',
-                    'pin' => '0000',
-                    'serial' => 'SER-001',
-                    'expiryDate' => '2026-12-31',
-                ],
-            ], 200),
-        ]);
+        Http::fake();
 
         $saleOrder = $this->service->createOrder([
             'order_number' => 'SO-AUTO-003',
@@ -578,9 +566,9 @@ class SaleOrderServiceTest extends TestCase
 
         // A new PO was created
         $this->assertGreaterThan($purchaseOrderCount, PurchaseOrder::count());
-        // Voucher was stored and allocated → order is COMPLETED
-        $this->assertEquals(Status::COMPLETED->value, $saleOrder->status);
-        Event::assertDispatched(SaleOrderCompleted::class);
+        // placeOrder only queues batch records — vouchers come later via updateOrder
+        $this->assertEquals(Status::PROCESSING->value, $saleOrder->status);
+        Event::assertNotDispatched(SaleOrderCompleted::class);
     }
 
     /**

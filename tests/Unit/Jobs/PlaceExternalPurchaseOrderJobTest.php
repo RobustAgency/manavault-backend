@@ -106,83 +106,52 @@ class PlaceExternalPurchaseOrderJobTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
-    // Gift2Games (legacy path)
+    // Gift2Games (integration path — placeOrder only, updateOrder is separate)
     // -------------------------------------------------------------------------
 
-    public function test_places_order_and_stores_vouchers_for_gift2games(): void
+    public function test_gift2games_place_order_creates_batch_records_and_sets_item_to_processing(): void
     {
+        Http::fake();
+
         $setup = $this->createOrderSetup('gift2games', '12345');
-
-        Http::fake([
-            '*/check_balance' => Http::response([
-                'status' => true,
-                'data' => ['userBalance' => '500.00'],
-            ], 200),
-            '*/create_order' => Http::response([
-                'status' => true,
-                'data' => ['serialCode' => 'GCODE-001', 'serialNumber' => 'GSN-001'],
-            ], 200),
-        ]);
-
-        $this->dispatchJob($setup);
-
-        $this->assertDatabaseCount('vouchers', 1);
-        $this->assertDatabaseHas('vouchers', [
-            'purchase_order_id' => $setup['purchaseOrder']->id,
-            'purchase_order_item_id' => $setup['item']->id,
-            'serial_number' => 'GSN-001',
-            'status' => 'available',
-        ]);
-        $this->assertEquals(
-            PurchaseOrderSupplierStatus::COMPLETED->value,
-            $setup['pos']->fresh()->status
-        );
-    }
-
-    public function test_marks_supplier_failed_when_gift2games_has_insufficient_balance(): void
-    {
-        $setup = $this->createOrderSetup('gift2games', '12345', 100.0);
-
-        Http::fake([
-            '*/check_balance' => Http::response([
-                'status' => true,
-                'data' => ['userBalance' => '0.00'],
-            ], 200),
-        ]);
 
         $this->dispatchJob($setup);
 
         $this->assertDatabaseCount('vouchers', 0);
-        $this->assertEquals(
-            PurchaseOrderSupplierStatus::FAILED->value,
-            $setup['pos']->fresh()->status
-        );
+        $this->assertDatabaseCount('gift2games_orders', 1);
+        $this->assertDatabaseHas('gift2games_orders', [
+            'batch_number' => 'batch_'.$setup['item']->id,
+        ]);
+        $this->assertEquals(PurchaseOrderItemStatus::PROCESSING, $setup['item']->fresh()->status);
+        Http::assertNothingSent();
     }
 
-    public function test_stores_no_vouchers_when_gift2games_order_creation_fails_mid_loop(): void
+    public function test_gift2games_eur_place_order_creates_batch_records_and_sets_item_to_processing(): void
     {
-        // Gift2GamesPlaceOrderService catches per-item exceptions and continues,
-        // FIXME: so the job still marks the supplier COMPLETED even when all order calls fail.
-        $setup = $this->createOrderSetup('gift2games', '12345');
+        Http::fake();
 
-        Http::fake([
-            '*/check_balance' => Http::response([
-                'status' => true,
-                'data' => ['userBalance' => '500.00'],
-            ], 200),
-            '*/create_order' => Http::response([
-                'status' => false,
-                'error' => ['message' => 'Product not found'],
-            ], 200),
-        ]);
+        $setup = $this->createOrderSetup('gift-2-games-eur', '12345');
 
         $this->dispatchJob($setup);
 
         $this->assertDatabaseCount('vouchers', 0);
-        $this->assertEquals(
-            PurchaseOrderSupplierStatus::COMPLETED->value,
-            $setup['pos']->fresh()->status
-        );
+        $this->assertDatabaseCount('gift2games_orders', 1);
+        $this->assertEquals(PurchaseOrderItemStatus::PROCESSING, $setup['item']->fresh()->status);
+        Http::assertNothingSent();
+    }
+
+    public function test_gift2games_gbp_place_order_creates_batch_records_and_sets_item_to_processing(): void
+    {
+        Http::fake();
+
+        $setup = $this->createOrderSetup('gift-2-games-gbp', '12345');
+
+        $this->dispatchJob($setup);
+
+        $this->assertDatabaseCount('vouchers', 0);
+        $this->assertDatabaseCount('gift2games_orders', 1);
+        $this->assertEquals(PurchaseOrderItemStatus::PROCESSING, $setup['item']->fresh()->status);
+        Http::assertNothingSent();
     }
 
     // -------------------------------------------------------------------------
