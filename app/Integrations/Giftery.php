@@ -6,15 +6,12 @@ use App\Models\Voucher;
 use App\Enums\VoucherCodeStatus;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Support\Facades\Log;
-use App\Models\PurchaseOrderSupplier;
 use App\Enums\PurchaseOrderItemStatus;
 use App\Services\Giftery\SyncProducts;
 use App\Actions\Giftery\PlaceOrderAction;
-use App\Enums\PurchaseOrderSupplierStatus;
 use App\Contracts\SupplierIntegrationContract;
 use App\Services\Voucher\VoucherCipherService;
 use App\Clients\Giftery\Client as GifteryClient;
-use App\Services\PurchaseOrder\PurchaseOrderStatusService;
 
 class Giftery implements SupplierIntegrationContract
 {
@@ -23,7 +20,6 @@ class Giftery implements SupplierIntegrationContract
         private readonly GifteryClient $gifteryClient,
         private readonly SyncProducts $syncProducts,
         private readonly VoucherCipherService $voucherCipherService,
-        private readonly PurchaseOrderStatusService $purchaseOrderStatusService,
     ) {}
 
     public function placeOrder(PurchaseOrderItem $item): void
@@ -75,19 +71,6 @@ class Giftery implements SupplierIntegrationContract
         }
 
         $item->update(['status' => PurchaseOrderItemStatus::FULFILLED]);
-
-        $allCompleted = PurchaseOrderItem::where('supplier_id', $item->supplier_id)
-            ->where('purchase_order_id', $item->purchase_order_id)
-            ->get()
-            ->every(fn (PurchaseOrderItem $i) => $i->status === PurchaseOrderItemStatus::FULFILLED);
-
-        if ($allCompleted) {
-            PurchaseOrderSupplier::where('supplier_id', $item->supplier_id)
-                ->where('purchase_order_id', $item->purchase_order_id)
-                ->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
-        }
-
-        $this->purchaseOrderStatusService->updateStatus($purchaseOrder);
     }
 
     public function syncProducts(): void

@@ -211,34 +211,6 @@ class GifteryTest extends TestCase
         $this->assertEquals(PurchaseOrderItemStatus::FULFILLED, $this->item->fresh()->status);
     }
 
-    public function test_update_order_marks_supplier_completed_when_all_items_fulfilled(): void
-    {
-        PurchaseOrderItem::factory()->create([
-            'purchase_order_id' => $this->purchaseOrder->id,
-            'supplier_id' => $this->supplier->id,
-            'digital_product_id' => $this->product->id,
-            'quantity' => 1,
-            'unit_cost' => 5.00,
-            'subtotal' => 5.00,
-            'transaction_id' => 'TXN-ALREADY-DONE',
-            'status' => PurchaseOrderItemStatus::FULFILLED->value,
-        ]);
-
-        $this->item->update(['transaction_id' => 'TXN-UUID-001', 'status' => PurchaseOrderItemStatus::PROCESSING->value]);
-
-        Http::fake(array_merge(
-            $this->authFake(),
-            $this->getOperationResponse('TXN-UUID-001', $this->sampleVouchers()),
-        ));
-
-        app(Giftery::class)->updateOrder($this->item->fresh());
-
-        $this->assertEquals(
-            PurchaseOrderSupplierStatus::COMPLETED->value,
-            $this->purchaseOrderSupplier->fresh()->status
-        );
-    }
-
     public function test_update_order_does_not_mark_supplier_completed_when_other_items_still_pending(): void
     {
         PurchaseOrderItem::factory()->create([
