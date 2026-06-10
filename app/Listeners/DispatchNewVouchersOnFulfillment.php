@@ -3,8 +3,8 @@
 namespace App\Listeners;
 
 use App\Events\NewVouchersAvailable;
-use App\Events\PurchaseOrderItemUpdated;
 use App\Enums\PurchaseOrderItemStatus;
+use App\Events\PurchaseOrderItemUpdated;
 
 class DispatchNewVouchersOnFulfillment
 {
