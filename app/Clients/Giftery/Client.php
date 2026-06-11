@@ -46,26 +46,26 @@ class Client
         return self::RETRY_DELAY_MS;
     }
 
-    public static function generateAuthSignature(int $time): string
+    private static function generateAuthSignature(int $time): string
     {
         $message = $time.config('services.giftery.login').config('services.giftery.password');
 
         return base64_encode(hash_hmac('sha256', $message, self::secret(), true));
     }
 
-    public static function generateRefreshTokenSignature(int $time, string $refreshToken): string
+    private static function generateRefreshTokenSignature(int $time, string $refreshToken): string
     {
         $message = $time.$refreshToken;
 
         return base64_encode(hash_hmac('sha256', $message, self::secret(), true));
     }
 
-    public static function generateRequestSignature(int $time): string
+    private static function generateRequestSignature(int $time): string
     {
         return base64_encode(hash_hmac('sha256', (string) $time, self::secret(), true));
     }
 
-    public function generateReserveSignature(int $time, int $itemId, array $fields): string
+    private function generateReserveSignature(int $time, int $itemId, array $fields): string
     {
         // Convert to key=value
         $formatted = array_map(function ($field) {
@@ -88,7 +88,7 @@ class Client
         ));
     }
 
-    public function generateConfirmSignature(int $time, string $uuid): string
+    private function generateTransactionSignature(int $time, string $uuid): string
     {
         $message = $time.$uuid;
 
@@ -100,7 +100,7 @@ class Client
         ));
     }
 
-    public function authenticate(): string
+    private function authenticate(): string
     {
         $timestamp = time();
 
@@ -138,7 +138,7 @@ class Client
         return $accessToken;
     }
 
-    public function refreshToken(): string
+    private function refreshToken(): string
     {
         $refreshToken = cache()->get('giftery_refresh_token');
 
@@ -242,7 +242,7 @@ class Client
     {
         $timestamp = time();
 
-        $signature = $this->generateConfirmSignature($timestamp, $transactionUUID);
+        $signature = $this->generateTransactionSignature($timestamp, $transactionUUID);
 
         $response = $this->getClient()
             ->withHeaders([
@@ -271,8 +271,7 @@ class Client
     {
         $timestamp = time();
 
-        $signature = $this->generateRequestSignature($timestamp);
-
+        $signature = $this->generateTransactionSignature($timestamp, $transactionUUID);
         $response = $this->getClient()
             ->withHeaders([
                 'time' => (string) $timestamp,

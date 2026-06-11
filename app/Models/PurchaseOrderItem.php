@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\PurchaseOrderItemStatus;
 use Illuminate\Database\Eloquent\Model;
+use App\Events\PurchaseOrderItemUpdated;
 use App\Contracts\SupplierIntegrationContract;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Services\Supplier\SupplierIntegrationResolver;
@@ -33,6 +34,10 @@ class PurchaseOrderItem extends Model
         'quantity' => 'integer',
         'unit_cost' => 'decimal:2',
         'subtotal' => 'decimal:2',
+    ];
+
+    protected $dispatchesEvents = [
+        'updated' => PurchaseOrderItemUpdated::class,
     ];
 
     /**
