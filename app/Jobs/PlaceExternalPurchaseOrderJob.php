@@ -10,7 +10,6 @@ use App\Models\PurchaseOrderSupplier;
 use App\Enums\PurchaseOrderSupplierStatus;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use App\Services\Tikkery\TikkeryVoucherService;
 use App\Services\Supplier\SupplierIntegrationResolver;
 use App\Services\PurchaseOrder\PurchaseOrderStatusService;
 use App\Services\PurchaseOrder\PurchaseOrderPlacementService;
@@ -44,7 +43,6 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
     public function handle(
         SupplierIntegrationResolver $resolver,
         PurchaseOrderPlacementService $purchaseOrderPlacementService,
-        TikkeryVoucherService $tikkeryVoucherService,
         PurchaseOrderStatusService $purchaseOrderStatusService,
     ): void {
         // We only get items here for a single supplier.
@@ -57,10 +55,17 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
                 try {
                     $orderItem->getSupplier()?->placeOrder($orderItem);
                 } catch (\Exception $e) {
+                    $cause = $e->getPrevious() ?? $e;
+                    $responseBody = $cause instanceof \Illuminate\Http\Client\RequestException
+                        ? $cause->response->body()
+                        : null;
+
                     Log::error('PlaceExternalPurchaseOrderJob: failed to place order via integration', [
                         'purchase_order_id' => $this->purchaseOrder->id,
+                        'purchase_order_item_id' => $orderItem->id,
                         'supplier_slug' => $this->supplier->slug,
                         'error' => $e->getMessage(),
+                        'response_body' => $responseBody,
                     ]);
                 }
             }
@@ -68,7 +73,7 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
             return;
         }
 
-        // ---- Legacy path: Tikkery, Irewardify ----
+        // ---- Legacy path: Irewardify ----
         $externalOrderResponse = [];
         $transactionId = null;
 
@@ -109,21 +114,6 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
                 'purchase_order_id' => $this->purchaseOrder->id,
                 'order_id' => $transactionId,
             ]);
-
-        } elseif ($this->supplier->slug === 'tikkery') {
-
-            $isCompleted = (bool) ($externalOrderResponse['isCompleted'] ?? false);
-
-            if ($isCompleted && ! empty($externalOrderResponse['codes'])) {
-                $tikkeryVoucherService->storeVouchers($this->purchaseOrder, $externalOrderResponse);
-                $this->purchaseOrderSupplier->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
-            } else {
-                Log::info('Tikkery order is pending, vouchers will be fetched separately', [
-                    'purchase_order_id' => $this->purchaseOrder->id,
-                    'transaction_id' => $transactionId,
-                ]);
-            }
-
         }
 
         $purchaseOrderStatusService->updateStatus($this->purchaseOrder->refresh());
