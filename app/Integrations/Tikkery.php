@@ -4,17 +4,14 @@ namespace App\Integrations;
 
 use App\Models\Voucher;
 use App\Enums\VoucherCodeStatus;
+use App\Actions\Tikkery\GetOrder;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Support\Facades\Log;
-use App\Models\PurchaseOrderSupplier;
-use App\Enums\PurchaseOrderItemStatus;
-use App\Actions\Tikkery\GetOrder;
 use App\Actions\Tikkery\CreateOrder;
-use App\Enums\PurchaseOrderSupplierStatus;
-use App\Contracts\SupplierIntegrationContract;
+use App\Enums\PurchaseOrderItemStatus;
 use App\Services\Tikkery\SyncDigitalProducts;
+use App\Contracts\SupplierIntegrationContract;
 use App\Services\Voucher\VoucherCipherService;
-use App\Services\PurchaseOrder\PurchaseOrderStatusService;
 
 class Tikkery implements SupplierIntegrationContract
 {
@@ -23,7 +20,6 @@ class Tikkery implements SupplierIntegrationContract
         private readonly GetOrder $getOrder,
         private readonly SyncDigitalProducts $syncDigitalProducts,
         private readonly VoucherCipherService $voucherCipherService,
-        private readonly PurchaseOrderStatusService $purchaseOrderStatusService,
     ) {}
 
     public function placeOrder(PurchaseOrderItem $item): void
@@ -62,6 +58,17 @@ class Tikkery implements SupplierIntegrationContract
             return;
         }
 
+        if (count($codes) !== $item->quantity) {
+            Log::warning('Tikkery updateOrder code count does not match item quantity', [
+                'purchase_order_item_id' => $item->id,
+                'transaction_id' => $item->transaction_id,
+                'code_count' => count($codes),
+                'quantity' => $item->quantity,
+            ]);
+
+            return;
+        }
+
         $purchaseOrder = $item->purchaseOrder;
 
         foreach ($codes as $code) {
@@ -78,19 +85,6 @@ class Tikkery implements SupplierIntegrationContract
         }
 
         $item->update(['status' => PurchaseOrderItemStatus::FULFILLED]);
-
-        $allCompleted = PurchaseOrderItem::where('supplier_id', $item->supplier_id)
-            ->where('purchase_order_id', $item->purchase_order_id)
-            ->get()
-            ->every(fn (PurchaseOrderItem $i) => $i->status === PurchaseOrderItemStatus::FULFILLED);
-
-        if ($allCompleted) {
-            PurchaseOrderSupplier::where('supplier_id', $item->supplier_id)
-                ->where('purchase_order_id', $item->purchase_order_id)
-                ->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
-        }
-
-        $this->purchaseOrderStatusService->updateStatus($purchaseOrder);
     }
 
     public function syncProducts(): void
