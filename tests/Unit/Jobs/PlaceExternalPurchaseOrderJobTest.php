@@ -225,84 +225,55 @@ class PlaceExternalPurchaseOrderJobTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
-    // Tikkery (legacy path)
+    // Tikkery (integration path — placeOrder only, updateOrder is separate)
     // -------------------------------------------------------------------------
 
-    public function test_places_order_and_stores_vouchers_when_tikkery_order_is_immediately_completed(): void
+    public function test_places_order_for_tikkery_via_integration(): void
     {
         $setup = $this->createOrderSetup('tikkery', 'TIK-SKU-1');
 
         cache()->put('tikkery_access_token', 'fake-tikkery-token', now()->addHour());
 
         Http::fake([
-            '*/balance*' => Http::response(['balance' => 500.0], 200),
-            '*/products/stock*' => Http::response([
-                'stock' => [['sku' => 'TIK-SKU-1', 'stock' => 10]],
-            ], 200),
             '*/orders/create' => Http::response([
-                'order' => ['number' => 'TIK-ORD-001', 'isCompleted' => true],
-                'codes' => [
-                    ['productSku' => 'TIK-SKU-1', 'redemptionCode' => 'TCODE-001', 'serial' => 'TSN-001', 'pin' => null],
-                ],
+                'order' => ['number' => 'TIK-ORD-001'],
             ], 200),
         ]);
 
         $this->dispatchJob($setup);
 
-        $this->assertDatabaseCount('vouchers', 1);
-        $this->assertDatabaseHas('vouchers', [
+        $fresh = $setup['item']->fresh();
+        $this->assertEquals('TIK-ORD-001', $fresh->transaction_id);
+        $this->assertEquals(PurchaseOrderItemStatus::PROCESSING, $fresh->status);
+        $this->assertDatabaseCount('vouchers', 0);
+    }
+
+    public function test_tikkery_continues_processing_remaining_items_when_one_fails(): void
+    {
+        $setup = $this->createOrderSetup('tikkery', 'TIK-SKU-1');
+
+        $item2 = PurchaseOrderItem::factory()->create([
             'purchase_order_id' => $setup['purchaseOrder']->id,
-            'serial_number' => 'TSN-001',
-            'status' => 'available',
+            'supplier_id' => $setup['supplier']->id,
+            'digital_product_id' => $setup['product']->id,
+            'quantity' => 1,
+            'unit_cost' => 10.00,
+            'subtotal' => 10.00,
+            'transaction_id' => null,
+            'status' => PurchaseOrderItemStatus::PENDING->value,
         ]);
-        $this->assertEquals(
-            PurchaseOrderSupplierStatus::COMPLETED->value,
-            $setup['pos']->fresh()->status
-        );
-    }
-
-    public function test_does_not_store_vouchers_when_tikkery_order_is_pending(): void
-    {
-        $setup = $this->createOrderSetup('tikkery', 'TIK-SKU-2');
 
         cache()->put('tikkery_access_token', 'fake-tikkery-token', now()->addHour());
 
         Http::fake([
-            '*/balance*' => Http::response(['balance' => 500.0], 200),
-            '*/products/stock*' => Http::response([
-                'stock' => [['sku' => 'TIK-SKU-2', 'stock' => 10]],
-            ], 200),
-            '*/orders/create' => Http::response([
-                'order' => ['number' => 'TIK-ORD-002', 'isCompleted' => false],
-                'codes' => [],
-            ], 200),
+            '*/orders/create' => Http::sequence()
+                ->push(['error' => 'Bad Request'], 400)
+                ->push(['order' => ['number' => 'TIK-ORD-002']], 200),
         ]);
 
-        $this->dispatchJob($setup);
+        $this->dispatchJob($setup, [$item2]);
 
-        $this->assertDatabaseCount('vouchers', 0);
-        $this->assertEquals(
-            PurchaseOrderSupplierStatus::PROCESSING->value,
-            $setup['pos']->fresh()->status
-        );
-    }
-
-    public function test_marks_supplier_failed_when_tikkery_api_errors(): void
-    {
-        $setup = $this->createOrderSetup('tikkery', 'TIK-SKU-3');
-
-        cache()->put('tikkery_access_token', 'fake-tikkery-token', now()->addHour());
-
-        Http::fake([
-            '*/balance*' => Http::response(['error' => 'Internal Server Error'], 500),
-        ]);
-
-        $this->dispatchJob($setup);
-
-        $this->assertDatabaseCount('vouchers', 0);
-        $this->assertEquals(
-            PurchaseOrderSupplierStatus::FAILED->value,
-            $setup['pos']->fresh()->status
-        );
+        $this->assertNull($setup['item']->fresh()->transaction_id);
+        $this->assertEquals('TIK-ORD-002', $item2->fresh()->transaction_id);
     }
 }
