@@ -190,6 +190,25 @@ class GifteryTest extends TestCase
         $this->assertEquals(PurchaseOrderItemStatus::PROCESSING, $this->item->fresh()->status);
     }
 
+    public function test_update_order_does_not_store_vouchers_when_voucher_count_does_not_match_quantity(): void
+    {
+        $this->item->update([
+            'transaction_id' => 'TXN-UUID-001',
+            'status' => PurchaseOrderItemStatus::PROCESSING->value,
+            'quantity' => 2,
+        ]);
+
+        Http::fake(array_merge(
+            $this->authFake(),
+            $this->getOperationResponse('TXN-UUID-001', $this->sampleVouchers()),
+        ));
+
+        app(Giftery::class)->updateOrder($this->item->fresh());
+
+        $this->assertDatabaseCount('vouchers', 0);
+        $this->assertEquals(PurchaseOrderItemStatus::PROCESSING, $this->item->fresh()->status);
+    }
+
     public function test_update_order_stores_vouchers_and_marks_item_fulfilled(): void
     {
         $this->item->update(['transaction_id' => 'TXN-UUID-001', 'status' => PurchaseOrderItemStatus::PROCESSING->value]);

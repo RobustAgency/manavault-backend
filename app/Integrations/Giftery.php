@@ -57,6 +57,17 @@ class Giftery implements SupplierIntegrationContract
             return;
         }
 
+        if (count($vouchers) !== $item->quantity) {
+            Log::warning('Giftery updateOrder voucher count does not match item quantity', [
+                'purchase_order_item_id' => $item->id,
+                'transaction_id' => $item->transaction_id,
+                'expected_quantity' => $item->quantity,
+                'received_count' => count($vouchers),
+            ]);
+
+            return;
+        }
+
         $purchaseOrder = $item->purchaseOrder;
 
         foreach ($vouchers as $voucherData) {
