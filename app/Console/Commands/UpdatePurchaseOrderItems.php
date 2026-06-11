@@ -3,8 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Models\PurchaseOrderItem;
-use App\Enums\PurchaseOrderItemStatus;
+use App\Actions\PurchaseOrder\UpdatePurchaseOrderItemsAction;
 
 class UpdatePurchaseOrderItems extends Command
 {
@@ -25,12 +24,9 @@ class UpdatePurchaseOrderItems extends Command
     /**
      * Execute the console command.
      */
-    public function handle(): int
+    public function handle(UpdatePurchaseOrderItemsAction $action): int
     {
-        $purchaseOrderItems = PurchaseOrderItem::where('status', PurchaseOrderItemStatus::PROCESSING)->get();
-        foreach ($purchaseOrderItems as $item) {
-            $item->getSupplier()?->updateOrder($item);
-        }
+        $action->execute();
 
         return Command::SUCCESS;
     }
