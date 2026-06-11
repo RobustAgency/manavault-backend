@@ -43,7 +43,7 @@ class PurchaseOrderService
                 $items = $supplierOrderData['items'];
                 $supplier = Supplier::findOrFail($supplierId);
 
-                $this->processSupplierItems($purchaseOrder, $supplier, $items, $orderNumber, $currency);
+                $this->processSupplierItems($purchaseOrder, $supplier, $items);
             }
 
             return $purchaseOrder;
@@ -54,8 +54,6 @@ class PurchaseOrderService
         PurchaseOrder $purchaseOrder,
         Supplier $supplier,
         array $items,
-        string $orderNumber,
-        string $currency,
     ): void {
         $totalPrice = (float) $purchaseOrder->total_price;
         $orderItems = [];
@@ -78,7 +76,7 @@ class PurchaseOrderService
             ];
         }
 
-        $purchaseOrderSupplier = $this->purchaseOrderRepository->createPurchaseOrderSupplier([
+        $this->purchaseOrderRepository->createPurchaseOrderSupplier([
             'purchase_order_id' => $purchaseOrder->id,
             'supplier_id' => $supplier->id,
             'status' => PurchaseOrderSupplierStatus::PROCESSING->value,
@@ -107,10 +105,7 @@ class PurchaseOrderService
             PlaceExternalPurchaseOrderJob::dispatch(
                 $purchaseOrder,
                 $supplier,
-                $purchaseOrderSupplier,
                 $purchaseOrderItems,
-                $orderNumber,
-                $currency,
             );
 
             Log::info('External purchase order job dispatched', [
