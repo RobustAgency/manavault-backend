@@ -3,6 +3,7 @@
 namespace Tests\Unit\Integrations;
 
 use Tests\TestCase;
+use App\Models\Voucher;
 use App\Models\Supplier;
 use App\Models\PurchaseOrder;
 use App\Models\DigitalProduct;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\Http;
 use App\Models\PurchaseOrderSupplier;
 use App\Enums\PurchaseOrderItemStatus;
 use App\Enums\PurchaseOrderSupplierStatus;
+use App\Services\Voucher\VoucherCipherService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class IrewardifyTest extends TestCase
@@ -86,12 +88,14 @@ class IrewardifyTest extends TestCase
     {
         return [
             [
-                'id' => 1001,
-                'cardCode' => 'CARD-CODE-1',
-                'pin' => '1234',
-                'Brand' => 'Amazon',
-                'Denom' => '$10',
-                'expirationDate' => '2027-01-01',
+                'no' => 1,
+                'Brand' => 'Holland America',
+                'Denom' => '$50.00',
+                'Id' => '3581165-1',
+                'Codes' => [
+                    ['Label' => 'Code', 'Value' => '2370968749009790'],
+                    ['Label' => 'PIN', 'Value' => '8755'],
+                ],
             ],
         ];
     }
@@ -199,11 +203,43 @@ class IrewardifyTest extends TestCase
         $this->assertDatabaseHas('vouchers', [
             'purchase_order_id' => $this->purchaseOrder->id,
             'purchase_order_item_id' => $this->item->id,
-            'pin_code' => '1234',
-            'stock_id' => '1001',
+            'pin_code' => '8755',
+            'stock_id' => '3581165-1',
             'status' => 'available',
         ]);
         $this->assertEquals(PurchaseOrderItemStatus::FULFILLED, $this->item->fresh()->status);
+    }
+
+    public function test_update_order_stores_decryptable_voucher_code(): void
+    {
+        $this->item->update(['transaction_id' => 'IRW-ORDER-001', 'status' => PurchaseOrderItemStatus::PROCESSING->value]);
+
+        Http::fake($this->getOrderDeliveryResponse('IRW-ORDER-001', $this->sampleDeliveryItems()));
+
+        app(Irewardify::class)->updateOrder($this->item->fresh());
+
+        $voucher = Voucher::query()->sole();
+        $this->assertEquals('2370968749009790', app(VoucherCipherService::class)->decryptCode($voucher->code));
+    }
+
+    public function test_update_order_does_not_store_vouchers_when_delivery_item_has_no_code(): void
+    {
+        $this->item->update(['transaction_id' => 'IRW-ORDER-001', 'status' => PurchaseOrderItemStatus::PROCESSING->value]);
+
+        Http::fake($this->getOrderDeliveryResponse('IRW-ORDER-001', [
+            [
+                'no' => 1,
+                'Brand' => 'Holland America',
+                'Denom' => '$50.00',
+                'Id' => '3581165-1',
+                'Codes' => [],
+            ],
+        ]));
+
+        app(Irewardify::class)->updateOrder($this->item->fresh());
+
+        $this->assertDatabaseCount('vouchers', 0);
+        $this->assertEquals(PurchaseOrderItemStatus::PROCESSING, $this->item->fresh()->status);
     }
 
     public function test_update_order_does_not_mark_supplier_completed_when_other_items_still_pending(): void

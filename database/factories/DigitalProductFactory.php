@@ -29,6 +29,7 @@ class DigitalProductFactory extends Factory
             'tags' => $this->faker->randomElements(['gift card', 'gaming', 'entertainment', 'software', 'subscription'], $this->faker->numberBetween(1, 3)),
             'region' => $this->faker->randomElement(['US', 'EU', 'ASIA']),
             'cost_price' => $costPrice,
+            'cost_price_discount' => $this->faker->boolean(30) ? $this->faker->randomFloat(2, 1, $costPrice - 1) : null,
             'face_value' => $faceValue,
             'selling_price' => $this->faker->randomFloat(2, $costPrice + 1, $costPrice + 50),
             'currency' => 'usd',

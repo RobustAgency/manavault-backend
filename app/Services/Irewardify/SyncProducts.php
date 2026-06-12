@@ -3,6 +3,7 @@
 namespace App\Services\Irewardify;
 
 use App\Models\Supplier;
+use Illuminate\Support\Sleep;
 use Illuminate\Support\Facades\Log;
 use App\Actions\Irewardify\GetProducts;
 use App\Actions\Irewardify\GetProductDetails;
@@ -10,6 +11,8 @@ use App\Repositories\DigitalProductRepository;
 
 class SyncProducts
 {
+    private const PRODUCT_DETAILS_THROTTLE_MS = 500;
+
     public function __construct(
         private GetProducts $getProducts,
         private GetProductDetails $getProductDetails,
@@ -34,6 +37,8 @@ class SyncProducts
 
         $syncedSkus = [];
 
+        $isFirstDetailsCall = true;
+
         foreach ($items as $item) {
 
             $productId = (string) ($item['_id'] ?? '');
@@ -43,6 +48,13 @@ class SyncProducts
 
                 continue;
             }
+
+            // Spread out detail calls to stay under Irewardify's per-minute rate limit
+            if (! $isFirstDetailsCall) {
+                Sleep::for(self::PRODUCT_DETAILS_THROTTLE_MS)->milliseconds();
+            }
+
+            $isFirstDetailsCall = false;
 
             $productDetails = $this->getProductDetails->execute($productId);
             $productDetailsData = $productDetails['data'] ?? $productDetails;
@@ -72,7 +84,8 @@ class SyncProducts
 
                 try {
                     $faceValue = $variant['variant_price'] ?? null;
-                    $price = round((float) ($variant['discounted_price'] ?? $faceValue), 2, PHP_ROUND_HALF_DOWN);
+                    $price = round((float) ($variant['discounted_price'] ?? $faceValue), 2, PHP_ROUND_HALF_UP);
+                    $costPriceDiscount = $variant['discount_percentage'] ?? null;
 
                     $this->digitalProductRepository->createOrUpdate(
                         [
@@ -87,6 +100,7 @@ class SyncProducts
                             'description' => $description,
                             'face_value' => $faceValue,
                             'cost_price' => $price,
+                            'cost_price_discount' => $costPriceDiscount,
                             'currency' => $currency,
                             'region' => $country,
                             'image_url' => $imageUrl,

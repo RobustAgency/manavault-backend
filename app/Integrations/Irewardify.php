@@ -2,7 +2,6 @@
 
 namespace App\Integrations;
 
-use Carbon\Carbon;
 use App\Models\Voucher;
 use App\Enums\VoucherCodeStatus;
 use App\Models\PurchaseOrderItem;
@@ -63,6 +62,11 @@ class Irewardify implements SupplierIntegrationContract
     public function updateOrder(PurchaseOrderItem $item): void
     {
         $response = $this->getOrderDelivery->execute($item->transaction_id);
+        Log::info('Irewardify updateOrder response', [
+            'purchase_order_item_id' => $item->id,
+            'transaction_id' => $item->transaction_id,
+            'response' => $response,
+        ]);
 
         $deliveryItems = $response['data'] ?? [];
 
@@ -81,20 +85,39 @@ class Irewardify implements SupplierIntegrationContract
             return;
         }
 
-        $purchaseOrder = $item->purchaseOrder;
+        $vouchers = [];
 
         foreach ($deliveryItems as $deliveryItem) {
-            $cardCode = $deliveryItem['cardCode'] ?? null;
-            $pin = $deliveryItem['pin'] ?? null;
+            $codes = collect($deliveryItem['Codes'] ?? [])->pluck('Value', 'Label');
 
+            $cardCode = $codes->get('Code');
+
+            if (! $cardCode) {
+                Log::warning('Irewardify updateOrder delivery item missing code', [
+                    'purchase_order_item_id' => $item->id,
+                    'transaction_id' => $item->transaction_id,
+                    'delivery_item_id' => $deliveryItem['Id'] ?? null,
+                ]);
+
+                return;
+            }
+
+            $vouchers[] = [
+                'code' => $cardCode,
+                'pin' => $codes->get('PIN'),
+            ];
+        }
+
+        $purchaseOrder = $item->purchaseOrder;
+
+        foreach ($vouchers as $voucher) {
             Voucher::create([
                 'purchase_order_id' => $purchaseOrder->id,
                 'purchase_order_item_id' => $item->id,
-                'code' => $cardCode ? $this->voucherCipherService->encryptCode($cardCode) : null,
+                'code' => $this->voucherCipherService->encryptCode($voucher['code']),
                 'serial_number' => null,
-                'pin_code' => $pin !== null ? (string) $pin : null,
-                'stock_id' => isset($deliveryItem['id']) ? (string) $deliveryItem['id'] : null,
-                'expires_at' => isset($deliveryItem['expirationDate']) ? Carbon::parse($deliveryItem['expirationDate']) : null,
+                'pin_code' => $voucher['pin'] !== null ? (string) $voucher['pin'] : null,
+                'expires_at' => null,
                 'status' => VoucherCodeStatus::AVAILABLE->value,
             ]);
         }

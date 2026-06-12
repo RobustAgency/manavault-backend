@@ -129,7 +129,6 @@ class DigitalProductTest extends TestCase
 
         $appended = $digitalProduct->getAppends();
 
-        $this->assertContains('cost_price_discount', $appended);
         $this->assertContains('profit_margin', $appended);
     }
 
