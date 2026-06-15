@@ -12,7 +12,7 @@ use App\Models\DigitalProduct;
 use App\Enums\SaleOrder\Status;
 use App\Enums\VoucherCodeStatus;
 use App\Models\PurchaseOrderItem;
-use App\Events\SaleOrderCompleted;
+use App\Events\SaleOrderFulfillmentUpdated;
 use App\Services\SaleOrderService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Event;
@@ -481,7 +481,7 @@ class SaleOrderServiceTest extends TestCase
      */
     public function test_sufficient_internal_stock_completes_order_without_purchase_order(): void
     {
-        Event::fake([SaleOrderCompleted::class]);
+        Event::fake([SaleOrderFulfillmentUpdated::class]);
 
         $supplier = Supplier::factory()->create(['type' => 'internal']);
         $product = Product::factory()->active()->create(['fulfillment_mode' => 'price']);
@@ -503,7 +503,7 @@ class SaleOrderServiceTest extends TestCase
 
         $this->assertEquals(Status::COMPLETED->value, $saleOrder->status);
         $this->assertEquals(0, PurchaseOrder::where('order_number', 'like', 'PO-%')->whereDoesntHave('items', fn ($q) => $q->where('purchase_order_id', $po->id))->count());
-        Event::assertDispatched(SaleOrderCompleted::class);
+        Event::assertDispatched(SaleOrderFulfillmentUpdated::class);
     }
 
     /**
@@ -511,7 +511,7 @@ class SaleOrderServiceTest extends TestCase
      */
     public function test_insufficient_internal_stock_creates_processing_order(): void
     {
-        Event::fake([SaleOrderCompleted::class]);
+        Event::fake([SaleOrderFulfillmentUpdated::class]);
 
         $supplier = Supplier::factory()->create(['type' => 'internal']);
         $product = Product::factory()->active()->create(['fulfillment_mode' => 'price']);
@@ -532,7 +532,7 @@ class SaleOrderServiceTest extends TestCase
         ]);
 
         $this->assertEquals(Status::PROCESSING->value, $saleOrder->status);
-        Event::assertNotDispatched(SaleOrderCompleted::class);
+        Event::assertNotDispatched(SaleOrderFulfillmentUpdated::class);
     }
 
     /**
@@ -540,7 +540,7 @@ class SaleOrderServiceTest extends TestCase
      */
     public function test_shortfall_with_gift2games_supplier_creates_po_and_completes_order(): void
     {
-        Event::fake([SaleOrderCompleted::class]);
+        Event::fake([SaleOrderFulfillmentUpdated::class]);
 
         $supplier = Supplier::factory()->create([
             'slug' => 'gift2games',
@@ -568,7 +568,7 @@ class SaleOrderServiceTest extends TestCase
         $this->assertGreaterThan($purchaseOrderCount, PurchaseOrder::count());
         // placeOrder only queues batch records — vouchers come later via updateOrder
         $this->assertEquals(Status::PROCESSING->value, $saleOrder->status);
-        Event::assertNotDispatched(SaleOrderCompleted::class);
+        Event::assertNotDispatched(SaleOrderFulfillmentUpdated::class);
     }
 
     /**
@@ -576,7 +576,7 @@ class SaleOrderServiceTest extends TestCase
      */
     public function test_shortfall_with_ezcards_supplier_creates_po_and_leaves_order_processing(): void
     {
-        Event::fake([SaleOrderCompleted::class]);
+        Event::fake([SaleOrderFulfillmentUpdated::class]);
 
         $supplier = Supplier::factory()->create([
             'slug' => 'ez_cards',
@@ -616,7 +616,7 @@ class SaleOrderServiceTest extends TestCase
         $this->assertGreaterThan($purchaseOrderCount, PurchaseOrder::count());
         // No vouchers yet (async) → order stays PROCESSING
         $this->assertEquals(Status::PROCESSING->value, $saleOrder->status);
-        Event::assertNotDispatched(SaleOrderCompleted::class);
+        Event::assertNotDispatched(SaleOrderFulfillmentUpdated::class);
     }
 
     /**
@@ -624,7 +624,7 @@ class SaleOrderServiceTest extends TestCase
      */
     public function test_auto_purchase_order_has_sale_order_id_when_shortfall_occurs(): void
     {
-        Event::fake([SaleOrderCompleted::class]);
+        Event::fake([SaleOrderFulfillmentUpdated::class]);
 
         $supplier = Supplier::factory()->create([
             'slug' => 'internal_supplier',

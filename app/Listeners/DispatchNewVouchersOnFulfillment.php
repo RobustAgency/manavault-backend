@@ -17,13 +17,7 @@ class DispatchNewVouchersOnFulfillment
             && $item->status === PurchaseOrderItemStatus::FULFILLED
             && $item->digital_product_id !== null
         ) {
-            $saleOrderId = $item->purchaseOrder->sale_order_id ?? null;
-
-            event(new NewVouchersAvailable(
-                digitalProductIds: [$item->digital_product_id],
-                purchaseOrderId: $item->purchase_order_id,
-                saleOrderId: $saleOrderId,
-            ));
+            event(new NewVouchersAvailable($item));
         }
     }
 }

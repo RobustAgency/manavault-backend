@@ -7,7 +7,12 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Broadcasting\InteractsWithSockets;
 
-class SaleOrderCompleted
+/**
+ * Fired when a sale order reaches a fulfillment milestone (completed or partially
+ * fulfilled). The exact milestone is derived from the sale order's status by the
+ * listener, so a single event covers both cases.
+ */
+class SaleOrderFulfillmentUpdated
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 

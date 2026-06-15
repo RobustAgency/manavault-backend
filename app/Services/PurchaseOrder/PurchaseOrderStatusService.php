@@ -5,6 +5,7 @@ namespace App\Services\PurchaseOrder;
 use App\Enums\SupplierType;
 use App\Models\PurchaseOrder;
 use App\Enums\PurchaseOrderStatus;
+use App\Events\PurchaseOrderCompleted;
 use App\Enums\PurchaseOrderSupplierStatus;
 
 class PurchaseOrderStatusService
@@ -45,6 +46,7 @@ class PurchaseOrderStatusService
             $purchaseOrder->update(['status' => PurchaseOrderStatus::FAILED->value]);
         } elseif (! $hasFailedSupplier) {
             $purchaseOrder->update(['status' => PurchaseOrderStatus::COMPLETED->value]);
+            event(new PurchaseOrderCompleted($purchaseOrder));
         }
 
     }

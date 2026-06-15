@@ -2,8 +2,9 @@
 
 namespace App\Listeners;
 
-use App\Events\SaleOrderCompleted;
+use App\Enums\SaleOrder\Status;
 use App\Actions\DispatchSaleOrderWebhook;
+use App\Events\SaleOrderFulfillmentUpdated;
 
 class SyncSaleOrderDetailOnFulfillment
 {
@@ -15,9 +16,16 @@ class SyncSaleOrderDetailOnFulfillment
     /**
      * Handle the event.
      */
-    public function handle(SaleOrderCompleted $event): void
+    public function handle(SaleOrderFulfillmentUpdated $event): void
     {
         $saleOrder = $event->saleOrder;
-        $this->dispatchSaleOrderWebhook->execute('sale_order.completed', $saleOrder);
+
+        $webhookEvent = Status::from($saleOrder->status)->webhookEvent();
+
+        if ($webhookEvent === null) {
+            return;
+        }
+
+        $this->dispatchSaleOrderWebhook->execute($webhookEvent, $saleOrder);
     }
 }

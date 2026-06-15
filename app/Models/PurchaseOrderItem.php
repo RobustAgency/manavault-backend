@@ -37,7 +37,13 @@ class PurchaseOrderItem extends Model
     ];
 
     protected $dispatchesEvents = [
-        'updated' => PurchaseOrderItemUpdated::class,
+        // Both the PurchaseOrder (via PurchaseOrderCompleted) and the PurchaseOrderItem
+        // (via PurchaseOrderItemUpdated) ultimately dispatch the same NewVouchersAvailable
+        // event. We currently rely on the PurchaseOrder-completed path, so this per-item
+        // dispatch is left commented out (not removed) on purpose: the plan is to switch
+        // to this item-level event in the future instead of waiting for the whole
+        // PurchaseOrder to be marked completed.
+        // 'updated' => PurchaseOrderItemUpdated::class,
     ];
 
     /**

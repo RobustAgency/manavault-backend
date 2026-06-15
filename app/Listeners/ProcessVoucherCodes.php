@@ -2,12 +2,10 @@
 
 namespace App\Listeners;
 
-use App\Models\SaleOrder;
-use App\Enums\SaleOrder\Status;
-use App\Events\SaleOrderCompleted;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Events\NewVouchersAvailable;
+use App\Services\SaleOrderService;
 use App\Repositories\SaleOrderRepository;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Services\DigitalProductAllocationService;
@@ -17,57 +15,39 @@ class ProcessVoucherCodes implements ShouldQueue
     public function __construct(
         private SaleOrderRepository $saleOrderRepository,
         private DigitalProductAllocationService $digitalProductAllocationService,
+        private SaleOrderService $saleOrderService,
     ) {}
 
     public function handle(NewVouchersAvailable $event): void
     {
-        if ($event->saleOrderId === null) {
+        $purchaseOrderItem = $event->purchaseOrderItem;
+        $saleOrderId = $purchaseOrderItem->purchaseOrder?->sale_order_id;
+
+        if (! $saleOrderId) {
+            Log::warning('Manual Purchase Order: No associated sale order for purchase order item', [
+                'purchase_order_item_id' => $purchaseOrderItem->id,
+            ]);
+
             return;
         }
 
-        $saleOrder = $this->saleOrderRepository->getSaleOrderById($event->saleOrderId);
+        $saleOrder = $this->saleOrderRepository->getSaleOrderById($saleOrderId);
 
-        if ($saleOrder->status === Status::PROCESSING->value) {
-            $this->processSaleOrder($saleOrder, $event->digitalProductIds);
-        }
-    }
-
-    private function processSaleOrder(SaleOrder $saleOrder, array $arrivedDigitalProductIds): void
-    {
         DB::beginTransaction();
         try {
-            $fullyAllocated = true;
-
             foreach ($saleOrder->items as $item) {
-                $alreadyAllocated = $item->digitalProducts()->count();
-                $remaining = $item->quantity - $alreadyAllocated;
+                $remaining = $item->quantity - $item->digitalProducts()->count();
 
                 if ($remaining <= 0) {
                     continue;
                 }
 
-                $product = $item->product;
-                // FIXME: Digital prouct can be deleted midway while processing order.
-                $digitalProduct = $product->digitalProduct();
-
-                // Only attempt allocation for items whose product received new vouchers.
-                // Items waiting on a different batch will be handled by their own event.
-                if ($digitalProduct === null || ! in_array($digitalProduct->id, $arrivedDigitalProductIds)) {
-                    $fullyAllocated = false;
-
-                    continue;
-                }
-
-                $allocated = $this->digitalProductAllocationService->allocateFromLinkedPurchaseOrder($item, $product, $remaining, $saleOrder->id);
-
-                if ($allocated < $remaining) {
-                    $fullyAllocated = false;
-                }
+                $this->digitalProductAllocationService->allocateFromLinkedPurchaseOrder($item, $item->product, $remaining, $saleOrder->id);
             }
 
-            if ($fullyAllocated) {
-                $saleOrder->update(['status' => Status::COMPLETED->value]);
-            }
+            // Persisting the status fires SaleOrderUpdated, which dispatches the
+            // SaleOrderFulfillmentUpdated event via the DispatchSaleOrderStatusEvents listener.
+            $this->saleOrderService->updateStatus($saleOrder);
 
             DB::commit();
         } catch (\Exception $e) {
@@ -78,10 +58,6 @@ class ProcessVoucherCodes implements ShouldQueue
             ]);
 
             return;
-        }
-
-        if ($fullyAllocated) {
-            event(new SaleOrderCompleted($saleOrder));
         }
     }
 }

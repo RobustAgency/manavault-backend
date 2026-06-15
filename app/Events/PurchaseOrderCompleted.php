@@ -2,19 +2,19 @@
 
 namespace App\Events;
 
-use App\Models\PurchaseOrderItem;
+use App\Models\PurchaseOrder;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Broadcasting\InteractsWithSockets;
 
-class NewVouchersAvailable
+class PurchaseOrderCompleted
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     /**
-     * @param  PurchaseOrderItem  $purchaseOrderItem  The purchase order that added the new vouchers
+     * Create a new event instance.
      */
     public function __construct(
-        public readonly PurchaseOrderItem $purchaseOrderItem,
+        public PurchaseOrder $purchaseOrder
     ) {}
 }
