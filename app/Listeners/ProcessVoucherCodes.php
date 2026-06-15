@@ -47,6 +47,7 @@ class ProcessVoucherCodes implements ShouldQueue
                 }
 
                 $product = $item->product;
+                // FIXME: Digital prouct can be deleted midway while processing order.
                 $digitalProduct = $product->digitalProduct();
 
                 // Only attempt allocation for items whose product received new vouchers.
