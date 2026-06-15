@@ -3,6 +3,7 @@
 namespace App\Integrations;
 
 use App\Models\Voucher;
+use Illuminate\Support\Carbon;
 use App\Enums\VoucherCodeStatus;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Support\Facades\Log;
@@ -88,24 +89,19 @@ class Irewardify implements SupplierIntegrationContract
         $vouchers = [];
 
         foreach ($deliveryItems as $deliveryItem) {
-            $codes = collect($deliveryItem['Codes'] ?? [])->pluck('Value', 'Label');
+            $voucher = $this->extractVoucher($deliveryItem);
 
-            $cardCode = $codes->get('Code');
-
-            if (! $cardCode) {
+            if ($voucher['code'] === null) {
                 Log::warning('Irewardify updateOrder delivery item missing code', [
                     'purchase_order_item_id' => $item->id,
                     'transaction_id' => $item->transaction_id,
-                    'delivery_item_id' => $deliveryItem['Id'] ?? null,
+                    'delivery_item_id' => $deliveryItem['Id'] ?? $deliveryItem['id'] ?? null,
                 ]);
 
                 return;
             }
 
-            $vouchers[] = [
-                'code' => $cardCode,
-                'pin' => $codes->get('PIN'),
-            ];
+            $vouchers[] = $voucher;
         }
 
         $purchaseOrder = $item->purchaseOrder;
@@ -117,12 +113,43 @@ class Irewardify implements SupplierIntegrationContract
                 'code' => $this->voucherCipherService->encryptCode($voucher['code']),
                 'serial_number' => null,
                 'pin_code' => $voucher['pin'] !== null ? (string) $voucher['pin'] : null,
-                'expires_at' => null,
+                'expires_at' => $voucher['expires_at'],
                 'status' => VoucherCodeStatus::AVAILABLE->value,
             ]);
         }
 
         $item->update(['status' => PurchaseOrderItemStatus::FULFILLED]);
+    }
+
+    /**
+     * Normalize a delivery item into a voucher payload.
+     *
+     * Irewardify returns two delivery shapes:
+     *  - cardCode/pin/expirationDate keys directly on the item
+     *  - a Codes array of Label/Value pairs (Code, PIN)
+     *
+     * @param  array<string, mixed>  $deliveryItem
+     * @return array{code: ?string, pin: ?string, expires_at: ?\Illuminate\Support\Carbon}
+     */
+    private function extractVoucher(array $deliveryItem): array
+    {
+        if (isset($deliveryItem['cardCode'])) {
+            return [
+                'code' => $deliveryItem['cardCode'],
+                'pin' => $deliveryItem['pin'] ?? null,
+                'expires_at' => isset($deliveryItem['expirationDate'])
+                    ? Carbon::parse($deliveryItem['expirationDate'])
+                    : null,
+            ];
+        }
+
+        $codes = collect((array) ($deliveryItem['Codes'] ?? []))->pluck('Value', 'Label');
+
+        return [
+            'code' => $codes->get('Code'),
+            'pin' => $codes->get('PIN'),
+            'expires_at' => null,
+        ];
     }
 
     public function syncProducts(): void

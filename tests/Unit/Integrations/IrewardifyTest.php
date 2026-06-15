@@ -204,7 +204,6 @@ class IrewardifyTest extends TestCase
             'purchase_order_id' => $this->purchaseOrder->id,
             'purchase_order_item_id' => $this->item->id,
             'pin_code' => '8755',
-            'stock_id' => '3581165-1',
             'status' => 'available',
         ]);
         $this->assertEquals(PurchaseOrderItemStatus::FULFILLED, $this->item->fresh()->status);
@@ -220,6 +219,38 @@ class IrewardifyTest extends TestCase
 
         $voucher = Voucher::query()->sole();
         $this->assertEquals('2370968749009790', app(VoucherCipherService::class)->decryptCode($voucher->code));
+    }
+
+    public function test_update_order_stores_voucher_from_card_code_delivery_shape(): void
+    {
+        $this->item->update(['transaction_id' => 'IRW-ORDER-001', 'status' => PurchaseOrderItemStatus::PROCESSING->value]);
+
+        Http::fake($this->getOrderDeliveryResponse('IRW-ORDER-001', [
+            [
+                'no' => 1,
+                'Brand' => 'Apple Gift Card US',
+                'Denom' => '$2.00',
+                'id' => 83008535,
+                'cardCode' => 'fe539981833a48ee8dc198702ed75ebd',
+                'pin' => '549',
+                'expirationDate' => '2027-06-15T07:51:21.5497763',
+            ],
+        ]));
+
+        app(Irewardify::class)->updateOrder($this->item->fresh());
+
+        $this->assertDatabaseCount('vouchers', 1);
+        $this->assertDatabaseHas('vouchers', [
+            'purchase_order_id' => $this->purchaseOrder->id,
+            'purchase_order_item_id' => $this->item->id,
+            'pin_code' => '549',
+            'status' => 'available',
+        ]);
+
+        $voucher = Voucher::query()->sole();
+        $this->assertEquals('fe539981833a48ee8dc198702ed75ebd', app(VoucherCipherService::class)->decryptCode($voucher->code));
+        $this->assertEquals('2027-06-15 07:51:21', $voucher->expires_at->format('Y-m-d H:i:s'));
+        $this->assertEquals(PurchaseOrderItemStatus::FULFILLED, $this->item->fresh()->status);
     }
 
     public function test_update_order_does_not_store_vouchers_when_delivery_item_has_no_code(): void

@@ -40,6 +40,7 @@ class DigitalProductTest extends TestCase
             'cost_price' => 50.00,
             'face_value' => 100.00,
             'selling_price' => 75.00,
+            'cost_price_discount' => null,
         ]);
 
         $expectedDiscount = round((($digitalProduct->face_value - $digitalProduct->cost_price) / $digitalProduct->face_value) * 100, 2);
