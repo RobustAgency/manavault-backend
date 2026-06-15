@@ -2,10 +2,10 @@
 
 namespace App\Listeners;
 
+use App\Services\SaleOrderService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Events\NewVouchersAvailable;
-use App\Services\SaleOrderService;
 use App\Repositories\SaleOrderRepository;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Services\DigitalProductAllocationService;

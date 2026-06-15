@@ -12,10 +12,10 @@ use App\Models\DigitalProduct;
 use App\Enums\SaleOrder\Status;
 use App\Enums\VoucherCodeStatus;
 use App\Models\PurchaseOrderItem;
-use App\Events\SaleOrderFulfillmentUpdated;
 use App\Services\SaleOrderService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Event;
+use App\Events\SaleOrderFulfillmentUpdated;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class SaleOrderServiceTest extends TestCase
