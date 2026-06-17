@@ -24,6 +24,14 @@ class Gift2Games implements SupplierIntegrationContract
 
     public function placeOrder(PurchaseOrderItem $item): void
     {
+        if ($item->transaction_id) {
+            Log::warning('EzCards placeOrder called for PurchaseOrderItem with existing transaction_id', [
+                'purchase_order_item_id' => $item->id,
+                'transaction_id' => $item->transaction_id,
+            ]);
+
+            return;
+        }
         $batchNumber = 'batch_'.$item->id;
 
         for ($i = 0; $i < $item->quantity; $i++) {
