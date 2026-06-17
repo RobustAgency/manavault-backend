@@ -7,7 +7,7 @@ use App\Models\User;
 use App\Models\Product;
 use App\Models\SaleOrder;
 use App\Models\SaleOrderItem;
-use App\Enums\SaleOrder\Status;
+use App\Enums\SaleOrderStatus;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -87,19 +87,19 @@ class SaleOrderControllerTest extends TestCase
 
     public function test_admin_can_filter_sale_orders_by_status(): void
     {
-        SaleOrder::factory()->create(['status' => Status::PENDING->value]);
-        SaleOrder::factory()->create(['status' => Status::COMPLETED->value]);
-        SaleOrder::factory()->count(2)->create(['status' => Status::PENDING->value]);
+        SaleOrder::factory()->create(['status' => SaleOrderStatus::PENDING->value]);
+        SaleOrder::factory()->create(['status' => SaleOrderStatus::COMPLETED->value]);
+        SaleOrder::factory()->count(2)->create(['status' => SaleOrderStatus::PENDING->value]);
 
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/sale-orders?status='.Status::PENDING->value);
+        $response = $this->getJson('/api/sale-orders?status='.SaleOrderStatus::PENDING->value);
 
         $response->assertStatus(200);
         $data = $response->json('data');
 
         $this->assertCount(3, $data['data']);
         $this->assertTrue(
-            collect($data['data'])->every(fn ($order) => $order['status'] === Status::PENDING->value)
+            collect($data['data'])->every(fn ($order) => $order['status'] === SaleOrderStatus::PENDING->value)
         );
     }
 
@@ -210,28 +210,28 @@ class SaleOrderControllerTest extends TestCase
     {
         SaleOrder::factory()->create([
             'order_number' => 'SO-2026-000001',
-            'status' => Status::PENDING->value,
+            'status' => SaleOrderStatus::PENDING->value,
             'source' => 'manastore',
         ]);
         SaleOrder::factory()->create([
             'order_number' => 'SO-2026-000002',
-            'status' => Status::COMPLETED->value,
+            'status' => SaleOrderStatus::COMPLETED->value,
             'source' => 'manastore',
         ]);
         SaleOrder::factory()->create([
             'order_number' => 'SO-2026-000003',
-            'status' => Status::PENDING->value,
+            'status' => SaleOrderStatus::PENDING->value,
             'source' => 'manastore',
         ]);
 
         $this->actingAs($this->admin);
-        $response = $this->getJson('/api/sale-orders?order_number=000001&status='.Status::PENDING->value);
+        $response = $this->getJson('/api/sale-orders?order_number=000001&status='.SaleOrderStatus::PENDING->value);
 
         $response->assertStatus(200);
         $data = $response->json('data');
 
         $this->assertEquals(1, $data['total']);
         $this->assertStringContainsString('SO-2026-000001', $data['data'][0]['order_number']);
-        $this->assertEquals(Status::PENDING->value, $data['data'][0]['status']);
+        $this->assertEquals(SaleOrderStatus::PENDING->value, $data['data'][0]['status']);
     }
 }

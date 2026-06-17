@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Enums\PurchaseOrderItemStatus;
 use Illuminate\Database\Eloquent\Model;
-use App\Events\PurchaseOrderItemUpdated;
 use App\Contracts\SupplierIntegrationContract;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Services\Supplier\SupplierIntegrationResolver;
@@ -34,16 +33,6 @@ class PurchaseOrderItem extends Model
         'quantity' => 'integer',
         'unit_cost' => 'decimal:2',
         'subtotal' => 'decimal:2',
-    ];
-
-    protected $dispatchesEvents = [
-        // Both the PurchaseOrder (via PurchaseOrderCompleted) and the PurchaseOrderItem
-        // (via PurchaseOrderItemUpdated) ultimately dispatch the same NewVouchersAvailable
-        // event. We currently rely on the PurchaseOrder-completed path, so this per-item
-        // dispatch is left commented out (not removed) on purpose: the plan is to switch
-        // to this item-level event in the future instead of waiting for the whole
-        // PurchaseOrder to be marked completed.
-        // 'updated' => PurchaseOrderItemUpdated::class,
     ];
 
     /**

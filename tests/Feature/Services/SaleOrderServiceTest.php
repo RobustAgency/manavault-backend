@@ -8,8 +8,8 @@ use App\Models\Voucher;
 use App\Models\Supplier;
 use App\Models\SaleOrder;
 use App\Models\PurchaseOrder;
+use App\Enums\SaleOrderStatus;
 use App\Models\DigitalProduct;
-use App\Enums\SaleOrder\Status;
 use App\Enums\VoucherCodeStatus;
 use App\Models\PurchaseOrderItem;
 use App\Services\SaleOrderService;
@@ -70,8 +70,8 @@ class SaleOrderServiceTest extends TestCase
             ],
         ]);
 
-        $this->assertEquals(Status::PROCESSING->value, $saleOrder->status);
-        $this->assertDatabaseHas('sale_orders', ['order_number' => 'SO-001', 'status' => Status::PROCESSING->value]);
+        $this->assertEquals(SaleOrderStatus::PROCESSING->value, $saleOrder->status);
+        $this->assertDatabaseHas('sale_orders', ['order_number' => 'SO-001', 'status' => SaleOrderStatus::PROCESSING->value]);
     }
 
     /**
@@ -113,7 +113,7 @@ class SaleOrderServiceTest extends TestCase
         ]);
 
         $this->assertNotNull($saleOrder->id);
-        $this->assertEquals(Status::COMPLETED->value, $saleOrder->status);
+        $this->assertEquals(SaleOrderStatus::COMPLETED->value, $saleOrder->status);
     }
 
     /**
@@ -290,7 +290,7 @@ class SaleOrderServiceTest extends TestCase
         // Assert: Sale order created with correct structure
         $this->assertNotNull($saleOrder->id);
         $this->assertEquals('SO-005', $saleOrder->order_number);
-        $this->assertEquals(Status::COMPLETED->value, $saleOrder->status);
+        $this->assertEquals(SaleOrderStatus::COMPLETED->value, $saleOrder->status);
         $this->assertEquals(SaleOrder::MANASTORE, $saleOrder->source);
         $this->assertCount(2, $saleOrder->items);
 
@@ -344,14 +344,14 @@ class SaleOrderServiceTest extends TestCase
             'order_number' => 'SO-007A',
             'items' => [['product_id' => $product->id, 'quantity' => 1]],
         ]);
-        $this->assertEquals(Status::COMPLETED->value, $saleOrder1->status);
+        $this->assertEquals(SaleOrderStatus::COMPLETED->value, $saleOrder1->status);
 
         // Act: Create second sale order requesting 2 units — only 1 remains → PROCESSING
         $saleOrder2 = $this->service->createOrder([
             'order_number' => 'SO-007B',
             'items' => [['product_id' => $product->id, 'quantity' => 2]],
         ]);
-        $this->assertEquals(Status::PROCESSING->value, $saleOrder2->status);
+        $this->assertEquals(SaleOrderStatus::PROCESSING->value, $saleOrder2->status);
 
         // The single remaining voucher must not be allocated to SO-007B (0 available after allocating 1)
         $allocatedToSo2 = $saleOrder2->items->first()->digitalProducts()->count();
@@ -501,7 +501,7 @@ class SaleOrderServiceTest extends TestCase
             'items' => [['product_id' => $product->id, 'quantity' => 3]],
         ]);
 
-        $this->assertEquals(Status::COMPLETED->value, $saleOrder->status);
+        $this->assertEquals(SaleOrderStatus::COMPLETED->value, $saleOrder->status);
         $this->assertEquals(0, PurchaseOrder::where('order_number', 'like', 'PO-%')->whereDoesntHave('items', fn ($q) => $q->where('purchase_order_id', $po->id))->count());
         Event::assertDispatched(SaleOrderFulfillmentUpdated::class);
     }
@@ -531,7 +531,7 @@ class SaleOrderServiceTest extends TestCase
             'items' => [['product_id' => $product->id, 'quantity' => 5]],
         ]);
 
-        $this->assertEquals(Status::PROCESSING->value, $saleOrder->status);
+        $this->assertEquals(SaleOrderStatus::PROCESSING->value, $saleOrder->status);
         Event::assertNotDispatched(SaleOrderFulfillmentUpdated::class);
     }
 
@@ -567,7 +567,7 @@ class SaleOrderServiceTest extends TestCase
         // A new PO was created
         $this->assertGreaterThan($purchaseOrderCount, PurchaseOrder::count());
         // placeOrder only queues batch records — vouchers come later via updateOrder
-        $this->assertEquals(Status::PROCESSING->value, $saleOrder->status);
+        $this->assertEquals(SaleOrderStatus::PROCESSING->value, $saleOrder->status);
         Event::assertNotDispatched(SaleOrderFulfillmentUpdated::class);
     }
 
@@ -615,7 +615,7 @@ class SaleOrderServiceTest extends TestCase
         // PO was created
         $this->assertGreaterThan($purchaseOrderCount, PurchaseOrder::count());
         // No vouchers yet (async) → order stays PROCESSING
-        $this->assertEquals(Status::PROCESSING->value, $saleOrder->status);
+        $this->assertEquals(SaleOrderStatus::PROCESSING->value, $saleOrder->status);
         Event::assertNotDispatched(SaleOrderFulfillmentUpdated::class);
     }
 

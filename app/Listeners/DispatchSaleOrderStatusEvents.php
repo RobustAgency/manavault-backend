@@ -2,7 +2,7 @@
 
 namespace App\Listeners;
 
-use App\Enums\SaleOrder\Status;
+use App\Enums\SaleOrderStatus;
 use App\Events\SaleOrderUpdated;
 use App\Events\SaleOrderFulfillmentUpdated;
 
@@ -20,7 +20,7 @@ class DispatchSaleOrderStatusEvents
         }
 
         // Only fulfillment statuses have an outbound webhook; ignore the rest.
-        if (Status::from($saleOrder->status)->webhookEvent() === null) {
+        if (SaleOrderStatus::from($saleOrder->status)->webhookEvent() === null) {
             return;
         }
 

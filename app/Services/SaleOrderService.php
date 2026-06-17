@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Models\SaleOrder;
 use App\Models\SaleOrderItem;
-use App\Enums\SaleOrder\Status;
+use App\Enums\SaleOrderStatus;
 use Illuminate\Support\Facades\DB;
 use App\Repositories\ProductRepository;
 use App\Repositories\SaleOrderRepository;
@@ -25,7 +25,7 @@ class SaleOrderService
                 'order_number' => $data['order_number'],
                 'source' => SaleOrder::MANASTORE,
                 'total_price' => 0,
-                'status' => Status::PENDING->value,
+                'status' => SaleOrderStatus::PENDING->value,
             ]);
 
             logger()->info("Creating sale order with ID: {$saleOrder->id} and order number: {$saleOrder->order_number}");
@@ -33,7 +33,7 @@ class SaleOrderService
             $totalPrice = 0;
             $shortfalls = [];
 
-            $saleOrder->update(['status' => Status::PROCESSING->value]);
+            $saleOrder->update(['status' => SaleOrderStatus::PROCESSING->value]);
 
             logger()->info("Processing sale order ID: {$saleOrder->id} with status set to PROCESSING");
 
@@ -89,7 +89,7 @@ class SaleOrderService
     /**
      * Resolve the sale order status from allocations and persist it.
      */
-    public function updateStatus(SaleOrder $saleOrder): Status
+    public function updateStatus(SaleOrder $saleOrder): SaleOrderStatus
     {
         $status = $this->resolveStatus($saleOrder);
 
@@ -106,7 +106,7 @@ class SaleOrderService
      * is fully allocated, PARTIALLY_FULFILLED while at least one item is, and
      * otherwise left PROCESSING (awaiting more stock).
      */
-    public function resolveStatus(SaleOrder $saleOrder): Status
+    public function resolveStatus(SaleOrder $saleOrder): SaleOrderStatus
     {
         $saleOrder->load('items.digitalProducts');
 
@@ -116,13 +116,13 @@ class SaleOrderService
         );
 
         if ($fullyAllocated->count() === $items->count()) {
-            return Status::COMPLETED;
+            return SaleOrderStatus::COMPLETED;
         }
 
         if ($fullyAllocated->isNotEmpty()) {
-            return Status::PARTIALLY_FULFILLED;
+            return SaleOrderStatus::PARTIALLY_FULFILLED;
         }
 
-        return Status::PROCESSING;
+        return SaleOrderStatus::PROCESSING;
     }
 }

@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Enums\SaleOrder;
+namespace App\Enums;
 
-enum Status: string
+enum SaleOrderStatus: string
 {
     case PENDING = 'pending';
     case PROCESSING = 'processing';
