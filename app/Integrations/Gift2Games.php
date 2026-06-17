@@ -25,7 +25,8 @@ class Gift2Games implements SupplierIntegrationContract
     public function placeOrder(PurchaseOrderItem $item): void
     {
         if ($item->transaction_id) {
-            Log::warning('EzCards placeOrder called for PurchaseOrderItem with existing transaction_id', [
+            Log::warning('Gift2Games placeOrder called for PurchaseOrderItem with existing transaction_id', [
+                'supplier' => $this->supplierSlug,
                 'purchase_order_item_id' => $item->id,
                 'transaction_id' => $item->transaction_id,
             ]);
