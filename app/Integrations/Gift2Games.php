@@ -55,6 +55,13 @@ class Gift2Games implements SupplierIntegrationContract
             ->where('status', '!=', Gift2GamesOrderStatus::FULFILLED)
             ->get();
 
+        Log::info('Gift2Games updateOrder: started', [
+            'supplier_slug' => $this->supplierSlug,
+            'purchase_order_item_id' => $item->id,
+            'batch_number' => $batchNumber,
+            'pending_orders' => $pendingOrders->count(),
+        ]);
+
         $orderData = [
             'productId' => (int) $item->digitalProduct->sku,
             'referenceNumber' => 'order_item_id_'.$item->id,
@@ -103,6 +110,13 @@ class Gift2Games implements SupplierIntegrationContract
         if (! $hasPending) {
             $item->update(['status' => PurchaseOrderItemStatus::FULFILLED]);
         }
+
+        Log::info('Gift2Games updateOrder: finished', [
+            'purchase_order_item_id' => $item->id,
+            'batch_number' => $batchNumber,
+            'has_pending' => $hasPending,
+            'item_status' => $item->status->value,
+        ]);
     }
 
     public function syncProducts(): void
