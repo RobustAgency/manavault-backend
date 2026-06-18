@@ -51,8 +51,7 @@ class Product extends Model
         return $this->belongsToMany(DigitalProduct::class, 'product_supplier')
             ->using(ProductSupplier::class)
             ->withPivot('priority')
-            ->where('digital_products.is_active', true)
-            ->where('digital_products.in_stock', true);
+            ->where('digital_products.is_active', true);
     }
 
     public function digitalProduct(): ?DigitalProduct
