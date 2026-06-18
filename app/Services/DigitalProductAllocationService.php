@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Product;
 use App\Models\Voucher;
 use App\Models\SaleOrderItem;
 use App\Models\DigitalProduct;
@@ -18,9 +17,8 @@ class DigitalProductAllocationService
      * Allocate vouchers from general stock (purchase orders with no sale order attached).
      * Returns the number of vouchers actually allocated (may be < $quantity).
      */
-    public function allocateFromGeneralStock(SaleOrderItem $item, Product $product, int $quantity): int
+    public function allocateFromGeneralStock(SaleOrderItem $item, ?DigitalProduct $digitalProduct, int $quantity): int
     {
-        $digitalProduct = $product->digitalProduct();
         if ($digitalProduct === null) {
             return 0;
         }
@@ -33,10 +31,12 @@ class DigitalProductAllocationService
     /**
      * Allocate vouchers from a purchase order linked to a specific sale order.
      * Returns the number of vouchers actually allocated (may be < $quantity).
+     *
+     * The digital product is the one selected for the item at order creation time, not a
+     * live resolution of the Product → DigitalProduct association (which is mutable).
      */
-    public function allocateFromLinkedPurchaseOrder(SaleOrderItem $item, Product $product, int $quantity, int $saleOrderId): int
+    public function allocateFromLinkedPurchaseOrder(SaleOrderItem $item, ?DigitalProduct $digitalProduct, int $quantity, int $saleOrderId): int
     {
-        $digitalProduct = $product->digitalProduct();
         if ($digitalProduct === null) {
             return 0;
         }
