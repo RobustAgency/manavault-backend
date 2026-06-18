@@ -17,12 +17,8 @@ class DigitalProductAllocationService
      * Allocate vouchers from general stock (purchase orders with no sale order attached).
      * Returns the number of vouchers actually allocated (may be < $quantity).
      */
-    public function allocateFromGeneralStock(SaleOrderItem $item, ?DigitalProduct $digitalProduct, int $quantity): int
+    public function allocateFromGeneralStock(SaleOrderItem $item, DigitalProduct $digitalProduct, int $quantity): int
     {
-        if ($digitalProduct === null) {
-            return 0;
-        }
-
         $vouchers = $this->voucherAllocationService->getAvailableVouchers($digitalProduct->id);
 
         return $this->performAllocation($item, $digitalProduct, $vouchers, $quantity);
@@ -35,12 +31,8 @@ class DigitalProductAllocationService
      * The digital product is the one selected for the item at order creation time, not a
      * live resolution of the Product → DigitalProduct association (which is mutable).
      */
-    public function allocateFromLinkedPurchaseOrder(SaleOrderItem $item, ?DigitalProduct $digitalProduct, int $quantity, int $saleOrderId): int
+    public function allocateFromLinkedPurchaseOrder(SaleOrderItem $item, DigitalProduct $digitalProduct, int $quantity, int $saleOrderId): int
     {
-        if ($digitalProduct === null) {
-            return 0;
-        }
-
         $vouchers = $this->voucherAllocationService->getAvailableVouchersForSaleOrder($digitalProduct->id, $saleOrderId);
 
         return $this->performAllocation($item, $digitalProduct, $vouchers, $quantity);
