@@ -46,9 +46,8 @@ class ProcessVoucherCodes implements ShouldQueue
                     continue;
                 }
 
-                $product = $item->product;
-                // FIXME: Digital prouct can be deleted midway while processing order.
-                $digitalProduct = $product->digitalProduct();
+                // Use the digital product selected for this item at order creation time
+                $digitalProduct = $item->selectedDigitalProduct;
 
                 // Only attempt allocation for items whose product received new vouchers.
                 // Items waiting on a different batch will be handled by their own event.
@@ -58,7 +57,7 @@ class ProcessVoucherCodes implements ShouldQueue
                     continue;
                 }
 
-                $allocated = $this->digitalProductAllocationService->allocateFromLinkedPurchaseOrder($item, $product, $remaining, $saleOrder->id);
+                $allocated = $this->digitalProductAllocationService->allocateFromLinkedPurchaseOrder($item, $digitalProduct, $remaining, $saleOrder->id);
 
                 if ($allocated < $remaining) {
                     $fullyAllocated = false;
