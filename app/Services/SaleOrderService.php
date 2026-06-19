@@ -44,19 +44,23 @@ class SaleOrderService
                 $unitPrice = $product->selling_price;
                 $subtotal = $quantity * $unitPrice; // FIXME: Use money package here.
 
+                // Resolve the supplier digital product once and persist it on the item
+                $digitalProduct = $product->digitalProduct();
+
                 $item = $saleOrder->items()->create([
                     'product_id' => $product->id,
+                    'digital_product_id' => $digitalProduct->id,
                     'quantity' => $quantity,
                     'unit_price' => $unitPrice,
                     'subtotal' => $subtotal,
                 ]);
 
-                $allocated = $this->digitalProductAllocationService->allocateFromGeneralStock($item, $product, $quantity);
+                $allocated = $this->digitalProductAllocationService->allocateFromGeneralStock($item, $digitalProduct, $quantity);
 
                 if ($allocated < $quantity) {
                     $shortfalls[] = [
                         'item' => $item,
-                        'product' => $product,
+                        'digitalProduct' => $digitalProduct,
                         'remaining' => $quantity - $allocated,
                     ];
                 }
@@ -65,8 +69,7 @@ class SaleOrderService
             }
 
             // Create auto-POs for remaining shortfalls after exhausting general stock.
-            foreach ($shortfalls as ['product' => $product, 'remaining' => $remaining]) {
-                $digitalProduct = $product->digitalProduct();
+            foreach ($shortfalls as ['digitalProduct' => $digitalProduct, 'remaining' => $remaining]) {
                 if ($digitalProduct !== null) {
                     $this->autoPurchaseOrderService->handleShortfall($digitalProduct, $remaining, $saleOrder->id);
                 }
