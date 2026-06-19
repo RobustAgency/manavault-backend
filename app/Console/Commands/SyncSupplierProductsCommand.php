@@ -29,13 +29,13 @@ class SyncSupplierProductsCommand extends Command
                 continue;
             }
 
-            $this->info("Syncing products for: {$supplier->slug}");
+            logger()->info("Syncing products for supplier: {$supplier->slug}");
 
             try {
                 $supplierIntegration->syncProducts();
-                $this->info("Done: {$supplier->slug}");
+                logger()->info("Done syncing products for supplier: {$supplier->slug}");
             } catch (\Throwable $e) {
-                $this->error("Failed [{$supplier->slug}]: {$e->getMessage()}");
+                logger()->error("Failed syncing products for supplier [{$supplier->slug}]: {$e->getMessage()}");
             }
         }
 

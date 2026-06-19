@@ -40,10 +40,7 @@ class PlacePendingPurchaseOrders
                 PlaceExternalPurchaseOrderJob::dispatch(
                     $purchaseOrder,
                     $supplier,
-                    $purchaseOrderSupplier,
                     $items,
-                    $purchaseOrder->order_number,
-                    $purchaseOrder->currency,
                 );
 
                 Log::info('PlacePendingPurchaseOrders: dispatched job', [
