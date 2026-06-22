@@ -3,6 +3,7 @@
 namespace App\Actions\SaleOrder;
 
 use App\Models\SaleOrder;
+use App\Enums\SupplierType;
 use App\Models\SaleOrderItem;
 use App\Models\DigitalProduct;
 use App\Enums\SaleOrder\Status;
@@ -40,7 +41,7 @@ class FulfillProcessingSaleOrders
     {
         $query = SaleOrder::query()
             ->where('status', Status::PROCESSING->value)
-            ->with(['items.product', 'items.selectedDigitalProduct', 'items.digitalProducts', 'purchaseOrders.items']);
+            ->with(['items.product', 'items.selectedDigitalProduct.supplier', 'items.digitalProducts', 'purchaseOrders.items']);
 
         if ($saleOrderId !== null) {
             $query->where('id', $saleOrderId);
@@ -103,6 +104,13 @@ class FulfillProcessingSaleOrders
             }
 
             foreach ($shortfalls as ['digitalProduct' => $digitalProduct, 'remaining' => $remaining]) {
+                // Only external suppliers can be auto-ordered. Internal stock is added
+                // manually, so raising a purchase order would never place or fulfil an
+                // order — leave those items PROCESSING for a manual restock instead.
+                if (! $this->isExternalSupplier($digitalProduct)) {
+                    continue;
+                }
+
                 // Idempotency: never raise a second purchase order for a shortfall that an
                 // existing, non-failed linked purchase order already covers.
                 if ($this->hasOpenLinkedPurchaseOrder($saleOrder, $digitalProduct->id)) {
@@ -163,6 +171,11 @@ class FulfillProcessingSaleOrders
         }
 
         return $digitalProduct;
+    }
+
+    private function isExternalSupplier(DigitalProduct $digitalProduct): bool
+    {
+        return $digitalProduct->supplier?->type === SupplierType::EXTERNAL->value;
     }
 
     private function hasOpenLinkedPurchaseOrder(SaleOrder $saleOrder, int $digitalProductId): bool

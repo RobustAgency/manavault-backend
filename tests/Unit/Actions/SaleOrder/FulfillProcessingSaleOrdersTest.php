@@ -83,7 +83,7 @@ class FulfillProcessingSaleOrdersTest extends TestCase
     {
         Queue::fake();
 
-        $supplier = Supplier::factory()->create(['type' => 'internal']);
+        $supplier = Supplier::factory()->create(['slug' => 'ez_cards', 'type' => 'external']);
         [$product, $digitalProduct] = $this->makeProductWithDigitalProduct($supplier);
         $this->addGeneralStock($digitalProduct, 2); // only 2 of the 5 needed
 
@@ -100,12 +100,37 @@ class FulfillProcessingSaleOrdersTest extends TestCase
         $this->assertEquals(3, $linkedPo->items->first()->quantity, 'PO covers only the remaining shortfall');
     }
 
+    public function test_internal_supplier_shortfall_creates_no_purchase_order(): void
+    {
+        Event::fake([SaleOrderCompleted::class]);
+
+        $supplier = Supplier::factory()->create(['type' => 'internal']);
+        [$product, $digitalProduct] = $this->makeProductWithDigitalProduct($supplier);
+        // No general stock → full shortfall, but the supplier is internal.
+
+        $saleOrder = $this->makeProcessingOrder($product, quantity: 2, digitalProductId: null);
+
+        $this->action->execute();
+
+        $saleOrder->refresh();
+
+        $this->assertEquals(Status::PROCESSING->value, $saleOrder->status);
+        $this->assertEquals(
+            0,
+            PurchaseOrder::where('sale_order_id', $saleOrder->id)->count(),
+            'internal supplier shortfalls must not raise a purchase order'
+        );
+        // The digital product is still backfilled even though no PO is raised.
+        $this->assertEquals($digitalProduct->id, $saleOrder->items->first()->digital_product_id);
+        Event::assertNotDispatched(SaleOrderCompleted::class);
+    }
+
     public function test_running_twice_does_not_create_duplicate_purchase_orders(): void
     {
         Queue::fake();
 
         $supplier = Supplier::factory()->create(['slug' => 'ez_cards', 'type' => 'external']);
-        [$product, $digitalProduct] = $this->makeProductWithDigitalProduct($supplier);
+        [$product] = $this->makeProductWithDigitalProduct($supplier);
 
         $saleOrder = $this->makeProcessingOrder($product, quantity: 2, digitalProductId: null);
 

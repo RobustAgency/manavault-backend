@@ -9,7 +9,7 @@ use App\Actions\SaleOrder\FulfillProcessingSaleOrders;
 class FulfillProcessingSaleOrdersCommand extends Command
 {
     protected $signature = 'sale-order:fulfill-processing
-                            {--id= : Process a single sale order by ID}
+                            {sale_order_id : The ID of the PROCESSING sale order to fulfil}
                             {--dry-run : Report what would happen without writing any changes}';
 
     protected $description = 'Replay fulfillment for PROCESSING sale orders: allocate from general stock, then create linked purchase orders for any remaining shortfall.';
@@ -17,7 +17,7 @@ class FulfillProcessingSaleOrdersCommand extends Command
     public function handle(FulfillProcessingSaleOrders $action): int
     {
         $dryRun = (bool) $this->option('dry-run');
-        $saleOrderId = $this->option('id') !== null ? (int) $this->option('id') : null;
+        $saleOrderId = (int) $this->argument('sale_order_id');
 
         if ($dryRun) {
             $this->warn('DRY RUN — no changes will be persisted.');
@@ -31,7 +31,7 @@ class FulfillProcessingSaleOrdersCommand extends Command
         $summary = $action->execute($dryRun, $saleOrderId);
 
         if (empty($summary)) {
-            $this->info('No processing sale orders found.');
+            $this->info("Sale order #{$saleOrderId} is not in PROCESSING state (or does not exist).");
 
             return Command::SUCCESS;
         }
