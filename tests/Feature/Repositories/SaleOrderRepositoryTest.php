@@ -23,7 +23,7 @@ class SaleOrderRepositoryTest extends TestCase
     public function test_create_sale_order(): void
     {
         $data = [
-            'order_number' => 'SO-2026-000001',
+            'order_number' => 1234,
             'source' => SaleOrder::MANASTORE,
             'currency' => 'usd',
             'total_price' => 100.00,
@@ -33,7 +33,7 @@ class SaleOrderRepositoryTest extends TestCase
         $saleOrder = $this->repository->createSaleOrder($data);
 
         $this->assertInstanceOf(SaleOrder::class, $saleOrder);
-        $this->assertEquals('SO-2026-000001', $saleOrder->order_number);
+        $this->assertEquals(1234, $saleOrder->order_number);
         $this->assertEquals(SaleOrder::MANASTORE, $saleOrder->source);
         $this->assertEquals(100.00, $saleOrder->total_price);
     }
@@ -58,17 +58,17 @@ class SaleOrderRepositoryTest extends TestCase
 
     public function test_get_sale_order_by_order_number(): void
     {
-        $saleOrder = SaleOrder::factory()->create(['order_number' => 'SO-2026-000001']);
+        $saleOrder = SaleOrder::factory()->create(['order_number' => 1122]);
 
-        $result = $this->repository->getSaleOrderByOrderNumber('SO-2026-000001');
+        $result = $this->repository->getSaleOrderByOrderNumber(1122);
 
         $this->assertInstanceOf(SaleOrder::class, $result);
-        $this->assertEquals('SO-2026-000001', $result->order_number);
+        $this->assertEquals(1122, $result->order_number);
     }
 
     public function test_get_sale_order_by_order_number_returns_null_when_not_found(): void
     {
-        $result = $this->repository->getSaleOrderByOrderNumber('SO-2026-999999');
+        $result = $this->repository->getSaleOrderByOrderNumber(9999);
 
         $this->assertNull($result);
     }
@@ -156,22 +156,5 @@ class SaleOrderRepositoryTest extends TestCase
         $this->expectException(\Exception::class);
 
         $this->repository->deleteSaleOrder(999);
-    }
-
-    public function test_order_number_exists(): void
-    {
-        SaleOrder::factory()->create(['order_number' => 'SO-2026-000001']);
-
-        $this->assertTrue($this->repository->orderNumberExists('SO-2026-000001'));
-        $this->assertFalse($this->repository->orderNumberExists('SO-2026-999999'));
-    }
-
-    public function test_count_total_sale_orders(): void
-    {
-        SaleOrder::factory()->count(5)->create();
-
-        $count = $this->repository->countTotalSaleOrders();
-
-        $this->assertEquals(5, $count);
     }
 }

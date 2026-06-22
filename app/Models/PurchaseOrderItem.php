@@ -2,8 +2,12 @@
 
 namespace App\Models;
 
+use App\Enums\PurchaseOrderItemStatus;
 use Illuminate\Database\Eloquent\Model;
+use App\Events\PurchaseOrderItemUpdated;
+use App\Contracts\SupplierIntegrationContract;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Services\Supplier\SupplierIntegrationResolver;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class PurchaseOrderItem extends Model
@@ -21,12 +25,19 @@ class PurchaseOrderItem extends Model
         'quantity',
         'unit_cost',
         'subtotal',
+        'transaction_id',
+        'status',
     ];
 
     protected $casts = [
+        'status' => PurchaseOrderItemStatus::class,
         'quantity' => 'integer',
         'unit_cost' => 'decimal:2',
         'subtotal' => 'decimal:2',
+    ];
+
+    protected $dispatchesEvents = [
+        'updated' => PurchaseOrderItemUpdated::class,
     ];
 
     /**
@@ -43,5 +54,12 @@ class PurchaseOrderItem extends Model
     public function digitalProduct(): BelongsTo
     {
         return $this->belongsTo(DigitalProduct::class);
+    }
+
+    public function getSupplier(): ?SupplierIntegrationContract
+    {
+        $supplier = Supplier::find($this->supplier_id);
+
+        return app(SupplierIntegrationResolver::class)->resolve($supplier);
     }
 }

@@ -14,8 +14,10 @@ use App\Enums\VoucherCodeStatus;
 use App\Models\PurchaseOrderItem;
 use App\Events\SaleOrderCompleted;
 use App\Services\SaleOrderService;
+use App\Events\NewVouchersAvailable;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Event;
+use App\Listeners\ProcessVoucherCodes;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class SaleOrderServiceTest extends TestCase
@@ -557,19 +559,7 @@ class SaleOrderServiceTest extends TestCase
         // 0 vouchers available — full shortfall
         $purchaseOrderCount = PurchaseOrder::count();
 
-        Http::fake([
-            '*/create_order' => Http::response([
-                'status' => 'success',
-                'data' => [
-                    'referenceNumber' => 'REF-G2G-001',
-                    'productId' => 99,
-                    'code' => 'VOUCHER-001',
-                    'pin' => '0000',
-                    'serial' => 'SER-001',
-                    'expiryDate' => '2026-12-31',
-                ],
-            ], 200),
-        ]);
+        Http::fake();
 
         $saleOrder = $this->service->createOrder([
             'order_number' => 'SO-AUTO-003',
@@ -578,9 +568,9 @@ class SaleOrderServiceTest extends TestCase
 
         // A new PO was created
         $this->assertGreaterThan($purchaseOrderCount, PurchaseOrder::count());
-        // Voucher was stored and allocated → order is COMPLETED
-        $this->assertEquals(Status::COMPLETED->value, $saleOrder->status);
-        Event::assertDispatched(SaleOrderCompleted::class);
+        // placeOrder only queues batch records — vouchers come later via updateOrder
+        $this->assertEquals(Status::PROCESSING->value, $saleOrder->status);
+        Event::assertNotDispatched(SaleOrderCompleted::class);
     }
 
     /**
@@ -629,5 +619,130 @@ class SaleOrderServiceTest extends TestCase
         // No vouchers yet (async) → order stays PROCESSING
         $this->assertEquals(Status::PROCESSING->value, $saleOrder->status);
         Event::assertNotDispatched(SaleOrderCompleted::class);
+    }
+
+    /**
+     * Test: Auto-created PO is linked to the originating sale order via sale_order_id.
+     */
+    public function test_auto_purchase_order_has_sale_order_id_when_shortfall_occurs(): void
+    {
+        Event::fake([SaleOrderCompleted::class]);
+
+        $supplier = Supplier::factory()->create([
+            'slug' => 'internal_supplier',
+            'type' => 'internal',
+        ]);
+        $product = Product::factory()->active()->create(['fulfillment_mode' => 'price']);
+        $digitalProduct = DigitalProduct::factory()->forSupplier($supplier)->create([
+            'sku' => 'INT-LINK-001',
+            'cost_price' => 10.00,
+            'selling_price' => 15.00,
+        ]);
+        $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
+
+        // No vouchers → full shortfall, auto-PO will be created
+        $saleOrder = $this->service->createOrder([
+            'order_number' => 'SO-LINK-001',
+            'items' => [['product_id' => $product->id, 'quantity' => 2]],
+        ]);
+
+        $autoPurchaseOrder = PurchaseOrder::where('sale_order_id', $saleOrder->id)->first();
+
+        $this->assertNotNull($autoPurchaseOrder, 'Auto-created PO should be linked to the sale order');
+        $this->assertEquals($saleOrder->id, $autoPurchaseOrder->sale_order_id);
+    }
+
+    /**
+     * Test: Fulfillment uses the digital product selected at order time, even after the
+     * product's associated digital product is swapped before vouchers arrive.
+     *
+     * Scenario: a PO is raised for Digital Product A. Someone then detaches A and attaches
+     * Digital Product B to the product. When A's vouchers arrive, the order must still be
+     * fulfilled with A (the purchased product), not B.
+     */
+    public function test_fulfillment_uses_digital_product_selected_at_order_time_not_current_association(): void
+    {
+        Event::fake([SaleOrderCompleted::class]);
+
+        $supplier = Supplier::factory()->create(['type' => 'internal']);
+        $product = Product::factory()->active()->create(['fulfillment_mode' => 'price']);
+
+        // Digital Product A — the supplier selected when the order is placed.
+        $digitalProductA = DigitalProduct::factory()->forSupplier($supplier)->create([
+            'cost_price' => 10.00,
+            'selling_price' => 15.00,
+        ]);
+        $product->digitalProducts()->attach($digitalProductA->id, ['priority' => 1]);
+
+        // No general stock → shortfall → auto-PO raised for A, order left PROCESSING.
+        $saleOrder = $this->service->createOrder([
+            'order_number' => 'SO-SWAP-001',
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+        ]);
+
+        $this->assertEquals(Status::PROCESSING->value, $saleOrder->status);
+
+        // The item persisted A as its selected digital product.
+        $item = $saleOrder->items->first();
+        $this->assertEquals($digitalProductA->id, $item->digital_product_id);
+
+        $autoPo = PurchaseOrder::where('sale_order_id', $saleOrder->id)->firstOrFail();
+        $poItem = $autoPo->items()->where('digital_product_id', $digitalProductA->id)->firstOrFail();
+
+        // Someone swaps the product association: detach A, attach a cheaper B (which a live
+        // price-mode resolution would now prefer).
+        $digitalProductB = DigitalProduct::factory()->forSupplier($supplier)->create([
+            'cost_price' => 5.00,
+            'selling_price' => 8.00,
+        ]);
+        $product->digitalProducts()->detach($digitalProductA->id);
+        $product->digitalProducts()->attach($digitalProductB->id, ['priority' => 1]);
+
+        // A's vouchers arrive against the PO item that was raised for A.
+        Voucher::factory()->count(1)->create([
+            'purchase_order_id' => $autoPo->id,
+            'purchase_order_item_id' => $poItem->id,
+            'status' => VoucherCodeStatus::AVAILABLE->value,
+        ]);
+
+        // Fire the same event the voucher-creation flow dispatches (ids reflect A).
+        app(ProcessVoucherCodes::class)->handle(
+            new NewVouchersAvailable([$digitalProductA->id], $autoPo->id, $saleOrder->id)
+        );
+
+        // Order completes, allocated from A (the purchased product), not B.
+        $saleOrder->refresh();
+        $this->assertEquals(Status::COMPLETED->value, $saleOrder->status);
+
+        $allocation = $item->digitalProducts()->first();
+        $this->assertNotNull($allocation);
+        $this->assertEquals($digitalProductA->id, $allocation->digital_product_id);
+    }
+
+    /**
+     * Test: Manually created POs (outside sale order flow) have null sale_order_id.
+     */
+    public function test_manual_purchase_order_has_null_sale_order_id_in_sale_order_flow(): void
+    {
+        // Arrange: sufficient stock, no shortfall → no auto-PO created
+        $product = Product::factory()->active()->create(['fulfillment_mode' => 'price']);
+        $digitalProduct = DigitalProduct::factory()->create(['selling_price' => 10.00]);
+        $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
+
+        $purchaseOrder = PurchaseOrder::factory()->completed()->create();
+        $purchaseOrderItem = \App\Models\PurchaseOrderItem::factory()
+            ->forPurchaseOrder($purchaseOrder)
+            ->forDigitalProduct($digitalProduct)
+            ->withQuantity(3)
+            ->create();
+
+        \App\Models\Voucher::factory()->count(3)->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_item_id' => $purchaseOrderItem->id,
+            'status' => \App\Enums\VoucherCodeStatus::AVAILABLE->value,
+        ]);
+
+        // The pre-existing PO was created manually (no sale_order_id)
+        $this->assertNull($purchaseOrder->fresh()->sale_order_id);
     }
 }

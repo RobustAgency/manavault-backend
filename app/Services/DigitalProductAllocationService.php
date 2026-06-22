@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
-use App\Models\Product;
+use App\Models\Voucher;
 use App\Models\SaleOrderItem;
+use App\Models\DigitalProduct;
+use Illuminate\Support\Collection;
 
 class DigitalProductAllocationService
 {
@@ -12,40 +14,44 @@ class DigitalProductAllocationService
     ) {}
 
     /**
-     * Allocate as many vouchers as possible for a sale order item.
+     * Allocate vouchers from general stock (purchase orders with no sale order attached).
      * Returns the number of vouchers actually allocated (may be < $quantity).
      */
-    public function allocate(SaleOrderItem $item, Product $product, int $quantity): int
+    public function allocateFromGeneralStock(SaleOrderItem $item, DigitalProduct $digitalProduct, int $quantity): int
     {
-        $digitalProduct = $product->digitalProduct();
+        $vouchers = $this->voucherAllocationService->getAvailableVouchers($digitalProduct->id);
 
-        if (! $digitalProduct) {
-            throw new \Exception("Product {$product->name} has no digital products assigned.");
-        }
+        return $this->performAllocation($item, $digitalProduct, $vouchers, $quantity);
+    }
 
+    /**
+     * Allocate vouchers from a purchase order linked to a specific sale order.
+     * Returns the number of vouchers actually allocated (may be < $quantity).
+     *
+     * The digital product is the one selected for the item at order creation time, not a
+     * live resolution of the Product → DigitalProduct association (which is mutable).
+     */
+    public function allocateFromLinkedPurchaseOrder(SaleOrderItem $item, DigitalProduct $digitalProduct, int $quantity, int $saleOrderId): int
+    {
+        $vouchers = $this->voucherAllocationService->getAvailableVouchersForSaleOrder($digitalProduct->id, $saleOrderId);
+
+        return $this->performAllocation($item, $digitalProduct, $vouchers, $quantity);
+    }
+
+    /**
+     * @param  Collection<int, Voucher>  $vouchers
+     */
+    private function performAllocation(SaleOrderItem $item, DigitalProduct $digitalProduct, Collection $vouchers, int $quantity): int
+    {
         $remaining = $quantity;
-        if ($remaining <= 0) {
-            return 0;
-        }
 
-        try {
-            $vouchers = $this->voucherAllocationService
-                ->getAvailableVouchersForDigitalProduct($digitalProduct->id);
-
-            foreach ($vouchers as $voucher) {
-                if ($remaining <= 0) {
-                    break;
-                }
-
-                $this->voucherAllocationService->allocateVoucher(
-                    $item->id,
-                    $digitalProduct,
-                    $voucher
-                );
-                $remaining--;
+        foreach ($vouchers as $voucher) {
+            if ($remaining <= 0) {
+                break;
             }
-        } catch (\Exception $e) {
-            throw $e;
+
+            $this->voucherAllocationService->allocateVoucher($item->id, $digitalProduct, $voucher);
+            $remaining--;
         }
 
         return $quantity - $remaining;

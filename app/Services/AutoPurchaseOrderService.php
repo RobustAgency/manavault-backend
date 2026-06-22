@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Product;
 use App\Models\DigitalProduct;
 
 class AutoPurchaseOrderService
@@ -12,21 +11,11 @@ class AutoPurchaseOrderService
         private PurchaseOrderService $purchaseOrderService,
     ) {}
 
-    /**
-     * Create purchase orders to cover the shortfall for a product from eligible external suppliers.
-     *
-     * Returns true if at least one external PO was dispatched, false if no eligible supplier exists.
-     */
-    public function handleShortfall(DigitalProduct $digitalProduct, int $shortfall): bool
+    public function handleShortfall(DigitalProduct $digitalProduct, int $shortfall, ?int $saleOrderId = null): void
     {
         logger()->info("Handling shortfall for DigitalProduct ID: {$digitalProduct->id}, Shortfall: {$shortfall}");
         $digitalProduct->load('supplier');
-
-        $this->purchaseOrderService->createPurchaseOrderForDigitalProduct($digitalProduct, $shortfall);
-
+        $this->purchaseOrderService->createPurchaseOrderForDigitalProduct($digitalProduct, $shortfall, $saleOrderId);
         logger()->info("Created purchase order for DigitalProduct ID: {$digitalProduct->id}, Quantity: {$shortfall}");
-
-        return true;
-
     }
 }

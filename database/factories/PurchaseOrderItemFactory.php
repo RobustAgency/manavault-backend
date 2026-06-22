@@ -31,6 +31,8 @@ class PurchaseOrderItemFactory extends Factory
             'quantity' => $quantity,
             'unit_cost' => $unitCost,
             'subtotal' => $subtotal,
+            'transaction_id' => null,
+            'status' => 'pending',
         ];
     }
 

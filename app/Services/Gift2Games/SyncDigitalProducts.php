@@ -27,6 +27,11 @@ class SyncDigitalProducts
         }
     }
 
+    public function syncForSlug(string $supplierSlug): void
+    {
+        $this->syncForSupplier($supplierSlug);
+    }
+
     private function syncForSupplier(string $supplierSlug): void
     {
         $supplier = Supplier::where('slug', $supplierSlug)->first();

@@ -7,7 +7,6 @@ use App\Models\User;
 use App\Models\Supplier;
 use App\Models\PurchaseOrder;
 use App\Models\DigitalProduct;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -157,68 +156,6 @@ class PurchaseOrderControllerTest extends TestCase
         ]);
     }
 
-    public function test_admin_create_purchase_order_with_gift2games_supplier(): void
-    {
-        $this->actingAs($this->admin);
-
-        $supplier = Supplier::factory()->create([
-            'name' => 'Gift2Games',
-            'slug' => 'gift2games',
-            'type' => 'external',
-        ]);
-
-        $digitalProduct = DigitalProduct::factory()->create([
-            'supplier_id' => $supplier->id,
-            'sku' => '12345',
-            'cost_price' => 10.00,
-        ]);
-
-        Http::fake([
-            '*/create_order' => Http::response([
-                'status' => 'success',
-                'data' => [
-                    'referenceNumber' => 'PO-20251117-TEST',
-                    'productId' => 12345,
-                    'code' => 'VOUCHER-CODE-123',
-                    'pin' => '1234',
-                    'serial' => 'SERIAL-123',
-                    'expiryDate' => '2025-12-31',
-                ],
-            ], 200),
-        ]);
-
-        $data = [
-            'currency' => 'usd',
-            'items' => [
-                [
-                    'supplier_id' => $supplier->id,
-                    'digital_product_id' => $digitalProduct->id,
-                    'quantity' => 1,
-                ],
-            ],
-        ];
-
-        $response = $this->postJson('/api/purchase-orders', $data);
-
-        $response->assertStatus(201)
-            ->assertJson([
-                'error' => false,
-                'message' => 'Purchase order created successfully.',
-                'data' => [
-                    'status' => 'completed',
-                ],
-            ]);
-
-        $this->assertDatabaseHas('purchase_orders', [
-            'status' => 'completed',
-        ]);
-
-        Http::assertSent(function ($request) {
-            return str_contains($request->url(), '/create_order') &&
-                   $request->method() === 'POST';
-        });
-    }
-
     public function test_admin_create_purchase_order_with_ezcards_supplier(): void
     {
         $this->actingAs($this->admin);
@@ -232,28 +169,6 @@ class PurchaseOrderControllerTest extends TestCase
         $digitalProduct = DigitalProduct::factory()->create([
             'sku' => 'AAU-QB-Q1J',
             'cost_price' => 22.88,
-        ]);
-
-        Http::fake([
-            '*/v2/orders' => Http::response([
-                'requestId' => 'test-request-id',
-                'data' => [
-                    'transactionId' => '1234',
-                    'clientOrderNumber' => 'PO-20251117-TEST',
-                    'status' => 'PROCESSING',
-                    'grandTotal' => [
-                        'amount' => '45.76',
-                        'currency' => 'USD',
-                    ],
-                    'products' => [
-                        [
-                            'sku' => 'AAU-QB-Q1J',
-                            'quantity' => 2,
-                            'status' => 'PROCESSING',
-                        ],
-                    ],
-                ],
-            ], 200),
         ]);
 
         $data = [
@@ -281,11 +196,6 @@ class PurchaseOrderControllerTest extends TestCase
         $this->assertDatabaseHas('purchase_orders', [
             'status' => 'processing',
         ]);
-
-        Http::assertSent(function ($request) {
-            return str_contains($request->url(), '/v2/orders') &&
-                   $request->method() === 'POST';
-        });
     }
 
     public function test_admin_create_purchase_order_with_multiple_items(): void

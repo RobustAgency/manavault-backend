@@ -15,6 +15,7 @@ class SaleOrderItem extends Model
     protected $fillable = [
         'sale_order_id',
         'product_id',
+        'digital_product_id',
         'quantity',
         'unit_price',
         'subtotal',
@@ -43,6 +44,17 @@ class SaleOrderItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * Get the digital product (supplier) selected for this item at order creation time.
+     * Fulfillment relies on this persisted choice rather than re-resolving the mutable
+     *
+     * @return BelongsTo<DigitalProduct, $this>
+     */
+    public function selectedDigitalProduct(): BelongsTo
+    {
+        return $this->belongsTo(DigitalProduct::class, 'digital_product_id');
     }
 
     /**
