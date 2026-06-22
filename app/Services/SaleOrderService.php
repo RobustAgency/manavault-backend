@@ -21,14 +21,24 @@ class SaleOrderService
     public function createOrder(array $data): SaleOrder
     {
         return DB::transaction(function () use ($data) {
-            $saleOrder = $this->saleOrderRepository->createSaleOrder([
+            $existingOrder = $this->saleOrderRepository->getSaleOrderByOrderNumber($data['order_number']);
+
+            // If the order already exists with its items, it has already been processed; return it as-is.
+            if ($existingOrder !== null && $existingOrder->items()->exists()) {
+                logger()->info("Sale order with order number {$data['order_number']} already exists with items (ID: {$existingOrder->id}); skipping creation.");
+
+                return $existingOrder->load(['items.digitalProducts']);
+            }
+
+            // Reuse an order that was created but never had its items populated; otherwise create a fresh one.
+            $saleOrder = $existingOrder ?? $this->saleOrderRepository->createSaleOrder([
                 'order_number' => $data['order_number'],
                 'source' => SaleOrder::MANASTORE,
                 'total_price' => 0,
                 'status' => Status::PENDING->value,
             ]);
 
-            logger()->info("Creating sale order with ID: {$saleOrder->id} and order number: {$saleOrder->order_number}");
+            logger()->info(($existingOrder !== null ? 'Populating items for existing' : 'Creating')." sale order with ID: {$saleOrder->id} and order number: {$saleOrder->order_number}");
 
             $totalPrice = 0;
             $shortfalls = [];

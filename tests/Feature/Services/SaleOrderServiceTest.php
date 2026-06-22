@@ -745,4 +745,96 @@ class SaleOrderServiceTest extends TestCase
         // The pre-existing PO was created manually (no sale_order_id)
         $this->assertNull($purchaseOrder->fresh()->sale_order_id);
     }
+
+    // -------------------------------------------------------------------------
+    // Idempotency scenarios
+    // -------------------------------------------------------------------------
+
+    /**
+     * Test: Re-running createOrder for an order that already exists with items
+     * returns the existing order and does not create a duplicate.
+     */
+    public function test_does_not_create_duplicate_when_order_already_exists_with_items(): void
+    {
+        $product = Product::factory()->active()->create(['fulfillment_mode' => 'price']);
+        $digitalProduct = DigitalProduct::factory()->create(['selling_price' => 50.00]);
+        $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
+
+        $purchaseOrder = PurchaseOrder::factory()->completed()->create();
+        $purchaseOrderItem = PurchaseOrderItem::factory()
+            ->forPurchaseOrder($purchaseOrder)
+            ->forDigitalProduct($digitalProduct)
+            ->withQuantity(5)
+            ->create();
+
+        Voucher::factory()->count(5)->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_item_id' => $purchaseOrderItem->id,
+            'status' => VoucherCodeStatus::AVAILABLE->value,
+        ]);
+
+        $payload = [
+            'order_number' => 'SO-IDEM-001',
+            'items' => [['product_id' => $product->id, 'quantity' => 2]],
+        ];
+
+        $first = $this->service->createOrder($payload);
+
+        // Act: same order number submitted again
+        $second = $this->service->createOrder($payload);
+
+        // Same record returned, no duplicate created
+        $this->assertEquals($first->id, $second->id);
+        $this->assertEquals(1, SaleOrder::where('order_number', 'SO-IDEM-001')->count());
+        // Items were not duplicated either
+        $this->assertCount(1, $second->items);
+    }
+
+    /**
+     * Test: An order that was created without its items gets its items populated
+     * on a subsequent createOrder call, reusing the same order record.
+     */
+    public function test_populates_items_for_existing_order_without_items(): void
+    {
+        $product = Product::factory()->active()->create(['fulfillment_mode' => 'price']);
+        $digitalProduct = DigitalProduct::factory()->create(['selling_price' => 50.00]);
+        $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
+
+        $purchaseOrder = PurchaseOrder::factory()->completed()->create();
+        $purchaseOrderItem = PurchaseOrderItem::factory()
+            ->forPurchaseOrder($purchaseOrder)
+            ->forDigitalProduct($digitalProduct)
+            ->withQuantity(5)
+            ->create();
+
+        Voucher::factory()->count(5)->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_item_id' => $purchaseOrderItem->id,
+            'status' => VoucherCodeStatus::AVAILABLE->value,
+        ]);
+
+        // Arrange: an orphaned order with no items (e.g. a previous run failed mid-way)
+        $orphan = SaleOrder::factory()->create([
+            'order_number' => 'SO-IDEM-002',
+            'status' => Status::PENDING->value,
+            'total_price' => 0,
+        ]);
+        $this->assertCount(0, $orphan->items);
+
+        // Act: createOrder for the same order number
+        $saleOrder = $this->service->createOrder([
+            'order_number' => 'SO-IDEM-002',
+            'items' => [['product_id' => $product->id, 'quantity' => 2]],
+        ]);
+
+        // Same record reused — no duplicate order created
+        $this->assertEquals($orphan->id, $saleOrder->id);
+        $this->assertEquals(1, SaleOrder::where('order_number', 'SO-IDEM-002')->count());
+
+        // Items are now populated and the order completed
+        $this->assertCount(1, $saleOrder->items);
+        $this->assertEquals(2, $saleOrder->items->first()->quantity);
+        $this->assertEquals(100.00, $saleOrder->total_price);
+        $this->assertEquals(Status::COMPLETED->value, $saleOrder->status);
+    }
 }
