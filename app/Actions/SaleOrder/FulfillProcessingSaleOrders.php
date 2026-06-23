@@ -5,8 +5,8 @@ namespace App\Actions\SaleOrder;
 use App\Models\SaleOrder;
 use App\Enums\SupplierType;
 use App\Models\SaleOrderItem;
+use App\Enums\SaleOrderStatus;
 use App\Models\DigitalProduct;
-use App\Enums\SaleOrder\Status;
 use App\Enums\PurchaseOrderStatus;
 use App\Events\SaleOrderCompleted;
 use Illuminate\Support\Facades\DB;
@@ -40,7 +40,7 @@ class FulfillProcessingSaleOrders
     public function execute(bool $dryRun = false, ?int $saleOrderId = null): array
     {
         $query = SaleOrder::query()
-            ->where('status', Status::PROCESSING->value)
+            ->where('status', SaleOrderStatus::PROCESSING->value)
             ->with(['items.product', 'items.digitalProduct.supplier', 'items.digitalProducts', 'purchaseOrders.items']);
 
         if ($saleOrderId !== null) {
@@ -125,7 +125,7 @@ class FulfillProcessingSaleOrders
             }
 
             if ($fullyAllocated) {
-                $saleOrder->update(['status' => Status::COMPLETED->value]);
+                $saleOrder->update(['status' => SaleOrderStatus::COMPLETED->value]);
             }
 
             if ($dryRun) {
@@ -149,7 +149,7 @@ class FulfillProcessingSaleOrders
             event(new SaleOrderCompleted($saleOrder));
         }
 
-        $resultStatus = $fullyAllocated ? Status::COMPLETED->value : Status::PROCESSING->value;
+        $resultStatus = $fullyAllocated ? SaleOrderStatus::COMPLETED->value : SaleOrderStatus::PROCESSING->value;
 
         return $this->summaryRow($saleOrder, $resultStatus, $allocatedCount, $purchaseOrdersCreated);
     }
