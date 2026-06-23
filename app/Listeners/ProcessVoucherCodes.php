@@ -39,8 +39,8 @@ class ProcessVoucherCodes implements ShouldQueue
                 $this->digitalProductAllocationService->allocateFromLinkedPurchaseOrder($item, $item->digitalProduct, $item->quantity, $saleOrder->id);
             }
 
-            // Persisting the status fires SaleOrderUpdated, which dispatches the
-            // SaleOrderFulfillmentUpdated event via the DispatchSaleOrderStatusEvents listener.
+            // Persisting the status fires SaleOrderUpdated, which dispatches the outbound
+            // webhook via the DispatchSaleOrderStatusEvents listener.
             $this->saleOrderService->updateStatus($saleOrder);
 
             DB::commit();

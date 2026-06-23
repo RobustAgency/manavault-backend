@@ -14,11 +14,13 @@ use App\Enums\VoucherCodeStatus;
 use App\Events\SaleOrderUpdated;
 use App\Models\PurchaseOrderItem;
 use App\Services\SaleOrderService;
+use Illuminate\Support\Facades\Bus;
 use App\Events\NewVouchersAvailable;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Event;
 use App\Listeners\ProcessVoucherCodes;
-use App\Events\SaleOrderFulfillmentUpdated;
+use Illuminate\Support\Facades\Config;
+use Spatie\WebhookServer\CallWebhookJob;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class SaleOrderServiceTest extends TestCase
@@ -31,6 +33,9 @@ class SaleOrderServiceTest extends TestCase
     {
         parent::setUp();
         $this->service = app(SaleOrderService::class);
+
+        Config::set('webhook-server.webhook_url', 'https://example.test/webhook-sale-order');
+        Config::set('webhook-server.webhook_secret', 'test-secret');
     }
 
     /**
@@ -484,7 +489,7 @@ class SaleOrderServiceTest extends TestCase
      */
     public function test_sufficient_internal_stock_completes_order_without_purchase_order(): void
     {
-        Event::fake([SaleOrderFulfillmentUpdated::class]);
+        Bus::fake();
 
         $supplier = Supplier::factory()->create(['type' => 'internal']);
         $product = Product::factory()->active()->create(['fulfillment_mode' => 'price']);
@@ -506,7 +511,10 @@ class SaleOrderServiceTest extends TestCase
 
         $this->assertEquals(SaleOrderStatus::COMPLETED->value, $saleOrder->status);
         $this->assertEquals(0, PurchaseOrder::where('order_number', 'like', 'PO-%')->whereDoesntHave('items', fn ($q) => $q->where('purchase_order_id', $po->id))->count());
-        Event::assertDispatched(SaleOrderFulfillmentUpdated::class);
+        Bus::assertDispatched(
+            CallWebhookJob::class,
+            fn (CallWebhookJob $job) => $job->payload['event'] === 'sale_order.completed'
+        );
     }
 
     /**
@@ -514,7 +522,7 @@ class SaleOrderServiceTest extends TestCase
      */
     public function test_insufficient_internal_stock_creates_processing_order(): void
     {
-        Event::fake([SaleOrderFulfillmentUpdated::class]);
+        Bus::fake();
 
         $supplier = Supplier::factory()->create(['type' => 'internal']);
         $product = Product::factory()->active()->create(['fulfillment_mode' => 'price']);
@@ -535,7 +543,10 @@ class SaleOrderServiceTest extends TestCase
         ]);
 
         $this->assertEquals(SaleOrderStatus::PROCESSING->value, $saleOrder->status);
-        Event::assertNotDispatched(SaleOrderFulfillmentUpdated::class);
+        Bus::assertNotDispatched(
+            CallWebhookJob::class,
+            fn (CallWebhookJob $job) => str_starts_with($job->payload['event'], 'sale_order.')
+        );
     }
 
     /**
@@ -543,7 +554,7 @@ class SaleOrderServiceTest extends TestCase
      */
     public function test_shortfall_with_gift2games_supplier_creates_po_and_completes_order(): void
     {
-        Event::fake([SaleOrderFulfillmentUpdated::class]);
+        Bus::fake();
 
         $supplier = Supplier::factory()->create([
             'slug' => 'gift2games',
@@ -571,7 +582,10 @@ class SaleOrderServiceTest extends TestCase
         $this->assertGreaterThan($purchaseOrderCount, PurchaseOrder::count());
         // placeOrder only queues batch records — vouchers come later via updateOrder
         $this->assertEquals(SaleOrderStatus::PROCESSING->value, $saleOrder->status);
-        Event::assertNotDispatched(SaleOrderFulfillmentUpdated::class);
+        Bus::assertNotDispatched(
+            CallWebhookJob::class,
+            fn (CallWebhookJob $job) => str_starts_with($job->payload['event'], 'sale_order.')
+        );
     }
 
     /**
@@ -579,7 +593,7 @@ class SaleOrderServiceTest extends TestCase
      */
     public function test_shortfall_with_ezcards_supplier_creates_po_and_leaves_order_processing(): void
     {
-        Event::fake([SaleOrderFulfillmentUpdated::class]);
+        Bus::fake();
 
         $supplier = Supplier::factory()->create([
             'slug' => 'ez_cards',
@@ -619,7 +633,10 @@ class SaleOrderServiceTest extends TestCase
         $this->assertGreaterThan($purchaseOrderCount, PurchaseOrder::count());
         // No vouchers yet (async) → order stays PROCESSING
         $this->assertEquals(SaleOrderStatus::PROCESSING->value, $saleOrder->status);
-        Event::assertNotDispatched(SaleOrderFulfillmentUpdated::class);
+        Bus::assertNotDispatched(
+            CallWebhookJob::class,
+            fn (CallWebhookJob $job) => str_starts_with($job->payload['event'], 'sale_order.')
+        );
     }
 
     /**
@@ -627,7 +644,7 @@ class SaleOrderServiceTest extends TestCase
      */
     public function test_auto_purchase_order_has_sale_order_id_when_shortfall_occurs(): void
     {
-        Event::fake([SaleOrderFulfillmentUpdated::class]);
+        Bus::fake();
 
         $supplier = Supplier::factory()->create([
             'slug' => 'internal_supplier',

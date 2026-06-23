@@ -90,7 +90,7 @@ class SaleOrderService
             $saleOrder->refresh();
 
             // Resolve the status from actual allocations and persist it alongside the total.
-            // The status change fires SaleOrderUpdated, which dispatches SaleOrderFulfillmentUpdated
+            // The status change fires SaleOrderUpdated, which dispatches the outbound webhook
             // via the DispatchSaleOrderStatusEvents listener.
             $status = $this->resolveStatus($saleOrder);
             $saleOrder->update(['status' => $status->value, 'total_price' => $totalPrice]);
