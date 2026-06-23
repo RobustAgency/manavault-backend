@@ -36,7 +36,6 @@ class ProcessVoucherCodes implements ShouldQueue
         DB::beginTransaction();
         try {
             foreach ($saleOrder->items as $item) {
-
                 $this->digitalProductAllocationService->allocateFromLinkedPurchaseOrder($item, $item->product, $item->quantity, $saleOrder->id);
             }
 

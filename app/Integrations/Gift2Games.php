@@ -24,6 +24,15 @@ class Gift2Games implements SupplierIntegrationContract
 
     public function placeOrder(PurchaseOrderItem $item): void
     {
+        if ($item->transaction_id) {
+            Log::warning('Gift2Games placeOrder called for PurchaseOrderItem with existing transaction_id', [
+                'supplier' => $this->supplierSlug,
+                'purchase_order_item_id' => $item->id,
+                'transaction_id' => $item->transaction_id,
+            ]);
+
+            return;
+        }
         $batchNumber = 'batch_'.$item->id;
 
         for ($i = 0; $i < $item->quantity; $i++) {
@@ -45,6 +54,13 @@ class Gift2Games implements SupplierIntegrationContract
         $pendingOrders = Gift2GamesOrder::where('batch_number', $batchNumber)
             ->where('status', '!=', Gift2GamesOrderStatus::FULFILLED)
             ->get();
+
+        Log::info('Gift2Games updateOrder: started', [
+            'supplier_slug' => $this->supplierSlug,
+            'purchase_order_item_id' => $item->id,
+            'batch_number' => $batchNumber,
+            'pending_orders' => $pendingOrders->count(),
+        ]);
 
         $orderData = [
             'productId' => (int) $item->digitalProduct->sku,
@@ -94,6 +110,13 @@ class Gift2Games implements SupplierIntegrationContract
         if (! $hasPending) {
             $item->update(['status' => PurchaseOrderItemStatus::FULFILLED]);
         }
+
+        Log::info('Gift2Games updateOrder: finished', [
+            'purchase_order_item_id' => $item->id,
+            'batch_number' => $batchNumber,
+            'has_pending' => $hasPending,
+            'item_status' => $item->status->value,
+        ]);
     }
 
     public function syncProducts(): void

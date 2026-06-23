@@ -26,6 +26,8 @@ class UpdatePurchaseOrderItems extends Command
      */
     public function handle(UpdatePurchaseOrderItemsAction $action): int
     {
+        logger()->info('UpdatePurchaseOrderItems: started');
+
         $action->execute();
 
         return Command::SUCCESS;

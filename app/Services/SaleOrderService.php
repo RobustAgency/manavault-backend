@@ -21,14 +21,24 @@ class SaleOrderService
     public function createOrder(array $data): SaleOrder
     {
         return DB::transaction(function () use ($data) {
-            $saleOrder = $this->saleOrderRepository->createSaleOrder([
+            $existingOrder = $this->saleOrderRepository->getSaleOrderByOrderNumber($data['order_number']);
+
+            // If the order already exists with its items, it has already been processed; return it as-is.
+            if ($existingOrder !== null && $existingOrder->items()->exists()) {
+                logger()->info("Sale order with order number {$data['order_number']} already exists with items (ID: {$existingOrder->id}); skipping creation.");
+
+                return $existingOrder->load(['items.digitalProducts']);
+            }
+
+            // Reuse an order that was created but never had its items populated; otherwise create a fresh one.
+            $saleOrder = $existingOrder ?? $this->saleOrderRepository->createSaleOrder([
                 'order_number' => $data['order_number'],
                 'source' => SaleOrder::MANASTORE,
                 'total_price' => 0,
                 'status' => SaleOrderStatus::PENDING->value,
             ]);
 
-            logger()->info("Creating sale order with ID: {$saleOrder->id} and order number: {$saleOrder->order_number}");
+            logger()->info(($existingOrder !== null ? 'Populating items for existing' : 'Creating')." sale order with ID: {$saleOrder->id} and order number: {$saleOrder->order_number}");
 
             $totalPrice = 0;
             $shortfalls = [];
@@ -44,19 +54,23 @@ class SaleOrderService
                 $unitPrice = $product->selling_price;
                 $subtotal = $quantity * $unitPrice; // FIXME: Use money package here.
 
+                // Resolve the supplier digital product once and persist it on the item
+                $digitalProduct = $product->digitalProduct();
+
                 $item = $saleOrder->items()->create([
                     'product_id' => $product->id,
+                    'digital_product_id' => $digitalProduct->id,
                     'quantity' => $quantity,
                     'unit_price' => $unitPrice,
                     'subtotal' => $subtotal,
                 ]);
 
-                $allocated = $this->digitalProductAllocationService->allocateFromGeneralStock($item, $product, $quantity);
+                $allocated = $this->digitalProductAllocationService->allocateFromGeneralStock($item, $digitalProduct, $quantity);
 
                 if ($allocated < $quantity) {
                     $shortfalls[] = [
                         'item' => $item,
-                        'product' => $product,
+                        'digitalProduct' => $digitalProduct,
                         'remaining' => $quantity - $allocated,
                     ];
                 }
@@ -65,8 +79,7 @@ class SaleOrderService
             }
 
             // Create auto-POs for remaining shortfalls after exhausting general stock.
-            foreach ($shortfalls as ['product' => $product, 'remaining' => $remaining]) {
-                $digitalProduct = $product->digitalProduct();
+            foreach ($shortfalls as ['digitalProduct' => $digitalProduct, 'remaining' => $remaining]) {
                 if ($digitalProduct !== null) {
                     $this->autoPurchaseOrderService->handleShortfall($digitalProduct, $remaining, $saleOrder->id);
                 }
