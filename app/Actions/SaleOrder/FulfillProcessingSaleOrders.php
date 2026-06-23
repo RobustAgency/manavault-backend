@@ -8,7 +8,6 @@ use App\Models\SaleOrderItem;
 use App\Enums\SaleOrderStatus;
 use App\Models\DigitalProduct;
 use App\Enums\PurchaseOrderStatus;
-use App\Events\SaleOrderCompleted;
 use Illuminate\Support\Facades\DB;
 use App\Services\AutoPurchaseOrderService;
 use App\Services\DigitalProductAllocationService;
@@ -124,7 +123,9 @@ class FulfillProcessingSaleOrders
                 $purchaseOrdersCreated++;
             }
 
-            if ($fullyAllocated) {
+            // Persist the status change only for a real run. On a dry run, update() would
+            // still fire the SaleOrderUpdated event even though the row is rolled back.
+            if ($fullyAllocated && ! $dryRun) {
                 $saleOrder->update(['status' => SaleOrderStatus::COMPLETED->value]);
             }
 
@@ -143,12 +144,6 @@ class FulfillProcessingSaleOrders
             return $this->summaryRow($saleOrder, 'error', 0, 0, $e->getMessage());
         }
 
-        // Fire the completion event only for a real, committed completion so downstream
-        // listeners (customer webhook, etc.) never react to a dry run.
-        if ($fullyAllocated && ! $dryRun) {
-            event(new SaleOrderCompleted($saleOrder));
-        }
-
         $resultStatus = $fullyAllocated ? SaleOrderStatus::COMPLETED->value : SaleOrderStatus::PROCESSING->value;
 
         return $this->summaryRow($saleOrder, $resultStatus, $allocatedCount, $purchaseOrdersCreated);
@@ -161,7 +156,7 @@ class FulfillProcessingSaleOrders
     private function resolveDigitalProduct(SaleOrderItem $item): ?DigitalProduct
     {
         if ($item->digital_product_id !== null) {
-            return $item->selectedDigitalProduct;
+            return $item->digitalProduct;
         }
 
         $digitalProduct = $item->product?->digitalProduct();

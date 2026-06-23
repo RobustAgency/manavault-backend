@@ -11,6 +11,7 @@ use App\Models\PurchaseOrder;
 use App\Enums\SaleOrderStatus;
 use App\Models\DigitalProduct;
 use App\Enums\VoucherCodeStatus;
+use App\Events\SaleOrderUpdated;
 use App\Models\PurchaseOrderItem;
 use App\Services\SaleOrderService;
 use App\Events\NewVouchersAvailable;
@@ -662,7 +663,7 @@ class SaleOrderServiceTest extends TestCase
      */
     public function test_fulfillment_uses_digital_product_selected_at_order_time_not_current_association(): void
     {
-        Event::fake([SaleOrderCompleted::class]);
+        Event::fake([SaleOrderUpdated::class]);
 
         $supplier = Supplier::factory()->create(['type' => 'internal']);
         $product = Product::factory()->active()->create(['fulfillment_mode' => 'price']);
@@ -680,7 +681,7 @@ class SaleOrderServiceTest extends TestCase
             'items' => [['product_id' => $product->id, 'quantity' => 1]],
         ]);
 
-        $this->assertEquals(Status::PROCESSING->value, $saleOrder->status);
+        $this->assertEquals(SaleOrderStatus::PROCESSING->value, $saleOrder->status);
 
         // The item persisted A as its selected digital product.
         $item = $saleOrder->items->first();
@@ -705,14 +706,14 @@ class SaleOrderServiceTest extends TestCase
             'status' => VoucherCodeStatus::AVAILABLE->value,
         ]);
 
-        // Fire the same event the voucher-creation flow dispatches (ids reflect A).
+        // Fire the same event the voucher-creation flow dispatches (PO item reflects A).
         app(ProcessVoucherCodes::class)->handle(
-            new NewVouchersAvailable([$digitalProductA->id], $autoPo->id, $saleOrder->id)
+            new NewVouchersAvailable($poItem)
         );
 
         // Order completes, allocated from A (the purchased product), not B.
         $saleOrder->refresh();
-        $this->assertEquals(Status::COMPLETED->value, $saleOrder->status);
+        $this->assertEquals(SaleOrderStatus::COMPLETED->value, $saleOrder->status);
 
         $allocation = $item->digitalProducts()->first();
         $this->assertNotNull($allocation);
@@ -816,7 +817,7 @@ class SaleOrderServiceTest extends TestCase
         // Arrange: an orphaned order with no items (e.g. a previous run failed mid-way)
         $orphan = SaleOrder::factory()->create([
             'order_number' => 'SO-IDEM-002',
-            'status' => Status::PENDING->value,
+            'status' => SaleOrderStatus::PENDING->value,
             'total_price' => 0,
         ]);
         $this->assertCount(0, $orphan->items);
@@ -835,6 +836,6 @@ class SaleOrderServiceTest extends TestCase
         $this->assertCount(1, $saleOrder->items);
         $this->assertEquals(2, $saleOrder->items->first()->quantity);
         $this->assertEquals(100.00, $saleOrder->total_price);
-        $this->assertEquals(Status::COMPLETED->value, $saleOrder->status);
+        $this->assertEquals(SaleOrderStatus::COMPLETED->value, $saleOrder->status);
     }
 }
