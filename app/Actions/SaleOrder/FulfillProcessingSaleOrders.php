@@ -41,7 +41,7 @@ class FulfillProcessingSaleOrders
     {
         $query = SaleOrder::query()
             ->where('status', Status::PROCESSING->value)
-            ->with(['items.product', 'items.selectedDigitalProduct.supplier', 'items.digitalProducts', 'purchaseOrders.items']);
+            ->with(['items.product', 'items.digitalProduct.supplier', 'items.digitalProducts', 'purchaseOrders.items']);
 
         if ($saleOrderId !== null) {
             $query->where('id', $saleOrderId);
