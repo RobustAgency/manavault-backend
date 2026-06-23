@@ -3,7 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\SaleOrder;
-use App\Enums\SaleOrder\Status;
+use App\Enums\SaleOrderStatus;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -34,7 +34,7 @@ class SaleOrderFactory extends Factory
             ),
             'source' => SaleOrder::MANASTORE,
             'total_price' => 0,
-            'status' => Status::PENDING->value,
+            'status' => SaleOrderStatus::PENDING->value,
         ];
     }
 }

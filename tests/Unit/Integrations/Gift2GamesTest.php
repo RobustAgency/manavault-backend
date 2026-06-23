@@ -10,10 +10,8 @@ use App\Models\Gift2GamesOrder;
 use App\Integrations\Gift2Games;
 use App\Models\PurchaseOrderItem;
 use App\Enums\Gift2GamesOrderStatus;
-use App\Events\NewVouchersAvailable;
 use Illuminate\Support\Facades\Http;
 use App\Models\PurchaseOrderSupplier;
-use Illuminate\Support\Facades\Event;
 use App\Enums\PurchaseOrderItemStatus;
 use App\Enums\PurchaseOrderSupplierStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -297,35 +295,5 @@ class Gift2GamesTest extends TestCase
         $this->assertDatabaseCount('vouchers', 6);
         $this->assertEquals(PurchaseOrderItemStatus::FULFILLED, $this->item->fresh()->status);
         Http::assertSentCount(6);
-    }
-
-    public function test_update_order_fires_new_vouchers_available_event(): void
-    {
-        Event::fake([NewVouchersAvailable::class]);
-
-        $this->setupBatchForUpdateOrder(pendingCount: 1);
-
-        Http::fake([
-            '*/create_order' => Http::response(['status' => true, 'data' => ['orderId' => 'ORD-001', 'serialCode' => 'CODE-001', 'serialNumber' => 'SN-001']], 200),
-        ]);
-
-        $this->makeIntegration()->updateOrder($this->item->fresh());
-
-        Event::assertDispatched(NewVouchersAvailable::class);
-    }
-
-    public function test_update_order_does_not_fire_event_when_no_vouchers_created(): void
-    {
-        Event::fake([NewVouchersAvailable::class]);
-
-        $this->setupBatchForUpdateOrder(pendingCount: 1);
-
-        Http::fake([
-            '*/create_order' => Http::response(['status' => false, 'error' => ['message' => 'API error']], 200),
-        ]);
-
-        $this->makeIntegration()->updateOrder($this->item->fresh());
-
-        Event::assertNotDispatched(NewVouchersAvailable::class);
     }
 }

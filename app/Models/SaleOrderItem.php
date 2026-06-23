@@ -52,7 +52,7 @@ class SaleOrderItem extends Model
      *
      * @return BelongsTo<DigitalProduct, $this>
      */
-    public function selectedDigitalProduct(): BelongsTo
+    public function digitalProduct(): BelongsTo
     {
         return $this->belongsTo(DigitalProduct::class, 'digital_product_id');
     }

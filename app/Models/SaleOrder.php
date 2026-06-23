@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Events\SaleOrderUpdated;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -22,6 +23,15 @@ class SaleOrder extends Model
 
     protected $casts = [
         'total_price' => 'decimal:2',
+    ];
+
+    /**
+     * The event map for the model.
+     *
+     * @var array<string, class-string>
+     */
+    protected $dispatchesEvents = [
+        'updated' => SaleOrderUpdated::class,
     ];
 
     /**
