@@ -77,6 +77,16 @@ class ExtractAvailableVouchersToNewPurchaseOrderTest extends TestCase
         $this->assertNotNull($newPoId);
         $this->assertNotEquals($source->id, $newPoId);
 
+        // Exactly two purchase orders exist now: the source and the new one.
+        $this->assertEquals(2, PurchaseOrder::count());
+
+        // The new purchase order has a matching line item for the moved vouchers.
+        $this->assertDatabaseHas('purchase_order_items', [
+            'purchase_order_id' => $newPoId,
+            'digital_product_id' => $item->digital_product_id,
+            'quantity' => 3,
+        ]);
+
         foreach ($available as $voucher) {
             $this->assertDatabaseHas('vouchers', [
                 'id' => $voucher->id,
