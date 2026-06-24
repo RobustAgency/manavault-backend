@@ -7,9 +7,11 @@ use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Support\Facades\Log;
 use App\Models\PurchaseOrderSupplier;
+use Illuminate\Support\Facades\Cache;
 use App\Enums\PurchaseOrderSupplierStatus;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 use App\Services\Supplier\SupplierIntegrationResolver;
 use App\Services\PurchaseOrder\PurchaseOrderStatusService;
 use App\Services\PurchaseOrder\PurchaseOrderPlacementService;
@@ -18,17 +20,7 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
 {
     use Queueable;
 
-    /**
-     * The number of times the job may be attempted.
-     */
-    public int $tries = 3;
-
-    public int $timeout = 600;
-
-    /**
-     * @var array<int, int>
-     */
-    public array $backoff = [30, 60, 120];
+    public int $timeout = 300;
 
     public function __construct(
         private readonly PurchaseOrder $purchaseOrder,
@@ -39,6 +31,20 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
         private readonly string $orderNumber,
         private readonly string $currency,
     ) {}
+
+    /**
+     * Ensure only one job runs at a time for a given purchase order.
+     *
+     * @return array<int, object>
+     */
+    public function middleware(): array
+    {
+        return [
+            (new WithoutOverlapping($this->purchaseOrder->id))
+                ->dontRelease()
+                ->expireAfter($this->timeout),
+        ];
+    }
 
     public function handle(
         SupplierIntegrationResolver $resolver,
@@ -53,7 +59,8 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
             // Important: We are assuming here that all purchase order items belongs to a single supplier.
             foreach ($this->purchaseOrderItems as $orderItem) {
                 try {
-                    $orderItem->getSupplier()?->placeOrder($orderItem);
+                    Cache::lock("place-external-purchase-order-item:{$orderItem->id}", $this->timeout)
+                        ->get(fn () => $orderItem->getSupplier()?->placeOrder($orderItem));
                 } catch (\Exception $e) {
                     $cause = $e->getPrevious() ?? $e;
                     $responseBody = $cause instanceof \Illuminate\Http\Client\RequestException
