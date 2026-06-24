@@ -33,6 +33,12 @@ class Tikkery implements SupplierIntegrationContract
             return;
         }
 
+        Log::info('Tikkery placeOrder: creating order', [
+            'purchase_order_item_id' => $item->id,
+            'sku' => $item->digitalProduct->sku,
+            'quantity' => $item->quantity,
+        ]);
+
         $response = $this->createOrder->execute([
             'lineItems' => [[
                 'sku' => $item->digitalProduct->sku,
@@ -45,6 +51,11 @@ class Tikkery implements SupplierIntegrationContract
         $orderNumber = $response['order']['number'] ?? null;
 
         $item->update(['transaction_id' => $orderNumber, 'status' => PurchaseOrderItemStatus::PROCESSING]);
+
+        Log::info('Tikkery placeOrder: order placed', [
+            'purchase_order_item_id' => $item->id,
+            'transaction_id' => $orderNumber,
+        ]);
     }
 
     public function updateOrder(PurchaseOrderItem $item): void
@@ -85,6 +96,12 @@ class Tikkery implements SupplierIntegrationContract
         }
 
         $item->update(['status' => PurchaseOrderItemStatus::FULFILLED]);
+
+        Log::info('Tikkery updateOrder: order fulfilled', [
+            'purchase_order_item_id' => $item->id,
+            'transaction_id' => $item->transaction_id,
+            'code_count' => count($codes),
+        ]);
     }
 
     public function syncProducts(): void

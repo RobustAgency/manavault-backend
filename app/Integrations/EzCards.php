@@ -38,6 +38,12 @@ class EzCards implements SupplierIntegrationContract
         $quantity = $purchaseOrderItem->quantity;
         $sku = $purchaseOrderItem->digitalProduct->sku;
 
+        Log::info('EzCards placeOrder: creating order', [
+            'purchase_order_item_id' => $purchaseOrderItem->id,
+            'sku' => $sku,
+            'quantity' => $quantity,
+        ]);
+
         // TODO: On sandbox try to make two orders with same client order number.
         $response = $this->placeOrderAction->execute([
             'clientOrderNumber' => 'order_item_id_'.$purchaseOrderItem->id,
@@ -56,6 +62,11 @@ class EzCards implements SupplierIntegrationContract
         ]);
         $transactionId = $response['data']['transactionId'] ?? null;
         $purchaseOrderItem->update(['transaction_id' => $transactionId, 'status' => PurchaseOrderItemStatus::PROCESSING]);
+
+        Log::info('EzCards placeOrder: order placed', [
+            'purchase_order_item_id' => $purchaseOrderItem->id,
+            'transaction_id' => $transactionId,
+        ]);
     }
 
     public function updateOrder(PurchaseOrderItem $purchaseOrderItem): void
@@ -95,6 +106,12 @@ class EzCards implements SupplierIntegrationContract
         }
 
         $purchaseOrderItem->update(['status' => PurchaseOrderItemStatus::FULFILLED]);
+
+        Log::info('EzCards updateOrder: order fulfilled', [
+            'purchase_order_item_id' => $purchaseOrderItem->id,
+            'transaction_id' => $purchaseOrderItem->transaction_id,
+            'voucher_count' => $codes->count(),
+        ]);
     }
 
     private function storeVoucherCodes(PurchaseOrder $purchaseOrder, PurchaseOrderItem $purchaseOrderItem, array $voucherCodesResponse): bool
