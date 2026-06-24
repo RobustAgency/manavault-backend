@@ -2,8 +2,8 @@
 
 namespace App\Http\Resources\ManaStore\V1;
 
-use App\Enums\VoucherFulfillmentStatus;
 use App\Models\SaleOrder;
+use App\Enums\VoucherFulfillmentStatus;
 use App\Services\Voucher\VoucherCipherService;
 
 class VoucherCodesResource
@@ -45,6 +45,7 @@ class VoucherCodesResource
                 : VoucherFulfillmentStatus::PENDING;
 
             $formattedCodes[] = [
+                'id' => $item->id,
                 'title' => $item->product->name,
                 'status' => $status->value,
                 'codes' => $codes,
