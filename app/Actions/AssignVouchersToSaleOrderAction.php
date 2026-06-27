@@ -2,16 +2,13 @@
 
 namespace App\Actions;
 
-use App\Enums\Product\FulfillmentMode;
-use App\Enums\SaleOrder\Status;
-use App\Events\SaleOrderCompleted;
-use App\Models\DigitalProduct;
-use App\Models\Product;
 use App\Models\SaleOrder;
 use App\Models\SaleOrderItem;
-use App\Services\VoucherAllocationService;
-use Illuminate\Support\Collection;
+use App\Models\DigitalProduct;
+use App\Enums\SaleOrder\Status;
+use App\Events\SaleOrderCompleted;
 use Illuminate\Support\Facades\DB;
+use App\Services\VoucherAllocationService;
 
 class AssignVouchersToSaleOrderAction
 {
@@ -19,9 +16,6 @@ class AssignVouchersToSaleOrderAction
         private VoucherAllocationService $voucherAllocationService,
     ) {}
 
-    /**
-     * @return array{already_completed: bool, fully_allocated: bool, summary: list<array<int, string>>}
-     */
     public function execute(SaleOrder $saleOrder): array
     {
         if ($saleOrder->status === Status::COMPLETED->value) {
@@ -39,18 +33,27 @@ class AssignVouchersToSaleOrderAction
 
                 if ($remaining <= 0) {
                     $summary[] = [$item->product->name, $item->quantity, $alreadyAllocated, 0, 'Already fulfilled'];
+
                     continue;
                 }
 
-                [$allocated, $usedDigitalProduct] = $this->allocateWithFallback($item, $remaining);
+                // Allocate against the digital product selected for the item at order creation
+                // time (persisted on sale_order_items.digital_product_id), not a live re-resolution
+                // of the mutable Product → DigitalProduct association.
+                $digitalProduct = $item->selectedDigitalProduct;
 
-                if ($usedDigitalProduct) {
-                    $status = $allocated >= $remaining
-                        ? "Fulfilled ({$usedDigitalProduct->sku})"
-                        : "Partial — insufficient stock ({$usedDigitalProduct->sku})";
-                } else {
-                    $status = 'No stock available';
+                if (! $digitalProduct) {
+                    $summary[] = [$item->product->name, $item->quantity, $alreadyAllocated, 0, 'No digital product selected'];
+                    $fullyAllocated = false;
+
+                    continue;
                 }
+
+                $allocated = $this->allocate($item, $digitalProduct, $remaining);
+
+                $status = $allocated >= $remaining
+                    ? "Fulfilled ({$digitalProduct->sku})"
+                    : "Partial — insufficient stock ({$digitalProduct->sku})";
 
                 $summary[] = [$item->product->name, $item->quantity, $alreadyAllocated, $allocated, $status];
 
@@ -77,44 +80,23 @@ class AssignVouchersToSaleOrderAction
     }
 
     /**
-     * Try digital products in priority order, skipping those with no available vouchers.
-     * Allocates from the first digital product that has stock.
-     *
-     * @return array{0: int, 1: ?DigitalProduct}
+     * Allocate up to $remaining available (general-stock) vouchers of the given digital
+     * product to the item. Returns the number actually allocated.
      */
-    private function allocateWithFallback(SaleOrderItem $item, int $remaining): array
+    private function allocate(SaleOrderItem $item, DigitalProduct $digitalProduct, int $remaining): int
     {
-        foreach ($this->getOrderedDigitalProducts($item->product) as $digitalProduct) {
-            $vouchers = $this->voucherAllocationService->getAvailableVouchersForDigitalProduct($digitalProduct->id);
+        $vouchers = $this->voucherAllocationService->getAvailableVouchers($digitalProduct->id);
 
-            if ($vouchers->isEmpty()) {
-                continue;
+        $allocated = 0;
+        foreach ($vouchers as $voucher) {
+            if ($allocated >= $remaining) {
+                break;
             }
 
-            $allocated = 0;
-            foreach ($vouchers as $voucher) {
-                if ($allocated >= $remaining) {
-                    break;
-                }
-                $this->voucherAllocationService->allocateVoucher($item->id, $digitalProduct, $voucher);
-                $allocated++;
-            }
-
-            return [$allocated, $digitalProduct];
+            $this->voucherAllocationService->allocateVoucher($item->id, $digitalProduct, $voucher);
+            $allocated++;
         }
 
-        return [0, null];
-    }
-
-    /**
-     * @return Collection<int, DigitalProduct>
-     */
-    private function getOrderedDigitalProducts(Product $product): Collection
-    {
-        $query = $product->digitalProducts();
-
-        return $product->fulfillment_mode === FulfillmentMode::MANUAL->value
-            ? $query->orderByPivot('priority')->get()
-            : $query->orderBy('digital_products.cost_price')->get();
+        return $allocated;
     }
 }
