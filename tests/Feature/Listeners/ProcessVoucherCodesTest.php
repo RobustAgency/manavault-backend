@@ -17,6 +17,7 @@ use App\Events\NewVouchersAvailable;
 use Illuminate\Support\Facades\Event;
 use App\Listeners\ProcessVoucherCodes;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 
 /**
  * The invariant under test: when vouchers arrive for a sale order, each item must be
@@ -157,5 +158,25 @@ class ProcessVoucherCodesTest extends TestCase
         }
 
         return ['item' => $item, 'poItem' => $poItem];
+    }
+
+    public function test_listener_is_guarded_by_a_without_overlapping_lock(): void
+    {
+        $poItem = PurchaseOrderItem::factory()->create();
+
+        $middleware = app(ProcessVoucherCodes::class)
+            ->middleware(new NewVouchersAvailable($poItem));
+
+        $this->assertCount(1, $middleware);
+        $this->assertInstanceOf(WithoutOverlapping::class, $middleware[0]);
+
+        // Key granularity is deliberate — change this assertion only when the
+        // locking scope changes (e.g. moving from PO item to sale order).
+        $this->assertSame("process-voucher-codes:{$poItem->id}", $middleware[0]->key);
+
+        // A contended job is released for retry (not dropped), and a dead worker's
+        // lock self-expires so the order can't get stuck.
+        $this->assertSame(10, $middleware[0]->releaseAfter);
+        $this->assertSame(120, $middleware[0]->expiresAfter);
     }
 }

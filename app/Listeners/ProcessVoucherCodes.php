@@ -9,6 +9,7 @@ use App\Events\NewVouchersAvailable;
 use App\Repositories\SaleOrderRepository;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Services\DigitalProductAllocationService;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 
 class ProcessVoucherCodes implements ShouldQueue
 {
@@ -17,6 +18,25 @@ class ProcessVoucherCodes implements ShouldQueue
         private DigitalProductAllocationService $digitalProductAllocationService,
         private SaleOrderService $saleOrderService,
     ) {}
+
+    /**
+     * Serialize processing per sale order. Voucher arrivals for the same order
+     * fire this listener repeatedly, and concurrent runs would each read the
+     * same allocation state and double-allocate. Different orders still run in
+     * parallel.
+     *
+     * @return array<int, object>
+     */
+    public function middleware(NewVouchersAvailable $event): array
+    {
+        $purchaseOrderItem = $event->purchaseOrderItem;
+
+        return [
+            (new WithoutOverlapping("process-voucher-codes:{$purchaseOrderItem->id}"))
+                ->releaseAfter(10)
+                ->expireAfter(120),
+        ];
+    }
 
     public function handle(NewVouchersAvailable $event): void
     {
