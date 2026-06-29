@@ -45,7 +45,7 @@ class VoucherCodesResource
                 : VoucherFulfillmentStatus::PENDING;
 
             $formattedCodes[] = [
-                'id' => $item->id,
+                'id' => $item->product_id,
                 'title' => $item->product->name,
                 'status' => $status->value,
                 'codes' => $codes,
