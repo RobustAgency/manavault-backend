@@ -17,6 +17,7 @@ use App\Events\NewVouchersAvailable;
 use Illuminate\Support\Facades\Event;
 use App\Listeners\ProcessVoucherCodes;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 
 /**
  * The invariant under test: when vouchers arrive for a sale order, each item must be
@@ -157,5 +158,40 @@ class ProcessVoucherCodesTest extends TestCase
         }
 
         return ['item' => $item, 'poItem' => $poItem];
+    }
+
+    public function test_listener_is_guarded_by_a_without_overlapping_lock(): void
+    {
+        $saleOrder = SaleOrder::factory()->create();
+        $purchaseOrder = PurchaseOrder::factory()->create(['sale_order_id' => $saleOrder->id]);
+        $poItem = PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->create();
+
+        $middleware = app(ProcessVoucherCodes::class)
+            ->middleware(new NewVouchersAvailable($poItem));
+
+        $this->assertCount(1, $middleware);
+        $this->assertInstanceOf(WithoutOverlapping::class, $middleware[0]);
+
+        // Keyed per sale order: handle() allocates across the whole order, so all of
+        // an order's voucher events must serialize. Change only if that scope changes.
+        $this->assertSame("process-voucher-codes:{$saleOrder->id}", $middleware[0]->key);
+
+        // A contended job is released for retry (not dropped), and a dead worker's
+        // lock self-expires so the order can't get stuck.
+        $this->assertSame(10, $middleware[0]->releaseAfter);
+        $this->assertSame(120, $middleware[0]->expiresAfter);
+    }
+
+    public function test_no_lock_is_applied_when_the_purchase_order_has_no_sale_order(): void
+    {
+        // Manual purchase order: no sale order, so handle() no-ops and there is
+        // nothing to serialize — the listener must not pile onto a shared lock.
+        $purchaseOrder = PurchaseOrder::factory()->create(['sale_order_id' => null]);
+        $poItem = PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->create();
+
+        $middleware = app(ProcessVoucherCodes::class)
+            ->middleware(new NewVouchersAvailable($poItem));
+
+        $this->assertSame([], $middleware);
     }
 }
