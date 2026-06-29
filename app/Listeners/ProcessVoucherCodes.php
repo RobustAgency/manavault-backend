@@ -29,10 +29,16 @@ class ProcessVoucherCodes implements ShouldQueue
      */
     public function middleware(NewVouchersAvailable $event): array
     {
-        $purchaseOrderItem = $event->purchaseOrderItem;
+        $saleOrderId = $event->purchaseOrderItem->purchaseOrder?->sale_order_id;
+
+        // No sale order (e.g. a manual purchase order) → handle() returns early,
+        // so there's nothing to serialize and no lock is needed.
+        if (! $saleOrderId) {
+            return [];
+        }
 
         return [
-            (new WithoutOverlapping("process-voucher-codes:{$purchaseOrderItem->id}"))
+            (new WithoutOverlapping("process-voucher-codes:{$saleOrderId}"))
                 ->releaseAfter(10)
                 ->expireAfter(120),
         ];
