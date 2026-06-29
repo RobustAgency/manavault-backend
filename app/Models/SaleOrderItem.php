@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\VoucherFulfillmentStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -65,5 +66,32 @@ class SaleOrderItem extends Model
     public function digitalProducts(): HasMany
     {
         return $this->hasMany(SaleOrderItemDigitalProduct::class);
+    }
+
+    /**
+     * Number of vouchers allocated to this item so far.
+     */
+    public function allocatedVoucherCount(): int
+    {
+        return $this->digitalProducts->whereNotNull('voucher_id')->count();
+    }
+
+    /**
+     * Whether every ordered unit of this item has a voucher allocated.
+     */
+    public function isFullyFulfilled(): bool
+    {
+        return $this->allocatedVoucherCount() >= $this->quantity;
+    }
+
+    /**
+     * Voucher fulfillment status for this item: completed once vouchers cover the
+     * full ordered quantity, otherwise pending.
+     */
+    public function voucherFulfillmentStatus(): VoucherFulfillmentStatus
+    {
+        return $this->isFullyFulfilled()
+            ? VoucherFulfillmentStatus::COMPLETED
+            : VoucherFulfillmentStatus::PENDING;
     }
 }
