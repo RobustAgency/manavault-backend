@@ -3,7 +3,6 @@
 namespace App\Http\Resources\ManaStore\V1;
 
 use App\Models\SaleOrder;
-use App\Enums\VoucherFulfillmentStatus;
 use App\Services\Voucher\VoucherCipherService;
 
 class VoucherCodesResource
@@ -38,16 +37,10 @@ class VoucherCodesResource
                 }
             }
 
-            // A product is completed only when vouchers cover the full ordered
-            // quantity; otherwise (including products with no vouchers) it is pending.
-            $status = count($codes) >= $item->quantity
-                ? VoucherFulfillmentStatus::COMPLETED
-                : VoucherFulfillmentStatus::PENDING;
-
             $formattedCodes[] = [
-                'id' => $item->id,
+                'id' => $item->product_id,
                 'title' => $item->product->name,
-                'status' => $status->value,
+                'status' => $item->voucherFulfillmentStatus()->value,
                 'codes' => $codes,
             ];
         }
