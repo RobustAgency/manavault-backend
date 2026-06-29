@@ -182,16 +182,19 @@ class ProcessVoucherCodesTest extends TestCase
         $this->assertSame(120, $middleware[0]->expiresAfter);
     }
 
-    public function test_no_lock_is_applied_when_the_purchase_order_has_no_sale_order(): void
+    public function test_lock_key_has_an_empty_suffix_when_the_purchase_order_has_no_sale_order(): void
     {
-        // Manual purchase order: no sale order, so handle() no-ops and there is
-        // nothing to serialize — the listener must not pile onto a shared lock.
+        // A manual purchase order has no sale order. The middleware is unconditional,
+        // so the null id collapses the key to a shared "process-voucher-codes:" suffix.
+        // (handle() still no-ops these, so it's harmless.)
         $purchaseOrder = PurchaseOrder::factory()->create(['sale_order_id' => null]);
         $poItem = PurchaseOrderItem::factory()->forPurchaseOrder($purchaseOrder)->create();
 
         $middleware = app(ProcessVoucherCodes::class)
             ->middleware(new NewVouchersAvailable($poItem));
 
-        $this->assertSame([], $middleware);
+        $this->assertCount(1, $middleware);
+        $this->assertInstanceOf(WithoutOverlapping::class, $middleware[0]);
+        $this->assertSame('process-voucher-codes:', $middleware[0]->key);
     }
 }
