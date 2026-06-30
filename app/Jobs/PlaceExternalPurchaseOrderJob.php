@@ -60,7 +60,11 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
             foreach ($this->purchaseOrderItems as $orderItem) {
                 try {
                     Cache::lock("place-external-purchase-order-item:{$orderItem->id}", $this->timeout)
-                        ->get(fn () => $orderItem->getSupplier()?->placeOrder($orderItem));
+                        ->get(function () use ($orderItem) {
+                            $orderItem->refresh();
+
+                            return $orderItem->getSupplier()?->placeOrder($orderItem);
+                        });
                 } catch (\Exception $e) {
                     $cause = $e->getPrevious() ?? $e;
                     $responseBody = $cause instanceof \Illuminate\Http\Client\RequestException
