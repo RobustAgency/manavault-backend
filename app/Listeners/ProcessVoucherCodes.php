@@ -2,71 +2,73 @@
 
 namespace App\Listeners;
 
-use App\Models\SaleOrder;
-use App\Enums\SaleOrder\Status;
-use App\Events\SaleOrderCompleted;
+use App\Services\SaleOrderService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Events\NewVouchersAvailable;
 use App\Repositories\SaleOrderRepository;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Services\DigitalProductAllocationService;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 
 class ProcessVoucherCodes implements ShouldQueue
 {
     public function __construct(
         private SaleOrderRepository $saleOrderRepository,
         private DigitalProductAllocationService $digitalProductAllocationService,
+        private SaleOrderService $saleOrderService,
     ) {}
+
+    /**
+     * Serialize processing per sale order. Voucher arrivals for the same order
+     * fire this listener repeatedly, and concurrent runs would each read the
+     * same allocation state and double-allocate. Different orders still run in
+     * parallel.
+     *
+     * @return array<int, object>
+     */
+    public function middleware(NewVouchersAvailable $event): array
+    {
+        $saleOrderId = $event->purchaseOrderItem->purchaseOrder?->sale_order_id;
+
+        return [
+            (new WithoutOverlapping("process-voucher-codes:{$saleOrderId}"))
+                ->releaseAfter(10)
+                ->expireAfter(120),
+        ];
+    }
 
     public function handle(NewVouchersAvailable $event): void
     {
-        if ($event->saleOrderId === null) {
+        $purchaseOrderItem = $event->purchaseOrderItem;
+        $saleOrderId = $purchaseOrderItem->purchaseOrder?->sale_order_id;
+
+        if (! $saleOrderId) {
+            Log::warning('Manual Purchase Order: No associated sale order for purchase order item', [
+                'purchase_order_item_id' => $purchaseOrderItem->id,
+            ]);
+
             return;
         }
 
-        $saleOrder = $this->saleOrderRepository->getSaleOrderById($event->saleOrderId);
+        $saleOrder = $this->saleOrderRepository->getSaleOrderById($saleOrderId);
 
-        if ($saleOrder->status === Status::PROCESSING->value) {
-            $this->processSaleOrder($saleOrder, $event->digitalProductIds);
-        }
-    }
-
-    private function processSaleOrder(SaleOrder $saleOrder, array $arrivedDigitalProductIds): void
-    {
         DB::beginTransaction();
         try {
-            $fullyAllocated = true;
-
             foreach ($saleOrder->items as $item) {
-                $alreadyAllocated = $item->digitalProducts()->count();
-                $remaining = $item->quantity - $alreadyAllocated;
+                // Only allocate what the item still needs.
+                $remaining = $item->quantity - $item->digitalProducts()->count();
 
                 if ($remaining <= 0) {
                     continue;
                 }
 
-                // Use the digital product selected for this item at order creation time
-                $digitalProduct = $item->selectedDigitalProduct;
-
-                // Only attempt allocation for items whose product received new vouchers.
-                // Items waiting on a different batch will be handled by their own event.
-                if ($digitalProduct === null || ! in_array($digitalProduct->id, $arrivedDigitalProductIds)) {
-                    $fullyAllocated = false;
-
-                    continue;
-                }
-
-                $allocated = $this->digitalProductAllocationService->allocateFromLinkedPurchaseOrder($item, $digitalProduct, $remaining, $saleOrder->id);
-
-                if ($allocated < $remaining) {
-                    $fullyAllocated = false;
-                }
+                $this->digitalProductAllocationService->allocateFromLinkedPurchaseOrder($item, $item->digitalProduct, $remaining, $saleOrder->id);
             }
 
-            if ($fullyAllocated) {
-                $saleOrder->update(['status' => Status::COMPLETED->value]);
-            }
+            // Persisting the status fires SaleOrderUpdated, which dispatches the outbound
+            // webhook via the DispatchSaleOrderStatusEvents listener.
+            $this->saleOrderService->updateStatus($saleOrder);
 
             DB::commit();
         } catch (\Exception $e) {
@@ -77,10 +79,6 @@ class ProcessVoucherCodes implements ShouldQueue
             ]);
 
             return;
-        }
-
-        if ($fullyAllocated) {
-            event(new SaleOrderCompleted($saleOrder));
         }
     }
 }

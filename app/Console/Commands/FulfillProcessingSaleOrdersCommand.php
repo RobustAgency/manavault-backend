@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Enums\SaleOrder\Status;
+use App\Enums\SaleOrderStatus;
 use Illuminate\Console\Command;
 use App\Actions\SaleOrder\FulfillProcessingSaleOrders;
 
@@ -65,8 +65,8 @@ class FulfillProcessingSaleOrdersCommand extends Command
         );
 
         $summaryCollection = collect($summary);
-        $completed = $summaryCollection->where('status', Status::COMPLETED->value)->count();
-        $processing = $summaryCollection->where('status', Status::PROCESSING->value)->count();
+        $completed = $summaryCollection->where('status', SaleOrderStatus::COMPLETED->value)->count();
+        $processing = $summaryCollection->where('status', SaleOrderStatus::PROCESSING->value)->count();
         $errored = $summaryCollection->where('status', 'error')->count();
 
         $this->info("{$completed} completed, {$processing} still processing, {$errored} errored.");

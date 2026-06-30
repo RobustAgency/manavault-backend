@@ -5,10 +5,9 @@ namespace App\Actions\SaleOrder;
 use App\Models\SaleOrder;
 use App\Enums\SupplierType;
 use App\Models\SaleOrderItem;
+use App\Enums\SaleOrderStatus;
 use App\Models\DigitalProduct;
-use App\Enums\SaleOrder\Status;
 use App\Enums\PurchaseOrderStatus;
-use App\Events\SaleOrderCompleted;
 use Illuminate\Support\Facades\DB;
 use App\Services\AutoPurchaseOrderService;
 use App\Services\DigitalProductAllocationService;
@@ -40,8 +39,8 @@ class FulfillProcessingSaleOrders
     public function execute(bool $dryRun = false, ?int $saleOrderId = null): array
     {
         $query = SaleOrder::query()
-            ->where('status', Status::PROCESSING->value)
-            ->with(['items.product', 'items.selectedDigitalProduct.supplier', 'items.digitalProducts', 'purchaseOrders.items']);
+            ->where('status', SaleOrderStatus::PROCESSING->value)
+            ->with(['items.product', 'items.digitalProduct.supplier', 'items.digitalProducts', 'purchaseOrders.items']);
 
         if ($saleOrderId !== null) {
             $query->where('id', $saleOrderId);
@@ -124,8 +123,10 @@ class FulfillProcessingSaleOrders
                 $purchaseOrdersCreated++;
             }
 
-            if ($fullyAllocated) {
-                $saleOrder->update(['status' => Status::COMPLETED->value]);
+            // Persist the status change only for a real run. On a dry run, update() would
+            // still fire the SaleOrderUpdated event even though the row is rolled back.
+            if ($fullyAllocated && ! $dryRun) {
+                $saleOrder->update(['status' => SaleOrderStatus::COMPLETED->value]);
             }
 
             if ($dryRun) {
@@ -143,13 +144,7 @@ class FulfillProcessingSaleOrders
             return $this->summaryRow($saleOrder, 'error', 0, 0, $e->getMessage());
         }
 
-        // Fire the completion event only for a real, committed completion so downstream
-        // listeners (customer webhook, etc.) never react to a dry run.
-        if ($fullyAllocated && ! $dryRun) {
-            event(new SaleOrderCompleted($saleOrder));
-        }
-
-        $resultStatus = $fullyAllocated ? Status::COMPLETED->value : Status::PROCESSING->value;
+        $resultStatus = $fullyAllocated ? SaleOrderStatus::COMPLETED->value : SaleOrderStatus::PROCESSING->value;
 
         return $this->summaryRow($saleOrder, $resultStatus, $allocatedCount, $purchaseOrdersCreated);
     }
@@ -161,7 +156,7 @@ class FulfillProcessingSaleOrders
     private function resolveDigitalProduct(SaleOrderItem $item): ?DigitalProduct
     {
         if ($item->digital_product_id !== null) {
-            return $item->selectedDigitalProduct;
+            return $item->digitalProduct;
         }
 
         $digitalProduct = $item->product?->digitalProduct();
