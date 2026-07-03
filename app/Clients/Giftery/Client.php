@@ -294,4 +294,22 @@ class Client
 
         return $data['data'];
     }
+
+    public function getOperations(int $offset = 0, int $limit = 100, ?string $dateFrom = null, ?string $dateTo = null): array
+    {
+        $query = array_filter([
+            'offset' => $offset,
+            'limit' => $limit,
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
+        ], fn ($value) => $value !== null);
+
+        $response = $this->getClient()->withHeaders([
+            'time' => (string) time(),
+            'signature' => $this->generateRequestSignature(time()),
+            'Authorization' => "Bearer {$this->refreshToken()}",
+        ])->get('operations', $query);
+
+        return $response->json();
+    }
 }
