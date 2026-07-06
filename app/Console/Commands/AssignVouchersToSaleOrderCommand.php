@@ -2,16 +2,16 @@
 
 namespace App\Console\Commands;
 
-use App\Actions\AssignVouchersToSaleOrderAction;
 use App\Models\SaleOrder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
+use App\Actions\AssignVouchersToSaleOrderAction;
 
 class AssignVouchersToSaleOrderCommand extends Command
 {
     protected $signature = 'orders:assign-vouchers {sale_order_id : The ID of the sale order to process}';
 
-    protected $description = 'Assign vouchers to a sale order, falling back to the next-priority digital product when the primary has no stock';
+    protected $description = 'Assign available vouchers to a sale order using the digital product selected for each item at order creation time';
 
     public function __construct(
         private AssignVouchersToSaleOrderAction $action,
@@ -23,7 +23,7 @@ class AssignVouchersToSaleOrderCommand extends Command
     {
         $saleOrderId = (int) $this->argument('sale_order_id');
 
-        $saleOrder = SaleOrder::with(['items.product.digitalProducts', 'items.digitalProducts'])
+        $saleOrder = SaleOrder::with(['items.product', 'items.selectedDigitalProduct', 'items.digitalProducts'])
             ->find($saleOrderId);
 
         if (! $saleOrder) {
