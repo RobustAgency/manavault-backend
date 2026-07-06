@@ -273,6 +273,90 @@ class IrewardifyTest extends TestCase
         $this->assertEquals(PurchaseOrderItemStatus::PROCESSING, $this->item->fresh()->status);
     }
 
+    public function test_update_order_rolls_back_created_vouchers_when_a_later_delivery_item_has_no_code(): void
+    {
+        $this->item->update([
+            'quantity' => 2,
+            'transaction_id' => 'IRW-ORDER-001',
+            'status' => PurchaseOrderItemStatus::PROCESSING->value,
+        ]);
+
+        Http::fake($this->getOrderDeliveryResponse('IRW-ORDER-001', [
+            [
+                'no' => 1,
+                'Brand' => 'Holland America',
+                'Denom' => '$50.00',
+                'Id' => '3581165-1',
+                'Codes' => [
+                    ['Label' => 'Code', 'Value' => '2370968749009790'],
+                    ['Label' => 'PIN', 'Value' => '8755'],
+                ],
+            ],
+            [
+                'no' => 2,
+                'Brand' => 'Holland America',
+                'Denom' => '$50.00',
+                'Id' => '3581165-2',
+                'Codes' => [],
+            ],
+        ]));
+
+        app(Irewardify::class)->updateOrder($this->item->fresh());
+
+        // The first item's voucher is created inside the transaction, then the second
+        // item's missing code throws and rolls the whole transaction back to zero.
+        $this->assertDatabaseCount('vouchers', 0);
+        $this->assertEquals(PurchaseOrderItemStatus::PROCESSING, $this->item->fresh()->status);
+    }
+
+    public function test_update_order_rolls_back_created_vouchers_when_a_later_item_errors_during_creation(): void
+    {
+        $this->item->update([
+            'quantity' => 2,
+            'transaction_id' => 'IRW-ORDER-001',
+            'status' => PurchaseOrderItemStatus::PROCESSING->value,
+        ]);
+
+        Http::fake($this->getOrderDeliveryResponse('IRW-ORDER-001', [
+            // First item is valid: its voucher is created inside the transaction.
+            [
+                'no' => 1,
+                'Brand' => 'Holland America',
+                'Denom' => '$50.00',
+                'Id' => '3581165-1',
+                'Codes' => [
+                    ['Label' => 'Code', 'Value' => '2370968749009790'],
+                    ['Label' => 'PIN', 'Value' => '8755'],
+                ],
+            ],
+            // Second item has a code but an unparseable expiration date, which throws a
+            // genuine error (not a missing-code DomainException) while it is processed.
+            [
+                'no' => 2,
+                'Brand' => 'Apple Gift Card US',
+                'Denom' => '$2.00',
+                'id' => 83008535,
+                'cardCode' => 'fe539981833a48ee8dc198702ed75ebd',
+                'pin' => '549',
+                'expirationDate' => 'not-a-real-date',
+            ],
+        ]));
+
+        $threw = false;
+
+        try {
+            app(Irewardify::class)->updateOrder($this->item->fresh());
+        } catch (\Throwable $e) {
+            $threw = true;
+        }
+
+        // A genuine error propagates (it is not swallowed like a missing code) ...
+        $this->assertTrue($threw, 'Expected the voucher-creation error to propagate.');
+        // ... and the voucher created before the failure is rolled back to zero.
+        $this->assertDatabaseCount('vouchers', 0);
+        $this->assertEquals(PurchaseOrderItemStatus::PROCESSING, $this->item->fresh()->status);
+    }
+
     public function test_update_order_does_not_mark_supplier_completed_when_other_items_still_pending(): void
     {
         PurchaseOrderItem::factory()->create([

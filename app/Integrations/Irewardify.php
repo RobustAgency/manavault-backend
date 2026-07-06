@@ -6,6 +6,7 @@ use App\Models\Voucher;
 use Illuminate\Support\Carbon;
 use App\Enums\VoucherCodeStatus;
 use App\Models\PurchaseOrderItem;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Actions\Irewardify\Checkout;
 use App\Enums\PurchaseOrderItemStatus;
@@ -86,39 +87,42 @@ class Irewardify implements SupplierIntegrationContract
             return;
         }
 
-        $vouchers = [];
-
-        foreach ($deliveryItems as $deliveryItem) {
-            $voucher = $this->extractVoucher($deliveryItem);
-
-            if ($voucher['code'] === null) {
-                Log::warning('Irewardify updateOrder delivery item missing code', [
-                    'purchase_order_item_id' => $item->id,
-                    'transaction_id' => $item->transaction_id,
-                    'delivery_item_id' => $deliveryItem['Id'] ?? $deliveryItem['id'] ?? null,
-                ]);
-
-                return;
-            }
-
-            $vouchers[] = $voucher;
-        }
-
         $purchaseOrder = $item->purchaseOrder;
 
-        foreach ($vouchers as $voucher) {
-            Voucher::create([
-                'purchase_order_id' => $purchaseOrder->id,
-                'purchase_order_item_id' => $item->id,
-                'code' => $this->voucherCipherService->encryptCode($voucher['code']),
-                'serial_number' => null,
-                'pin_code' => $voucher['pin'] !== null ? (string) $voucher['pin'] : null,
-                'expires_at' => $voucher['expires_at'],
-                'status' => VoucherCodeStatus::AVAILABLE->value,
-            ]);
-        }
+        try {
+            DB::transaction(function () use ($deliveryItems, $item, $purchaseOrder) {
+                foreach ($deliveryItems as $deliveryItem) {
+                    $voucher = $this->extractVoucher($deliveryItem);
 
-        $item->update(['status' => PurchaseOrderItemStatus::FULFILLED]);
+                    if ($voucher['code'] === null) {
+                        Log::warning('Irewardify updateOrder delivery item missing code', [
+                            'purchase_order_item_id' => $item->id,
+                            'transaction_id' => $item->transaction_id,
+                            'delivery_item_id' => $deliveryItem['Id'] ?? $deliveryItem['id'] ?? null,
+                        ]);
+
+                        // Roll back any vouchers already created in this run. Caught below
+                        // so the surrounding batch keeps processing other items.
+                        throw new \DomainException('Irewardify updateOrder delivery item missing code');
+                    }
+
+                    Voucher::create([
+                        'purchase_order_id' => $purchaseOrder->id,
+                        'purchase_order_item_id' => $item->id,
+                        'code' => $this->voucherCipherService->encryptCode($voucher['code']),
+                        'serial_number' => null,
+                        'pin_code' => $voucher['pin'] !== null ? (string) $voucher['pin'] : null,
+                        'expires_at' => $voucher['expires_at'],
+                        'status' => VoucherCodeStatus::AVAILABLE->value,
+                    ]);
+                }
+
+                $item->update(['status' => PurchaseOrderItemStatus::FULFILLED]);
+            });
+        } catch (\DomainException $e) {
+            // Missing voucher code: transaction rolled back
+            Log::warning($e->getMessage());
+        }
     }
 
     /**
