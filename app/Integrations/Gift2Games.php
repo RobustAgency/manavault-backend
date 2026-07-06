@@ -35,6 +35,14 @@ class Gift2Games implements SupplierIntegrationContract
         }
         $batchNumber = 'batch_'.$item->id;
 
+        Log::info('Gift2Games placeOrder: creating order', [
+            'supplier' => $this->supplierSlug,
+            'purchase_order_item_id' => $item->id,
+            'sku' => $item->digitalProduct->sku ?? null,
+            'quantity' => $item->quantity,
+            'batch_number' => $batchNumber,
+        ]);
+
         for ($i = 0; $i < $item->quantity; $i++) {
             Gift2GamesOrder::create([
                 'batch_number' => $batchNumber,
@@ -44,6 +52,12 @@ class Gift2Games implements SupplierIntegrationContract
         }
 
         $item->update(['transaction_id' => $batchNumber, 'status' => PurchaseOrderItemStatus::PROCESSING]);
+
+        Log::info('Gift2Games placeOrder: order placed', [
+            'supplier' => $this->supplierSlug,
+            'purchase_order_item_id' => $item->id,
+            'batch_number' => $batchNumber,
+        ]);
     }
 
     public function updateOrder(PurchaseOrderItem $item): void

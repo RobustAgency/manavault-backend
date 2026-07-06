@@ -40,11 +40,22 @@ class Giftery implements SupplierIntegrationContract
             'referenceId' => 'order_item_id_'.$item->id,
         ];
 
+        Log::info('Giftery placeOrder: creating order', [
+            'purchase_order_item_id' => $item->id,
+            'sku' => $item->digitalProduct->sku,
+            'quantity' => $item->quantity,
+        ]);
+
         $response = $this->placeOrderAction->execute($payload);
 
         $transactionUUID = $response['transactionUUID'];
 
         $item->update(['transaction_id' => $transactionUUID, 'status' => PurchaseOrderItemStatus::PROCESSING]);
+
+        Log::info('Giftery placeOrder: order placed', [
+            'purchase_order_item_id' => $item->id,
+            'transaction_id' => $transactionUUID,
+        ]);
     }
 
     public function updateOrder(PurchaseOrderItem $item): void
@@ -82,6 +93,12 @@ class Giftery implements SupplierIntegrationContract
         }
 
         $item->update(['status' => PurchaseOrderItemStatus::FULFILLED]);
+
+        Log::info('Giftery updateOrder: order fulfilled', [
+            'purchase_order_item_id' => $item->id,
+            'transaction_id' => $item->transaction_id,
+            'voucher_count' => count($vouchers),
+        ]);
     }
 
     public function syncProducts(): void
