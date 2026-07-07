@@ -85,9 +85,20 @@ class SaleOrderController extends Controller
             ]);
             $voucherCodes = VoucherCodesResource::format($saleOrder);
 
+            $totalItems = $saleOrder->items->count();
+            $fulfilledItems = $saleOrder->items->filter(
+                fn ($item) => $item->isFullyFulfilled()
+            )->count();
+
+            $message = match (true) {
+                $fulfilledItems === $totalItems => 'Voucher codes retrieved successfully.',
+                $fulfilledItems === 0 => 'Voucher codes are still pending fulfillment.',
+                default => 'Some voucher codes are still pending fulfillment.',
+            };
+
             return response()->json([
                 'error' => false,
-                'message' => 'Voucher codes retrieved successfully.',
+                'message' => $message,
                 'data' => $voucherCodes,
             ], 200);
         } catch (\Exception $e) {
