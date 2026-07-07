@@ -22,8 +22,19 @@ class UpdatePurchaseOrderItemsAction
             $supplier = $item->getSupplier();
 
             if ($supplier === null) {
+                logger()->info('UpdatePurchaseOrderItemsAction: no supplier for item, skipping', [
+                    'item_id' => $item->id,
+                    'supplier_id' => $item->supplier_id,
+                ]);
+
                 continue;
             }
+
+            logger()->info('UpdatePurchaseOrderItemsAction: updating order for item', [
+                'item_id' => $item->id,
+                'supplier_id' => $item->supplier_id,
+                'purchase_order_id' => $item->purchase_order_id,
+            ]);
 
             $supplier->updateOrder($item);
 
@@ -34,6 +45,11 @@ class UpdatePurchaseOrderItemsAction
                     ->every(fn (PurchaseOrderItem $i) => $i->status === PurchaseOrderItemStatus::FULFILLED);
 
                 if ($allCompleted) {
+                    logger()->info('UpdatePurchaseOrderItemsAction: all items fulfilled, marking supplier completed', [
+                        'supplier_id' => $item->supplier_id,
+                        'purchase_order_id' => $item->purchase_order_id,
+                    ]);
+
                     PurchaseOrderSupplier::where('supplier_id', $item->supplier_id)
                         ->where('purchase_order_id', $item->purchase_order_id)
                         ->update(['status' => PurchaseOrderSupplierStatus::COMPLETED->value]);
@@ -42,5 +58,7 @@ class UpdatePurchaseOrderItemsAction
                 $this->purchaseOrderStatusService->updateStatus($item->purchaseOrder);
             }
         }
+
+        logger()->info('UpdatePurchaseOrderItemsAction: finished');
     }
 }

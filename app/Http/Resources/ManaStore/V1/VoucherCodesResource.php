@@ -10,7 +10,7 @@ class VoucherCodesResource
     /**
      * Format voucher codes grouped by product for a sale order.
      *
-     * @return array<int, array{title: string, codes: array}>
+     * @return array<int, array{title: string, status: string, codes: array}>
      */
     public static function format(SaleOrder $saleOrder): array
     {
@@ -37,13 +37,12 @@ class VoucherCodesResource
                 }
             }
 
-            if (! empty($codes)) {
-                $formattedCodes[] = [
-                    'id' => $item->product_id,
-                    'title' => $item->product->name,
-                    'codes' => $codes,
-                ];
-            }
+            $formattedCodes[] = [
+                'id' => $item->product_id,
+                'title' => $item->product->name,
+                'status' => $item->voucherFulfillmentStatus()->value,
+                'codes' => $codes,
+            ];
         }
 
         return $formattedCodes;

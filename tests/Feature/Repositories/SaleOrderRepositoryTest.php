@@ -4,7 +4,7 @@ namespace Tests\Feature\Repositories;
 
 use Tests\TestCase;
 use App\Models\SaleOrder;
-use App\Enums\SaleOrder\Status;
+use App\Enums\SaleOrderStatus;
 use App\Repositories\SaleOrderRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -27,7 +27,7 @@ class SaleOrderRepositoryTest extends TestCase
             'source' => SaleOrder::MANASTORE,
             'currency' => 'usd',
             'total_price' => 100.00,
-            'status' => Status::PENDING->value,
+            'status' => SaleOrderStatus::PENDING->value,
         ];
 
         $saleOrder = $this->repository->createSaleOrder($data);
@@ -84,13 +84,13 @@ class SaleOrderRepositoryTest extends TestCase
 
     public function test_get_filtered_sale_orders(): void
     {
-        SaleOrder::factory()->create(['status' => Status::PENDING->value]);
-        SaleOrder::factory()->create(['status' => Status::COMPLETED->value]);
+        SaleOrder::factory()->create(['status' => SaleOrderStatus::PENDING->value]);
+        SaleOrder::factory()->create(['status' => SaleOrderStatus::COMPLETED->value]);
 
-        $result = $this->repository->getFilteredSaleOrders(['status' => Status::PENDING->value]);
+        $result = $this->repository->getFilteredSaleOrders(['status' => SaleOrderStatus::PENDING->value]);
 
         $this->assertCount(1, $result->items());
-        $this->assertEquals(Status::PENDING->value, $result->items()[0]->status);
+        $this->assertEquals(SaleOrderStatus::PENDING->value, $result->items()[0]->status);
     }
 
     public function test_get_filtered_sale_orders_by_source(): void
@@ -117,26 +117,26 @@ class SaleOrderRepositoryTest extends TestCase
 
     public function test_get_sale_orders_by_status(): void
     {
-        SaleOrder::factory()->create(['status' => Status::PENDING->value]);
-        SaleOrder::factory()->create(['status' => Status::PENDING->value]);
-        SaleOrder::factory()->create(['status' => Status::COMPLETED->value]);
+        SaleOrder::factory()->create(['status' => SaleOrderStatus::PENDING->value]);
+        SaleOrder::factory()->create(['status' => SaleOrderStatus::PENDING->value]);
+        SaleOrder::factory()->create(['status' => SaleOrderStatus::COMPLETED->value]);
 
-        $result = $this->repository->getSaleOrdersByStatus(Status::PENDING->value);
+        $result = $this->repository->getSaleOrdersByStatus(SaleOrderStatus::PENDING->value);
 
         $this->assertCount(2, $result);
-        $result->each(fn ($order) => $this->assertEquals(Status::PENDING->value, $order->status));
+        $result->each(fn ($order) => $this->assertEquals(SaleOrderStatus::PENDING->value, $order->status));
     }
 
     public function test_update_sale_order(): void
     {
-        $saleOrder = SaleOrder::factory()->create(['status' => Status::PENDING->value]);
+        $saleOrder = SaleOrder::factory()->create(['status' => SaleOrderStatus::PENDING->value]);
 
         $updated = $this->repository->updateSaleOrder($saleOrder, [
-            'status' => Status::COMPLETED->value,
+            'status' => SaleOrderStatus::COMPLETED->value,
             'total_price' => 250.00,
         ]);
 
-        $this->assertEquals(Status::COMPLETED->value, $updated->status);
+        $this->assertEquals(SaleOrderStatus::COMPLETED->value, $updated->status);
         $this->assertEquals(250.00, $updated->total_price);
     }
 

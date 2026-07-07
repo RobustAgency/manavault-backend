@@ -8,14 +8,19 @@ use App\Models\Voucher;
 use App\Models\Supplier;
 use App\Models\SaleOrder;
 use App\Models\PurchaseOrder;
+use App\Enums\SaleOrderStatus;
 use App\Models\DigitalProduct;
-use App\Enums\SaleOrder\Status;
 use App\Enums\VoucherCodeStatus;
+use App\Events\SaleOrderUpdated;
 use App\Models\PurchaseOrderItem;
-use App\Events\SaleOrderCompleted;
 use App\Services\SaleOrderService;
+use Illuminate\Support\Facades\Bus;
+use App\Events\NewVouchersAvailable;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Event;
+use App\Listeners\ProcessVoucherCodes;
+use Illuminate\Support\Facades\Config;
+use Spatie\WebhookServer\CallWebhookJob;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class SaleOrderServiceTest extends TestCase
@@ -28,6 +33,9 @@ class SaleOrderServiceTest extends TestCase
     {
         parent::setUp();
         $this->service = app(SaleOrderService::class);
+
+        Config::set('webhook-server.webhook_url', 'https://example.test/webhook-sale-order');
+        Config::set('webhook-server.webhook_secret', 'test-secret');
     }
 
     /**
@@ -70,8 +78,8 @@ class SaleOrderServiceTest extends TestCase
             ],
         ]);
 
-        $this->assertEquals(Status::PROCESSING->value, $saleOrder->status);
-        $this->assertDatabaseHas('sale_orders', ['order_number' => 'SO-001', 'status' => Status::PROCESSING->value]);
+        $this->assertEquals(SaleOrderStatus::PROCESSING->value, $saleOrder->status);
+        $this->assertDatabaseHas('sale_orders', ['order_number' => 'SO-001', 'status' => SaleOrderStatus::PROCESSING->value]);
     }
 
     /**
@@ -113,7 +121,7 @@ class SaleOrderServiceTest extends TestCase
         ]);
 
         $this->assertNotNull($saleOrder->id);
-        $this->assertEquals(Status::COMPLETED->value, $saleOrder->status);
+        $this->assertEquals(SaleOrderStatus::COMPLETED->value, $saleOrder->status);
     }
 
     /**
@@ -290,7 +298,7 @@ class SaleOrderServiceTest extends TestCase
         // Assert: Sale order created with correct structure
         $this->assertNotNull($saleOrder->id);
         $this->assertEquals('SO-005', $saleOrder->order_number);
-        $this->assertEquals(Status::COMPLETED->value, $saleOrder->status);
+        $this->assertEquals(SaleOrderStatus::COMPLETED->value, $saleOrder->status);
         $this->assertEquals(SaleOrder::MANASTORE, $saleOrder->source);
         $this->assertCount(2, $saleOrder->items);
 
@@ -344,14 +352,14 @@ class SaleOrderServiceTest extends TestCase
             'order_number' => 'SO-007A',
             'items' => [['product_id' => $product->id, 'quantity' => 1]],
         ]);
-        $this->assertEquals(Status::COMPLETED->value, $saleOrder1->status);
+        $this->assertEquals(SaleOrderStatus::COMPLETED->value, $saleOrder1->status);
 
         // Act: Create second sale order requesting 2 units — only 1 remains → PROCESSING
         $saleOrder2 = $this->service->createOrder([
             'order_number' => 'SO-007B',
             'items' => [['product_id' => $product->id, 'quantity' => 2]],
         ]);
-        $this->assertEquals(Status::PROCESSING->value, $saleOrder2->status);
+        $this->assertEquals(SaleOrderStatus::PROCESSING->value, $saleOrder2->status);
 
         // The single remaining voucher must not be allocated to SO-007B (0 available after allocating 1)
         $allocatedToSo2 = $saleOrder2->items->first()->digitalProducts()->count();
@@ -481,7 +489,7 @@ class SaleOrderServiceTest extends TestCase
      */
     public function test_sufficient_internal_stock_completes_order_without_purchase_order(): void
     {
-        Event::fake([SaleOrderCompleted::class]);
+        Bus::fake();
 
         $supplier = Supplier::factory()->create(['type' => 'internal']);
         $product = Product::factory()->active()->create(['fulfillment_mode' => 'price']);
@@ -501,9 +509,12 @@ class SaleOrderServiceTest extends TestCase
             'items' => [['product_id' => $product->id, 'quantity' => 3]],
         ]);
 
-        $this->assertEquals(Status::COMPLETED->value, $saleOrder->status);
+        $this->assertEquals(SaleOrderStatus::COMPLETED->value, $saleOrder->status);
         $this->assertEquals(0, PurchaseOrder::where('order_number', 'like', 'PO-%')->whereDoesntHave('items', fn ($q) => $q->where('purchase_order_id', $po->id))->count());
-        Event::assertDispatched(SaleOrderCompleted::class);
+        Bus::assertDispatched(
+            CallWebhookJob::class,
+            fn (CallWebhookJob $job) => $job->payload['event'] === 'sale_order.completed'
+        );
     }
 
     /**
@@ -511,7 +522,7 @@ class SaleOrderServiceTest extends TestCase
      */
     public function test_insufficient_internal_stock_creates_processing_order(): void
     {
-        Event::fake([SaleOrderCompleted::class]);
+        Bus::fake();
 
         $supplier = Supplier::factory()->create(['type' => 'internal']);
         $product = Product::factory()->active()->create(['fulfillment_mode' => 'price']);
@@ -531,8 +542,11 @@ class SaleOrderServiceTest extends TestCase
             'items' => [['product_id' => $product->id, 'quantity' => 5]],
         ]);
 
-        $this->assertEquals(Status::PROCESSING->value, $saleOrder->status);
-        Event::assertNotDispatched(SaleOrderCompleted::class);
+        $this->assertEquals(SaleOrderStatus::PROCESSING->value, $saleOrder->status);
+        Bus::assertNotDispatched(
+            CallWebhookJob::class,
+            fn (CallWebhookJob $job) => str_starts_with($job->payload['event'], 'sale_order.')
+        );
     }
 
     /**
@@ -540,7 +554,7 @@ class SaleOrderServiceTest extends TestCase
      */
     public function test_shortfall_with_gift2games_supplier_creates_po_and_completes_order(): void
     {
-        Event::fake([SaleOrderCompleted::class]);
+        Bus::fake();
 
         $supplier = Supplier::factory()->create([
             'slug' => 'gift2games',
@@ -567,8 +581,11 @@ class SaleOrderServiceTest extends TestCase
         // A new PO was created
         $this->assertGreaterThan($purchaseOrderCount, PurchaseOrder::count());
         // placeOrder only queues batch records — vouchers come later via updateOrder
-        $this->assertEquals(Status::PROCESSING->value, $saleOrder->status);
-        Event::assertNotDispatched(SaleOrderCompleted::class);
+        $this->assertEquals(SaleOrderStatus::PROCESSING->value, $saleOrder->status);
+        Bus::assertNotDispatched(
+            CallWebhookJob::class,
+            fn (CallWebhookJob $job) => str_starts_with($job->payload['event'], 'sale_order.')
+        );
     }
 
     /**
@@ -576,7 +593,7 @@ class SaleOrderServiceTest extends TestCase
      */
     public function test_shortfall_with_ezcards_supplier_creates_po_and_leaves_order_processing(): void
     {
-        Event::fake([SaleOrderCompleted::class]);
+        Bus::fake();
 
         $supplier = Supplier::factory()->create([
             'slug' => 'ez_cards',
@@ -615,8 +632,11 @@ class SaleOrderServiceTest extends TestCase
         // PO was created
         $this->assertGreaterThan($purchaseOrderCount, PurchaseOrder::count());
         // No vouchers yet (async) → order stays PROCESSING
-        $this->assertEquals(Status::PROCESSING->value, $saleOrder->status);
-        Event::assertNotDispatched(SaleOrderCompleted::class);
+        $this->assertEquals(SaleOrderStatus::PROCESSING->value, $saleOrder->status);
+        Bus::assertNotDispatched(
+            CallWebhookJob::class,
+            fn (CallWebhookJob $job) => str_starts_with($job->payload['event'], 'sale_order.')
+        );
     }
 
     /**
@@ -624,7 +644,7 @@ class SaleOrderServiceTest extends TestCase
      */
     public function test_auto_purchase_order_has_sale_order_id_when_shortfall_occurs(): void
     {
-        Event::fake([SaleOrderCompleted::class]);
+        Bus::fake();
 
         $supplier = Supplier::factory()->create([
             'slug' => 'internal_supplier',
@@ -648,6 +668,73 @@ class SaleOrderServiceTest extends TestCase
 
         $this->assertNotNull($autoPurchaseOrder, 'Auto-created PO should be linked to the sale order');
         $this->assertEquals($saleOrder->id, $autoPurchaseOrder->sale_order_id);
+    }
+
+    /**
+     * Test: Fulfillment uses the digital product selected at order time, even after the
+     * product's associated digital product is swapped before vouchers arrive.
+     *
+     * Scenario: a PO is raised for Digital Product A. Someone then detaches A and attaches
+     * Digital Product B to the product. When A's vouchers arrive, the order must still be
+     * fulfilled with A (the purchased product), not B.
+     */
+    public function test_fulfillment_uses_digital_product_selected_at_order_time_not_current_association(): void
+    {
+        Event::fake([SaleOrderUpdated::class]);
+
+        $supplier = Supplier::factory()->create(['type' => 'internal']);
+        $product = Product::factory()->active()->create(['fulfillment_mode' => 'price']);
+
+        // Digital Product A — the supplier selected when the order is placed.
+        $digitalProductA = DigitalProduct::factory()->forSupplier($supplier)->create([
+            'cost_price' => 10.00,
+            'selling_price' => 15.00,
+        ]);
+        $product->digitalProducts()->attach($digitalProductA->id, ['priority' => 1]);
+
+        // No general stock → shortfall → auto-PO raised for A, order left PROCESSING.
+        $saleOrder = $this->service->createOrder([
+            'order_number' => 'SO-SWAP-001',
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+        ]);
+
+        $this->assertEquals(SaleOrderStatus::PROCESSING->value, $saleOrder->status);
+
+        // The item persisted A as its selected digital product.
+        $item = $saleOrder->items->first();
+        $this->assertEquals($digitalProductA->id, $item->digital_product_id);
+
+        $autoPo = PurchaseOrder::where('sale_order_id', $saleOrder->id)->firstOrFail();
+        $poItem = $autoPo->items()->where('digital_product_id', $digitalProductA->id)->firstOrFail();
+
+        // Someone swaps the product association: detach A, attach a cheaper B (which a live
+        // price-mode resolution would now prefer).
+        $digitalProductB = DigitalProduct::factory()->forSupplier($supplier)->create([
+            'cost_price' => 5.00,
+            'selling_price' => 8.00,
+        ]);
+        $product->digitalProducts()->detach($digitalProductA->id);
+        $product->digitalProducts()->attach($digitalProductB->id, ['priority' => 1]);
+
+        // A's vouchers arrive against the PO item that was raised for A.
+        Voucher::factory()->count(1)->create([
+            'purchase_order_id' => $autoPo->id,
+            'purchase_order_item_id' => $poItem->id,
+            'status' => VoucherCodeStatus::AVAILABLE->value,
+        ]);
+
+        // Fire the same event the voucher-creation flow dispatches (PO item reflects A).
+        app(ProcessVoucherCodes::class)->handle(
+            new NewVouchersAvailable($poItem)
+        );
+
+        // Order completes, allocated from A (the purchased product), not B.
+        $saleOrder->refresh();
+        $this->assertEquals(SaleOrderStatus::COMPLETED->value, $saleOrder->status);
+
+        $allocation = $item->digitalProducts()->first();
+        $this->assertNotNull($allocation);
+        $this->assertEquals($digitalProductA->id, $allocation->digital_product_id);
     }
 
     /**
@@ -675,5 +762,97 @@ class SaleOrderServiceTest extends TestCase
 
         // The pre-existing PO was created manually (no sale_order_id)
         $this->assertNull($purchaseOrder->fresh()->sale_order_id);
+    }
+
+    // -------------------------------------------------------------------------
+    // Idempotency scenarios
+    // -------------------------------------------------------------------------
+
+    /**
+     * Test: Re-running createOrder for an order that already exists with items
+     * returns the existing order and does not create a duplicate.
+     */
+    public function test_does_not_create_duplicate_when_order_already_exists_with_items(): void
+    {
+        $product = Product::factory()->active()->create(['fulfillment_mode' => 'price']);
+        $digitalProduct = DigitalProduct::factory()->create(['selling_price' => 50.00]);
+        $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
+
+        $purchaseOrder = PurchaseOrder::factory()->completed()->create();
+        $purchaseOrderItem = PurchaseOrderItem::factory()
+            ->forPurchaseOrder($purchaseOrder)
+            ->forDigitalProduct($digitalProduct)
+            ->withQuantity(5)
+            ->create();
+
+        Voucher::factory()->count(5)->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_item_id' => $purchaseOrderItem->id,
+            'status' => VoucherCodeStatus::AVAILABLE->value,
+        ]);
+
+        $payload = [
+            'order_number' => 'SO-IDEM-001',
+            'items' => [['product_id' => $product->id, 'quantity' => 2]],
+        ];
+
+        $first = $this->service->createOrder($payload);
+
+        // Act: same order number submitted again
+        $second = $this->service->createOrder($payload);
+
+        // Same record returned, no duplicate created
+        $this->assertEquals($first->id, $second->id);
+        $this->assertEquals(1, SaleOrder::where('order_number', 'SO-IDEM-001')->count());
+        // Items were not duplicated either
+        $this->assertCount(1, $second->items);
+    }
+
+    /**
+     * Test: An order that was created without its items gets its items populated
+     * on a subsequent createOrder call, reusing the same order record.
+     */
+    public function test_populates_items_for_existing_order_without_items(): void
+    {
+        $product = Product::factory()->active()->create(['fulfillment_mode' => 'price']);
+        $digitalProduct = DigitalProduct::factory()->create(['selling_price' => 50.00]);
+        $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
+
+        $purchaseOrder = PurchaseOrder::factory()->completed()->create();
+        $purchaseOrderItem = PurchaseOrderItem::factory()
+            ->forPurchaseOrder($purchaseOrder)
+            ->forDigitalProduct($digitalProduct)
+            ->withQuantity(5)
+            ->create();
+
+        Voucher::factory()->count(5)->create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_item_id' => $purchaseOrderItem->id,
+            'status' => VoucherCodeStatus::AVAILABLE->value,
+        ]);
+
+        // Arrange: an orphaned order with no items (e.g. a previous run failed mid-way)
+        $orphan = SaleOrder::factory()->create([
+            'order_number' => 'SO-IDEM-002',
+            'status' => SaleOrderStatus::PENDING->value,
+            'total_price' => 0,
+        ]);
+        $this->assertCount(0, $orphan->items);
+
+        // Act: createOrder for the same order number
+        $saleOrder = $this->service->createOrder([
+            'order_number' => 'SO-IDEM-002',
+            'items' => [['product_id' => $product->id, 'quantity' => 2]],
+        ]);
+
+        // Same record reused — no duplicate order created
+        $this->assertEquals($orphan->id, $saleOrder->id);
+        $this->assertEquals(1, SaleOrder::where('order_number', 'SO-IDEM-002')->count());
+
+        // Items are now populated and the order completed
+        $this->assertCount(1, $saleOrder->items);
+        $this->assertEquals(2, $saleOrder->items->first()->quantity);
+        $this->assertEquals(100.00, $saleOrder->total_price);
+        $this->assertEquals(SaleOrderStatus::COMPLETED->value, $saleOrder->status);
     }
 }

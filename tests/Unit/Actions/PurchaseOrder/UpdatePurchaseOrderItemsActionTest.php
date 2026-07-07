@@ -10,7 +10,9 @@ use App\Models\PurchaseOrderItem;
 use App\Enums\PurchaseOrderStatus;
 use Illuminate\Support\Facades\Http;
 use App\Models\PurchaseOrderSupplier;
+use Illuminate\Support\Facades\Event;
 use App\Enums\PurchaseOrderItemStatus;
+use App\Events\PurchaseOrderItemUpdated;
 use App\Enums\PurchaseOrderSupplierStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Actions\PurchaseOrder\UpdatePurchaseOrderItemsAction;
@@ -32,6 +34,7 @@ class UpdatePurchaseOrderItemsActionTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Event::fake([PurchaseOrderItemUpdated::class]);
 
         $this->action = app(UpdatePurchaseOrderItemsAction::class);
         $this->supplier = Supplier::factory()->create(['slug' => 'ez_cards']);

@@ -3,7 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\SaleOrder;
-use App\Enums\SaleOrder\Status;
+use App\Enums\SaleOrderStatus;
 use App\Enums\PurchaseOrderStatus;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -67,7 +67,7 @@ class SaleOrderRepository
     /**
      * Get a sale order by order number.
      */
-    public function getSaleOrderByOrderNumber(int $orderNumber): ?SaleOrder
+    public function getSaleOrderByOrderNumber(int|string $orderNumber): ?SaleOrder
     {
         return SaleOrder::with('items.digitalProducts')
             ->where('order_number', $orderNumber)
@@ -127,7 +127,7 @@ class SaleOrderRepository
     public function getProcessingSaleOrdersDueToFailedPurchaseOrders(): ?Collection
     {
         return SaleOrder::with('purchaseOrders')
-            ->where('status', Status::PROCESSING->value)
+            ->where('status', SaleOrderStatus::PROCESSING->value)
             ->whereHas('purchaseOrders', function ($query) {
                 $query->where('status', PurchaseOrderStatus::FAILED->value);
             })
