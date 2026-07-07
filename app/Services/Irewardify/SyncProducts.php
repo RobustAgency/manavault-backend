@@ -3,7 +3,6 @@
 namespace App\Services\Irewardify;
 
 use App\Models\Supplier;
-use Illuminate\Support\Sleep;
 use Illuminate\Support\Facades\Log;
 use App\Actions\Irewardify\GetProducts;
 use App\Actions\Irewardify\GetProductDetails;
@@ -11,8 +10,6 @@ use App\Repositories\DigitalProductRepository;
 
 class SyncProducts
 {
-    private const PRODUCT_DETAILS_THROTTLE_MS = 500;
-
     public function __construct(
         private GetProducts $getProducts,
         private GetProductDetails $getProductDetails,
@@ -37,8 +34,6 @@ class SyncProducts
 
         $syncedSkus = [];
 
-        $isFirstDetailsCall = true;
-
         foreach ($items as $item) {
 
             $productId = (string) ($item['_id'] ?? '');
@@ -48,13 +43,6 @@ class SyncProducts
 
                 continue;
             }
-
-            // Spread out detail calls to stay under Irewardify's per-minute rate limit
-            if (! $isFirstDetailsCall) {
-                Sleep::for(self::PRODUCT_DETAILS_THROTTLE_MS)->milliseconds();
-            }
-
-            $isFirstDetailsCall = false;
 
             $productDetails = $this->getProductDetails->execute($productId);
             $productDetailsData = $productDetails['data'] ?? $productDetails;

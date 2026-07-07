@@ -54,9 +54,21 @@ class Irewardify implements SupplierIntegrationContract
             ]],
         ];
 
+        Log::info('Irewardify placeOrder: creating order', [
+            'purchase_order_item_id' => $item->id,
+            'external_order_id' => $payload['externalOrderId'],
+            'payload' => $payload,
+        ]);
+
         $response = $this->checkout->execute($payload);
 
         $orderId = $response['data']['orderId'] ?? null;
+
+        Log::info('Irewardify placeOrder: order created', [
+            'purchase_order_item_id' => $item->id,
+            'external_order_id' => $payload['externalOrderId'],
+            'transaction_id' => $orderId,
+        ]);
 
         $item->update(['transaction_id' => $orderId, 'status' => PurchaseOrderItemStatus::PROCESSING]);
     }
@@ -121,7 +133,11 @@ class Irewardify implements SupplierIntegrationContract
             });
         } catch (\DomainException $e) {
             // Missing voucher code: transaction rolled back
-            Log::warning($e->getMessage());
+            Log::warning('Irewardify updateOrder: voucher creation rolled back', [
+                'purchase_order_item_id' => $item->id,
+                'transaction_id' => $item->transaction_id,
+                'reason' => $e->getMessage(),
+            ]);
         }
     }
 
