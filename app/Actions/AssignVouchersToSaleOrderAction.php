@@ -5,8 +5,7 @@ namespace App\Actions;
 use App\Models\SaleOrder;
 use App\Models\SaleOrderItem;
 use App\Models\DigitalProduct;
-use App\Enums\SaleOrder\Status;
-use App\Events\SaleOrderCompleted;
+use App\Enums\SaleOrderStatus;
 use Illuminate\Support\Facades\DB;
 use App\Services\VoucherAllocationService;
 
@@ -18,7 +17,7 @@ class AssignVouchersToSaleOrderAction
 
     public function execute(SaleOrder $saleOrder): array
     {
-        if ($saleOrder->status === Status::COMPLETED->value) {
+        if ($saleOrder->status === SaleOrderStatus::COMPLETED->value) {
             return ['already_completed' => true, 'fully_allocated' => false, 'summary' => []];
         }
 
@@ -40,7 +39,7 @@ class AssignVouchersToSaleOrderAction
                 // Allocate against the digital product selected for the item at order creation
                 // time (persisted on sale_order_items.digital_product_id), not a live re-resolution
                 // of the mutable Product → DigitalProduct association.
-                $digitalProduct = $item->selectedDigitalProduct;
+                $digitalProduct = $item->digitalProduct;
 
                 if (! $digitalProduct) {
                     $summary[] = [$item->product->name, $item->quantity, $alreadyAllocated, 0, 'No digital product selected'];
@@ -63,9 +62,10 @@ class AssignVouchersToSaleOrderAction
             }
 
             if ($fullyAllocated) {
-                $saleOrder->update(['status' => Status::COMPLETED->value]);
+                // Updating the status fires SaleOrderUpdated (see SaleOrder::$dispatchesEvents),
+                // which drives the outbound fulfillment webhook via DispatchSaleOrderStatusEvents.
+                $saleOrder->update(['status' => SaleOrderStatus::COMPLETED->value]);
                 DB::commit();
-                event(new SaleOrderCompleted($saleOrder));
 
                 return ['already_completed' => false, 'fully_allocated' => true, 'summary' => $summary];
             }
