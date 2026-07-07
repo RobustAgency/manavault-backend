@@ -9,10 +9,10 @@ use App\Models\SaleOrder;
 use App\Models\PurchaseOrder;
 use App\Models\SaleOrderItem;
 use App\Models\DigitalProduct;
-use App\Enums\SaleOrder\Status;
+use App\Enums\SaleOrderStatus;
 use App\Enums\VoucherCodeStatus;
 use App\Models\PurchaseOrderItem;
-use App\Events\SaleOrderCompleted;
+use App\Events\SaleOrderUpdated;
 use Illuminate\Support\Facades\Event;
 use App\Models\SaleOrderItemDigitalProduct;
 use App\Actions\AssignVouchersToSaleOrderAction;
@@ -29,7 +29,7 @@ class AssignVouchersToSaleOrderActionTest extends TestCase
         parent::setUp();
 
         $this->action = app(AssignVouchersToSaleOrderAction::class);
-        Event::fake([SaleOrderCompleted::class]);
+        Event::fake([SaleOrderUpdated::class]);
     }
 
     /**
@@ -55,7 +55,7 @@ class AssignVouchersToSaleOrderActionTest extends TestCase
      */
     private function makeProcessingOrder(Product $product, ?DigitalProduct $digitalProduct, int $quantity): SaleOrder
     {
-        $saleOrder = SaleOrder::factory()->create(['status' => Status::PROCESSING->value]);
+        $saleOrder = SaleOrder::factory()->create(['status' => SaleOrderStatus::PROCESSING->value]);
 
         SaleOrderItem::factory()
             ->forSaleOrder($saleOrder)
@@ -76,7 +76,7 @@ class AssignVouchersToSaleOrderActionTest extends TestCase
         $result = $this->action->execute($saleOrder);
 
         $this->assertTrue($result['fully_allocated']);
-        $this->assertDatabaseHas('sale_orders', ['id' => $saleOrder->id, 'status' => Status::COMPLETED->value]);
+        $this->assertDatabaseHas('sale_orders', ['id' => $saleOrder->id, 'status' => SaleOrderStatus::COMPLETED->value]);
         $this->assertEquals(2, SaleOrderItemDigitalProduct::count());
         $this->assertEquals(2, Voucher::where('status', VoucherCodeStatus::ALLOCATED->value)->count());
 
@@ -102,7 +102,7 @@ class AssignVouchersToSaleOrderActionTest extends TestCase
 
         // No stock for the SELECTED digital product → not fully allocated, nothing committed.
         $this->assertFalse($result['fully_allocated']);
-        $this->assertDatabaseHas('sale_orders', ['id' => $saleOrder->id, 'status' => Status::PROCESSING->value]);
+        $this->assertDatabaseHas('sale_orders', ['id' => $saleOrder->id, 'status' => SaleOrderStatus::PROCESSING->value]);
         $this->assertEquals(0, SaleOrderItemDigitalProduct::count());
 
         // The other digital product's stock must remain untouched (no silent fallback).
@@ -119,14 +119,14 @@ class AssignVouchersToSaleOrderActionTest extends TestCase
         $result = $this->action->execute($saleOrder);
 
         $this->assertFalse($result['fully_allocated']);
-        $this->assertDatabaseHas('sale_orders', ['id' => $saleOrder->id, 'status' => Status::PROCESSING->value]);
+        $this->assertDatabaseHas('sale_orders', ['id' => $saleOrder->id, 'status' => SaleOrderStatus::PROCESSING->value]);
         $this->assertEquals(0, SaleOrderItemDigitalProduct::count());
         $this->assertEquals(1, Voucher::where('status', VoucherCodeStatus::AVAILABLE->value)->count());
     }
 
     public function test_returns_already_completed_for_a_completed_order(): void
     {
-        $saleOrder = SaleOrder::factory()->create(['status' => Status::COMPLETED->value]);
+        $saleOrder = SaleOrder::factory()->create(['status' => SaleOrderStatus::COMPLETED->value]);
 
         $result = $this->action->execute($saleOrder);
 
@@ -142,11 +142,11 @@ class AssignVouchersToSaleOrderActionTest extends TestCase
         $result = $this->action->execute($saleOrder);
 
         $this->assertFalse($result['fully_allocated']);
-        $this->assertDatabaseHas('sale_orders', ['id' => $saleOrder->id, 'status' => Status::PROCESSING->value]);
+        $this->assertDatabaseHas('sale_orders', ['id' => $saleOrder->id, 'status' => SaleOrderStatus::PROCESSING->value]);
         $this->assertEquals(0, SaleOrderItemDigitalProduct::count());
     }
 
-    public function test_fires_sale_order_completed_event_on_full_allocation(): void
+    public function test_fires_sale_order_updated_event_on_full_allocation(): void
     {
         $product = Product::factory()->create();
         $digitalProduct = DigitalProduct::factory()->create();
@@ -155,6 +155,12 @@ class AssignVouchersToSaleOrderActionTest extends TestCase
 
         $this->action->execute($saleOrder);
 
-        Event::assertDispatched(SaleOrderCompleted::class, fn ($event) => $event->saleOrder->id === $saleOrder->id);
+        // Full allocation flips the order to COMPLETED, which fires SaleOrderUpdated
+        // (SaleOrder::$dispatchesEvents) — the trigger for the outbound fulfillment webhook.
+        Event::assertDispatched(
+            SaleOrderUpdated::class,
+            fn ($event) => $event->saleOrder->id === $saleOrder->id
+                && $event->saleOrder->status === SaleOrderStatus::COMPLETED->value,
+        );
     }
 }
