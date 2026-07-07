@@ -6,6 +6,7 @@ use App\Models\Supplier;
 use App\Integrations\EzCards;
 use App\Integrations\Giftery;
 use App\Integrations\Tikkery;
+use App\Integrations\Irewardify;
 use App\Integrations\Gift2GamesEur;
 use App\Integrations\Gift2GamesGbp;
 use App\Integrations\Gift2GamesUsd;
@@ -17,6 +18,7 @@ class SupplierIntegrationResolver
         private readonly EzCards $ezCardsIntegration,
         private readonly Giftery $gifteryIntegration,
         private readonly Tikkery $tikkeryIntegration,
+        private readonly Irewardify $irewardifyIntegration,
         private readonly Gift2GamesUsd $gift2GamesUsdIntegration,
         private readonly Gift2GamesEur $gift2GamesEurIntegration,
         private readonly Gift2GamesGbp $gift2GamesGbpIntegration,
@@ -28,6 +30,7 @@ class SupplierIntegrationResolver
             'ez_cards' => $this->ezCardsIntegration,
             'giftery-api' => $this->gifteryIntegration,
             'tikkery' => $this->tikkeryIntegration,
+            'irewardify' => $this->irewardifyIntegration,
             'gift2games' => $this->gift2GamesUsdIntegration,
             'gift-2-games-eur' => $this->gift2GamesEurIntegration,
             'gift-2-games-gbp' => $this->gift2GamesGbpIntegration,
