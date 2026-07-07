@@ -20,20 +20,24 @@ class VoucherCodesResource
         foreach ($saleOrder->items as $item) {
             $codes = [];
 
-            foreach ($item->digitalProducts as $digitalProduct) {
-                if ($digitalProduct->voucher) {
-                    $code = $digitalProduct->voucher->code;
+            // Only expose voucher codes once the item is fully fulfilled, i.e. the
+            // number of allocated vouchers matches the ordered quantity.
+            if ($item->isFullyFulfilled()) {
+                foreach ($item->digitalProducts as $digitalProduct) {
+                    if ($digitalProduct->voucher) {
+                        $code = $digitalProduct->voucher->code;
 
-                    // Decrypt the code if it's encrypted
-                    if ($voucherCipherService->isEncrypted($code)) {
-                        $code = $voucherCipherService->decryptCode($code);
+                        // Decrypt the code if it's encrypted
+                        if ($voucherCipherService->isEncrypted($code)) {
+                            $code = $voucherCipherService->decryptCode($code);
+                        }
+
+                        $codes[] = [
+                            'code' => $code,
+                            'serial_number' => $digitalProduct->voucher->serial_number,
+                            'pin_code' => $digitalProduct->voucher->pin_code,
+                        ];
                     }
-
-                    $codes[] = [
-                        'code' => $code,
-                        'serial_number' => $digitalProduct->voucher->serial_number,
-                        'pin_code' => $digitalProduct->voucher->pin_code,
-                    ];
                 }
             }
 
