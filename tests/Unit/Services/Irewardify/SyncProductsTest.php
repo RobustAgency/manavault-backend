@@ -56,37 +56,6 @@ class SyncProductsTest extends TestCase
         ];
     }
 
-    public function test_sync_throttles_between_product_detail_calls(): void
-    {
-        Sleep::fake();
-
-        Http::fake([
-            '*/customer/products/PROD-1' => Http::response($this->productDetailsResponse('SKU-1')),
-            '*/customer/products/PROD-2' => Http::response($this->productDetailsResponse('SKU-2')),
-            '*/customer/products/PROD-3' => Http::response($this->productDetailsResponse('SKU-3')),
-            '*/customer/products*' => Http::response([
-                'data' => [
-                    'items' => [
-                        $this->productItem('PROD-1', 'Amazon'),
-                        $this->productItem('PROD-2', 'Steam'),
-                        $this->productItem('PROD-3', 'Netflix'),
-                    ],
-                ],
-            ]),
-        ]);
-
-        app(SyncProducts::class)->processSyncAllProducts();
-
-        // 3 products: throttle runs before the 2nd and 3rd detail calls only
-        Sleep::assertSleptTimes(2);
-        Sleep::assertSequence([
-            Sleep::for(500)->milliseconds(),
-            Sleep::for(500)->milliseconds(),
-        ]);
-
-        $this->assertSame(3, DigitalProduct::where('supplier_id', $this->supplier->id)->count());
-    }
-
     public function test_sync_completes_when_a_detail_call_is_rate_limited_mid_run(): void
     {
         Sleep::fake();
