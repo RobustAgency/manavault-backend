@@ -6,9 +6,7 @@ use App\Models\Supplier;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Support\Facades\Log;
-use App\Models\PurchaseOrderSupplier;
 use Illuminate\Support\Facades\Cache;
-use App\Enums\PurchaseOrderSupplierStatus;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
@@ -25,8 +23,6 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
         private readonly Supplier $supplier,
         /** @var array<int, PurchaseOrderItem> */
         private readonly array $purchaseOrderItems,
-        private readonly string $orderNumber,
-        private readonly string $currency,
     ) {}
 
     /**
@@ -43,11 +39,8 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
         ];
     }
 
-    public function handle(
-        SupplierIntegrationResolver $resolver,
-        PurchaseOrderPlacementService $purchaseOrderPlacementService,
-        PurchaseOrderStatusService $purchaseOrderStatusService,
-    ): void {
+    public function handle(SupplierIntegrationResolver $resolver): void
+    {
         // We only get items here for a single supplier.
         // grouping by supplier is done in service and then this job is dispatched.
         $integration = $resolver->resolve($this->supplier);
@@ -68,13 +61,14 @@ class PlaceExternalPurchaseOrderJob implements ShouldQueue
                         ? $cause->response->body()
                         : null;
 
-                Log::error('PlaceExternalPurchaseOrderJob: failed to place order via integration', [
-                    'purchase_order_id' => $this->purchaseOrder->id,
-                    'purchase_order_item_id' => $orderItem->id,
-                    'supplier_slug' => $this->supplier->slug,
-                    'error' => $e->getMessage(),
-                    'response_body' => $responseBody,
-                ]);
+                    Log::error('PlaceExternalPurchaseOrderJob: failed to place order via integration', [
+                        'purchase_order_id' => $this->purchaseOrder->id,
+                        'purchase_order_item_id' => $orderItem->id,
+                        'supplier_slug' => $this->supplier->slug,
+                        'error' => $e->getMessage(),
+                        'response_body' => $responseBody,
+                    ]);
+                }
             }
         }
     }
