@@ -29,7 +29,6 @@ class DigitalProduct extends Model
         'region',
         'image_url',
         'cost_price',
-        'cost_price_discount',
         'face_value',
         'selling_price',
         'selling_discount',
@@ -55,6 +54,7 @@ class DigitalProduct extends Model
     ];
 
     protected $appends = [
+        'cost_price_discount',
         'profit_margin',
     ];
 
@@ -100,10 +100,6 @@ class DigitalProduct extends Model
 
     public function getCostPriceDiscountAttribute(): float
     {
-        if (isset($this->attributes['cost_price_discount'])) {
-            return (float) $this->attributes['cost_price_discount'];
-        }
-
         $faceValue = $this->getAttribute('face_value');
         $costPrice = $this->getAttribute('cost_price');
 

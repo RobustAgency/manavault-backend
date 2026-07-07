@@ -85,7 +85,6 @@ class SyncProducts
                 try {
                     $faceValue = $variant['variant_price'] ?? null;
                     $price = round((float) ($variant['discounted_price'] ?? $faceValue), 2, PHP_ROUND_HALF_UP);
-                    $costPriceDiscount = $variant['discount_percentage'] ?? null;
 
                     $this->digitalProductRepository->createOrUpdate(
                         [
@@ -100,7 +99,6 @@ class SyncProducts
                             'description' => $description,
                             'face_value' => $faceValue,
                             'cost_price' => $price,
-                            'cost_price_discount' => $costPriceDiscount,
                             'currency' => $currency,
                             'region' => $country,
                             'image_url' => $imageUrl,
