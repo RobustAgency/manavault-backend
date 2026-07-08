@@ -23,7 +23,7 @@ class AssignVouchersToSaleOrderCommand extends Command
     {
         $saleOrderId = (int) $this->argument('sale_order_id');
 
-        $saleOrder = SaleOrder::with(['items.product', 'items.selectedDigitalProduct', 'items.digitalProducts'])
+        $saleOrder = SaleOrder::with(['items.product', 'items.digitalProduct', 'items.digitalProducts'])
             ->find($saleOrderId);
 
         if (! $saleOrder) {

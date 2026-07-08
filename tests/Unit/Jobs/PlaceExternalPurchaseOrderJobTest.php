@@ -49,10 +49,7 @@ class PlaceExternalPurchaseOrderJobTest extends TestCase
         $job = new PlaceExternalPurchaseOrderJob(
             $setup['purchaseOrder'],
             $setup['supplier'],
-            $setup['pos'],
             $items,
-            $setup['purchaseOrder']->order_number,
-            'USD',
         );
         app()->call([$job, 'handle']);
     }
