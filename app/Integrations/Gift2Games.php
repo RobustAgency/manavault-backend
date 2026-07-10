@@ -7,6 +7,7 @@ use App\Models\Gift2GamesOrder;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Support\Facades\Log;
 use App\Enums\Gift2GamesOrderStatus;
+use App\Actions\Gift2Games\GetProduct;
 use App\Enums\PurchaseOrderItemStatus;
 use App\Actions\Gift2Games\CreateOrder;
 use App\Contracts\SupplierIntegrationContract;
@@ -18,6 +19,7 @@ class Gift2Games implements SupplierIntegrationContract
     public function __construct(
         private readonly string $supplierSlug,
         private readonly CreateOrder $createOrder,
+        private readonly GetProduct $getProduct,
         private readonly SyncDigitalProducts $syncDigitalProducts,
         private readonly VoucherCipherService $voucherCipherService,
     ) {}
@@ -81,6 +83,10 @@ class Gift2Games implements SupplierIntegrationContract
             'referenceNumber' => 'order_item_id_'.$item->id,
         ];
 
+        if (! $this->priceMatchesExpected($item)) {
+            return;
+        }
+
         foreach ($pendingOrders->chunk(5) as $chunk) {
             $responses = $this->createOrder->execute($orderData, $this->supplierSlug, $chunk->count());
 
@@ -136,5 +142,40 @@ class Gift2Games implements SupplierIntegrationContract
     public function syncProducts(): void
     {
         $this->syncDigitalProducts->syncForSlug($this->supplierSlug);
+    }
+
+    /**
+     * Verify the live Gift2Games price still matches the price we committed to
+     * before spending money. Compares against the purchase order item's
+     * unit_cost (locked in at order creation) rather than the digital product's
+     * cost_price, which may have drifted after a later product sync. Aborts
+     * (returns false) on any mismatch, on a missing price, or when the product
+     * cannot be resolved.
+     */
+    private function priceMatchesExpected(PurchaseOrderItem $item): bool
+    {
+        $digitalProduct = $item->digitalProduct;
+
+        $liveProduct = $this->getProduct->execute($this->supplierSlug, (int) $digitalProduct->sku);
+
+        $livePrice = $liveProduct['price'] ?? null;
+        $expectedPrice = $item->unit_cost;
+
+        // unit_cost comes back as a string via the decimal:2 cast, while the API
+        // returns price as a number, so cast both before comparing.
+        $matches = $livePrice !== null
+            && (float) $livePrice === (float) $expectedPrice;
+
+        if (! $matches) {
+            Log::warning('Gift2Games updateOrder: live price does not match purchase order item unit cost, skipping order', [
+                'supplier_slug' => $this->supplierSlug,
+                'purchase_order_item_id' => $item->id,
+                'sku' => $digitalProduct->sku ?? null,
+                'live_price' => $livePrice,
+                'expected_unit_cost' => $expectedPrice,
+            ]);
+        }
+
+        return $matches;
     }
 }

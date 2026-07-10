@@ -33,7 +33,10 @@ class Gift2GamesTest extends TestCase
         parent::setUp();
 
         $this->supplier = Supplier::factory()->create(['slug' => 'gift2games']);
-        $this->product = DigitalProduct::factory()->forSupplier($this->supplier)->create(['sku' => '12345']);
+        $this->product = DigitalProduct::factory()->forSupplier($this->supplier)->create([
+            'sku' => '12345',
+            'cost_price' => 10.00,
+        ]);
         $this->purchaseOrder = PurchaseOrder::factory()->create([
             'order_number' => 'PO-TEST-001',
             'currency' => 'USD',
@@ -87,6 +90,27 @@ class Gift2GamesTest extends TestCase
         }
 
         return $batchNumber;
+    }
+
+    /**
+     * Fake the Gift2Games products endpoint used by the pre-order price check.
+     */
+    private function fakeProductPrice(float|string $price = 10.00): void
+    {
+        Http::fake([
+            '*/products' => Http::response([
+                'status' => 1,
+                'data' => [[
+                    'id' => '12345',
+                    'title' => 'Test Product',
+                    'sellPrice' => $price,
+                    'price' => $price,
+                    'inStock' => true,
+                    'currency' => 'USD',
+                ]],
+                'metaData' => ['balance' => 25441.132, 'currency' => 'USD'],
+            ], 200),
+        ]);
     }
 
     // -------------------------------------------------------------------------
@@ -155,6 +179,7 @@ class Gift2GamesTest extends TestCase
     public function test_update_order_creates_voucher_for_each_pending_batch_item(): void
     {
         $this->setupBatchForUpdateOrder(pendingCount: 1);
+        $this->fakeProductPrice();
 
         Http::fake([
             '*/create_order' => Http::response(['status' => true, 'data' => ['orderId' => 'ORD-001', 'serialCode' => 'CODE-001', 'serialNumber' => 'SN-001']], 200),
@@ -175,6 +200,7 @@ class Gift2GamesTest extends TestCase
     {
         $this->item->update(['quantity' => 3]);
         $this->setupBatchForUpdateOrder(pendingCount: 3);
+        $this->fakeProductPrice();
 
         Http::fake([
             '*/create_order' => Http::sequence()
@@ -191,6 +217,7 @@ class Gift2GamesTest extends TestCase
     public function test_update_order_marks_batch_items_as_fulfilled(): void
     {
         $batchNumber = $this->setupBatchForUpdateOrder(pendingCount: 1);
+        $this->fakeProductPrice();
 
         Http::fake([
             '*/create_order' => Http::response(['status' => true, 'data' => ['orderId' => 'ORD-001', 'serialCode' => 'CODE-001', 'serialNumber' => 'SN-001']], 200),
@@ -209,6 +236,7 @@ class Gift2GamesTest extends TestCase
     public function test_update_order_marks_item_fulfilled_when_all_batch_items_processed(): void
     {
         $this->setupBatchForUpdateOrder(pendingCount: 1);
+        $this->fakeProductPrice();
 
         Http::fake([
             '*/create_order' => Http::response(['status' => true, 'data' => ['orderId' => 'ORD-001', 'serialCode' => 'CODE-001', 'serialNumber' => 'SN-001']], 200),
@@ -223,6 +251,7 @@ class Gift2GamesTest extends TestCase
     {
         $this->item->update(['quantity' => 2]);
         $this->setupBatchForUpdateOrder(pendingCount: 1, fulfilledCount: 1);
+        $this->fakeProductPrice();
 
         Http::fake([
             '*/create_order' => Http::response(['status' => true, 'data' => ['orderId' => 'ORD-NEW', 'serialCode' => 'CODE-NEW', 'serialNumber' => 'SN-NEW']], 200),
@@ -231,12 +260,13 @@ class Gift2GamesTest extends TestCase
         $this->makeIntegration()->updateOrder($this->item->fresh());
 
         $this->assertDatabaseCount('vouchers', 1);
-        Http::assertSentCount(1);
+        $this->assertCount(1, Http::recorded(fn ($r) => str_contains($r->url(), '/create_order')));
     }
 
     public function test_update_order_returns_early_on_api_error_without_creating_voucher(): void
     {
         $this->setupBatchForUpdateOrder(pendingCount: 1);
+        $this->fakeProductPrice();
 
         Http::fake([
             '*/create_order' => Http::response(['status' => false, 'error' => ['message' => 'Product not found']], 200),
@@ -250,6 +280,7 @@ class Gift2GamesTest extends TestCase
     public function test_update_order_leaves_item_processing_on_api_error(): void
     {
         $this->setupBatchForUpdateOrder(pendingCount: 1);
+        $this->fakeProductPrice();
 
         Http::fake([
             '*/create_order' => Http::response(['status' => false, 'error' => ['message' => 'API error']], 200),
@@ -264,6 +295,7 @@ class Gift2GamesTest extends TestCase
     {
         $this->item->update(['quantity' => 3]);
         $this->setupBatchForUpdateOrder(pendingCount: 3);
+        $this->fakeProductPrice();
 
         Http::fake([
             '*/create_order' => Http::sequence()
@@ -284,6 +316,7 @@ class Gift2GamesTest extends TestCase
     {
         $this->item->update(['quantity' => 6]);
         $this->setupBatchForUpdateOrder(pendingCount: 6);
+        $this->fakeProductPrice();
 
         Http::fake([
             '*/create_order' => Http::response(['status' => true, 'data' => ['orderId' => 'ORD-001', 'serialCode' => 'CODE-001', 'serialNumber' => 'SN-001']], 200),
@@ -294,6 +327,94 @@ class Gift2GamesTest extends TestCase
         // Both chunks (5 + 1) must be processed — all 6 vouchers created
         $this->assertDatabaseCount('vouchers', 6);
         $this->assertEquals(PurchaseOrderItemStatus::FULFILLED, $this->item->fresh()->status);
-        Http::assertSentCount(6);
+        $this->assertCount(6, Http::recorded(fn ($r) => str_contains($r->url(), '/create_order')));
+    }
+
+    // -------------------------------------------------------------------------
+    // updateOrder — pre-order price check
+    // -------------------------------------------------------------------------
+
+    public function test_update_order_aborts_when_live_price_is_higher_than_unit_cost(): void
+    {
+        $this->setupBatchForUpdateOrder(pendingCount: 1);
+        $this->fakeProductPrice(15.00); // item unit_cost is 10.00
+
+        Http::fake([
+            '*/create_order' => Http::response(['status' => true, 'data' => ['orderId' => 'ORD-001', 'serialCode' => 'CODE-001', 'serialNumber' => 'SN-001']], 200),
+        ]);
+
+        $this->makeIntegration()->updateOrder($this->item->fresh());
+
+        $this->assertDatabaseCount('vouchers', 0);
+        $this->assertEquals(PurchaseOrderItemStatus::PROCESSING, $this->item->fresh()->status);
+        Http::assertNotSent(fn ($r) => str_contains($r->url(), '/create_order'));
+    }
+
+    public function test_update_order_aborts_when_live_price_is_lower_than_unit_cost(): void
+    {
+        $this->setupBatchForUpdateOrder(pendingCount: 1);
+        $this->fakeProductPrice(5.00); // item unit_cost is 10.00
+
+        Http::fake([
+            '*/create_order' => Http::response(['status' => true, 'data' => ['orderId' => 'ORD-001', 'serialCode' => 'CODE-001', 'serialNumber' => 'SN-001']], 200),
+        ]);
+
+        $this->makeIntegration()->updateOrder($this->item->fresh());
+
+        $this->assertDatabaseCount('vouchers', 0);
+        $this->assertEquals(PurchaseOrderItemStatus::PROCESSING, $this->item->fresh()->status);
+        Http::assertNotSent(fn ($r) => str_contains($r->url(), '/create_order'));
+    }
+
+    public function test_update_order_aborts_when_product_cannot_be_resolved(): void
+    {
+        $this->setupBatchForUpdateOrder(pendingCount: 1);
+
+        Http::fake([
+            '*/products' => Http::response(['status' => 0, 'data' => []], 200),
+            '*/create_order' => Http::response(['status' => true, 'data' => ['orderId' => 'ORD-001', 'serialCode' => 'CODE-001', 'serialNumber' => 'SN-001']], 200),
+        ]);
+
+        $this->makeIntegration()->updateOrder($this->item->fresh());
+
+        $this->assertDatabaseCount('vouchers', 0);
+        $this->assertEquals(PurchaseOrderItemStatus::PROCESSING, $this->item->fresh()->status);
+        Http::assertNotSent(fn ($r) => str_contains($r->url(), '/create_order'));
+    }
+
+    public function test_update_order_proceeds_when_live_price_matches_unit_cost(): void
+    {
+        $this->setupBatchForUpdateOrder(pendingCount: 1);
+        $this->fakeProductPrice(10.00); // matches item unit_cost
+
+        Http::fake([
+            '*/create_order' => Http::response(['status' => true, 'data' => ['orderId' => 'ORD-001', 'serialCode' => 'CODE-001', 'serialNumber' => 'SN-001']], 200),
+        ]);
+
+        $this->makeIntegration()->updateOrder($this->item->fresh());
+
+        $this->assertDatabaseCount('vouchers', 1);
+        $this->assertEquals(PurchaseOrderItemStatus::FULFILLED, $this->item->fresh()->status);
+    }
+
+    public function test_update_order_compares_against_unit_cost_not_drifted_product_cost_price(): void
+    {
+        // The product's cost_price has drifted (e.g. a later sync), but the item's
+        // unit_cost — the price we committed to — is still 10.00.
+        $this->product->update(['cost_price' => 20.00]);
+        $this->setupBatchForUpdateOrder(pendingCount: 1);
+
+        // Live price matches the committed unit_cost (10.00), not the drifted cost_price (20.00).
+        $this->fakeProductPrice(10.00);
+
+        Http::fake([
+            '*/create_order' => Http::response(['status' => true, 'data' => ['orderId' => 'ORD-001', 'serialCode' => 'CODE-001', 'serialNumber' => 'SN-001']], 200),
+        ]);
+
+        $this->makeIntegration()->updateOrder($this->item->fresh());
+
+        // Order proceeds because we compare against unit_cost, not the current cost_price.
+        $this->assertDatabaseCount('vouchers', 1);
+        $this->assertEquals(PurchaseOrderItemStatus::FULFILLED, $this->item->fresh()->status);
     }
 }
