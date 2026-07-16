@@ -16,7 +16,7 @@ class PurchaseOrderRepository
      */
     public function getFilteredPurchaseOrders(array $filters = []): LengthAwarePaginator
     {
-        $query = PurchaseOrder::with(['items', 'suppliers', 'vouchers']);
+        $query = PurchaseOrder::with(['items', 'suppliers', 'vouchers', 'saleOrder']);
 
         if (isset($filters['supplier_id'])) {
             $query->whereHas('purchaseOrderSuppliers', function ($q) use ($filters) {
@@ -30,6 +30,12 @@ class PurchaseOrderRepository
 
         if (isset($filters['order_number'])) {
             $query->where('order_number', 'like', '%'.$filters['order_number'].'%');
+        }
+
+        if (isset($filters['sale_order_number'])) {
+            $query->whereHas('saleOrder', function ($q) use ($filters) {
+                $q->where('order_number', 'like', '%'.$filters['sale_order_number'].'%');
+            });
         }
 
         $perPage = $filters['per_page'] ?? 10;

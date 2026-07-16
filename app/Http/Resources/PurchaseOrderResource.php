@@ -38,6 +38,7 @@ class PurchaseOrderResource extends JsonResource
             'updated_at' => $this->updated_at->toDateTimeString(),
             'suppliers' => PurchaseOrderSupplierResource::collection($this->whenLoaded('purchaseOrderSuppliers')),
             'vouchers' => VoucherResource::collection($this->whenLoaded('vouchers')),
+            'saleOrder' => new SaleOrderResource($this->whenLoaded('saleOrder')),
         ];
     }
 }
