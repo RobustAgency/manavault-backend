@@ -3,7 +3,6 @@
 namespace App\Integrations;
 
 use App\Models\Voucher;
-use Illuminate\Support\Str;
 use Illuminate\Support\Carbon;
 use App\Enums\VoucherCodeStatus;
 use App\Models\PurchaseOrderItem;
@@ -46,7 +45,7 @@ class Irewardify implements SupplierIntegrationContract
         }
 
         $payload = [
-            'externalOrderId' => 'order_item_id_'.$item->id.'_'.Str::uuid()->toString(),
+            'externalOrderId' => 'order_item_id_'.$item->id.'__'.now()->timestamp,
             'items' => [[
                 'item_id' => $itemId,
                 'productType' => 'Digital',
