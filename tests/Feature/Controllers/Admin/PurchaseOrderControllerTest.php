@@ -5,6 +5,7 @@ namespace Tests\Feature\Controllers\Admin;
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Supplier;
+use App\Models\SaleOrder;
 use App\Models\PurchaseOrder;
 use App\Models\DigitalProduct;
 use Illuminate\Foundation\Testing\WithFaker;
@@ -71,6 +72,40 @@ class PurchaseOrderControllerTest extends TestCase
         $this->assertCount(5, $response->json('data.data'));
     }
 
+    public function test_admin_list_purchase_orders_filtered_by_sale_order_number(): void
+    {
+        $this->actingAs($this->admin);
+
+        $saleOrder = SaleOrder::factory()->create(['order_number' => 'SO-2026-777666']);
+        $matchingOrder = PurchaseOrder::factory()->create(['sale_order_id' => $saleOrder->id]);
+
+        // Attached to a different sale order and not attached at all — both should be excluded.
+        $otherSaleOrder = SaleOrder::factory()->create(['order_number' => 'SO-2026-333222']);
+        PurchaseOrder::factory()->create(['sale_order_id' => $otherSaleOrder->id]);
+        PurchaseOrder::factory()->create(['sale_order_id' => null]);
+
+        $response = $this->getJson('/api/purchase-orders?sale_order_number=777666');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.total', 1)
+            ->assertJsonPath('data.data.0.id', $matchingOrder->id);
+    }
+
+    public function test_admin_list_purchase_orders_by_sale_order_number_returns_empty_when_no_match(): void
+    {
+        $this->actingAs($this->admin);
+
+        // Purchase orders with no sale order attached must not match a sale_order_number filter.
+        PurchaseOrder::factory()->count(3)->create(['sale_order_id' => null]);
+
+        $response = $this->getJson('/api/purchase-orders?sale_order_number=SO-2026-000000');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.total', 0);
+
+        $this->assertCount(0, $response->json('data.data'));
+    }
+
     public function test_admin_show_purchase_order(): void
     {
         $this->actingAs($this->admin);
@@ -91,6 +126,7 @@ class PurchaseOrderControllerTest extends TestCase
                     'updated_at',
                     'suppliers',
                     'vouchers',
+                    'saleOrder',
                 ],
                 'message',
             ])
