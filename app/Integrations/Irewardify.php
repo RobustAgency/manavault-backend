@@ -45,7 +45,7 @@ class Irewardify implements SupplierIntegrationContract
         }
 
         $payload = [
-            'externalOrderId' => 'order_item_id_'.$item->id,
+            'externalOrderId' => 'order_item_id_'.$item->id.'__'.now()->timestamp,
             'items' => [[
                 'item_id' => $itemId,
                 'productType' => 'Digital',
