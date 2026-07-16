@@ -855,4 +855,64 @@ class SaleOrderServiceTest extends TestCase
         $this->assertEquals(100.00, $saleOrder->total_price);
         $this->assertEquals(SaleOrderStatus::COMPLETED->value, $saleOrder->status);
     }
+
+    /**
+     * Test: A customer passed in the payload is created and linked to the sale order.
+     */
+    public function test_creates_and_links_customer_to_sale_order(): void
+    {
+        $product = Product::factory()->active()->create(['fulfillment_mode' => 'price']);
+        $digitalProduct = DigitalProduct::factory()->create(['selling_price' => 25.00]);
+        $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
+
+        $saleOrder = $this->service->createOrder([
+            'order_number' => 'SO-CUST-001',
+            'customer' => [
+                'external_id' => 'EXT-100',
+                'name' => 'Jane Doe',
+                'email' => 'jane@example.com',
+                'company_name' => 'Doe Ltd',
+                'company_email' => 'orders@doe.test',
+            ],
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+        ]);
+
+        $this->assertDatabaseHas('customers', [
+            'external_id' => 'EXT-100',
+            'name' => 'Jane Doe',
+            'email' => 'jane@example.com',
+            'company_name' => 'Doe Ltd',
+            'company_email' => 'orders@doe.test',
+        ]);
+
+        $this->assertNotNull($saleOrder->customer_id);
+        $this->assertEquals('EXT-100', $saleOrder->customer->external_id);
+    }
+
+    /**
+     * Test: A repeat external_id updates the existing customer rather than duplicating it.
+     */
+    public function test_updates_existing_customer_by_external_id(): void
+    {
+        $product = Product::factory()->active()->create(['fulfillment_mode' => 'price']);
+        $digitalProduct = DigitalProduct::factory()->create(['selling_price' => 25.00]);
+        $product->digitalProducts()->attach($digitalProduct->id, ['priority' => 1]);
+
+        $first = $this->service->createOrder([
+            'order_number' => 'SO-CUST-002',
+            'customer' => ['external_id' => 'EXT-200', 'name' => 'Original Name'],
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+        ]);
+
+        $second = $this->service->createOrder([
+            'order_number' => 'SO-CUST-003',
+            'customer' => ['external_id' => 'EXT-200', 'name' => 'Updated Name'],
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+        ]);
+
+        // Only one customer exists, updated to the latest name, and both orders point to it.
+        $this->assertEquals(1, \App\Models\Customer::where('external_id', 'EXT-200')->count());
+        $this->assertDatabaseHas('customers', ['external_id' => 'EXT-200', 'name' => 'Updated Name']);
+        $this->assertEquals($first->customer_id, $second->customer_id);
+    }
 }
