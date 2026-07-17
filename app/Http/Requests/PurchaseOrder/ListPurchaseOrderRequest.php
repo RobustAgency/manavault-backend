@@ -24,6 +24,7 @@ class ListPurchaseOrderRequest extends FormRequest
         return [
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
             'order_number' => ['nullable', 'string', 'max:244'],
+            'sale_order_number' => ['nullable', 'string', 'max:244'],
             'supplier_id' => ['nullable', 'integer', 'exists:suppliers,id'],
             'status' => ['nullable', 'string', 'max:255'],
         ];

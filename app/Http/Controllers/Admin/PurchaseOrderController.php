@@ -58,6 +58,7 @@ class PurchaseOrderController extends Controller
             'purchaseOrderSuppliers.supplier',
             'items',
             'vouchers',
+            'saleOrder',
         ]);
 
         return response()->json([
