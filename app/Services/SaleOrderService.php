@@ -7,6 +7,7 @@ use App\Models\SaleOrderItem;
 use App\Enums\SaleOrderStatus;
 use Illuminate\Support\Facades\DB;
 use App\Repositories\ProductRepository;
+use App\Repositories\CustomerRepository;
 use App\Repositories\SaleOrderRepository;
 
 class SaleOrderService
@@ -14,6 +15,7 @@ class SaleOrderService
     public function __construct(
         private ProductRepository $productRepository,
         private SaleOrderRepository $saleOrderRepository,
+        private CustomerRepository $customerRepository,
         private AutoPurchaseOrderService $autoPurchaseOrderService,
         private DigitalProductAllocationService $digitalProductAllocationService,
     ) {}
@@ -21,6 +23,10 @@ class SaleOrderService
     public function createOrder(array $data): SaleOrder
     {
         return DB::transaction(function () use ($data) {
+            $customer = isset($data['customer'])
+                ? $this->customerRepository->updateOrCreateByExternalId($data['customer'])
+                : null;
+
             $existingOrder = $this->saleOrderRepository->getSaleOrderByOrderNumber($data['order_number']);
 
             // If the order already exists with its items, it has already been processed; return it as-is.
@@ -32,6 +38,7 @@ class SaleOrderService
 
             // Reuse an order that was created but never had its items populated; otherwise create a fresh one.
             $saleOrder = $existingOrder ?? $this->saleOrderRepository->createSaleOrder([
+                'customer_id' => $customer?->id,
                 'order_number' => $data['order_number'],
                 'source' => SaleOrder::MANASTORE,
                 'total_price' => 0,

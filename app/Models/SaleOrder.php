@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Events\SaleOrderUpdated;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class SaleOrder extends Model
@@ -15,6 +16,7 @@ class SaleOrder extends Model
     public const MANASTORE = 'manastore';
 
     protected $fillable = [
+        'customer_id',
         'order_number',
         'source',
         'total_price',
@@ -33,6 +35,16 @@ class SaleOrder extends Model
     protected $dispatchesEvents = [
         'updated' => SaleOrderUpdated::class,
     ];
+
+    /**
+     * Get the customer this sale order belongs to.
+     *
+     * @return BelongsTo<Customer, $this>
+     */
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
+    }
 
     /**
      * Get all items for this sale order.

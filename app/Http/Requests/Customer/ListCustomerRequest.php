@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests\SaleOrder;
+namespace App\Http\Requests\Customer;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class ListSaleOrderRequest extends FormRequest
+class ListCustomerRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -22,10 +22,7 @@ class ListSaleOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'order_number' => ['sometimes', 'nullable', 'string'],
-            'source' => ['sometimes', 'nullable', 'string'],
-            'status' => ['sometimes', 'nullable', 'string'],
-            'customer_id' => ['sometimes', 'nullable', 'integer', 'exists:customers,id'],
+            'search' => ['sometimes', 'nullable', 'string'],
             'per_page' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:100'],
         ];
     }

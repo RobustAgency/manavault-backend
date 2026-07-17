@@ -6,9 +6,9 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin \App\Models\SaleOrder
+ * @mixin \App\Models\Customer
  */
-class SaleOrderResource extends JsonResource
+class CustomerResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -19,14 +19,13 @@ class SaleOrderResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'order_number' => $this->order_number,
-            'source' => $this->source,
-            'total_price' => $this->total_price,
-            'status' => $this->status,
+            'external_id' => $this->external_id,
+            'name' => $this->name,
+            'email' => $this->email,
+            'company_name' => $this->company_name,
+            'company_email' => $this->company_email,
             'created_at' => $this->created_at->toDateTimeString(),
             'updated_at' => $this->updated_at->toDateTimeString(),
-            'customer' => new CustomerResource($this->whenLoaded('customer')),
-            'items' => SaleOrderItemResource::collection($this->items),
         ];
     }
 }

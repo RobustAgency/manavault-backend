@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\PriceRuleController;
+use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\SaleOrderController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\ActivityLogController;
@@ -111,6 +112,10 @@ Route::middleware(['auth:supabase', 'user.approved'])->group(function () {
         Route::get('/{priceRule}/digital-products', 'postViewDigitalProducts')->middleware('permission:view_price_rule');
         Route::post('/{priceRule}', 'update')->middleware('permission:edit_price_rule');
         Route::delete('/{priceRule}', 'destroy')->middleware('permission:delete_price_rule');
+    });
+
+    Route::prefix('/customers')->controller(CustomerController::class)->group(function () {
+        Route::get('', 'index')->middleware('permission:view_sale_order');
     });
 
     Route::prefix('/sale-orders')->controller(SaleOrderController::class)->group(function () {
