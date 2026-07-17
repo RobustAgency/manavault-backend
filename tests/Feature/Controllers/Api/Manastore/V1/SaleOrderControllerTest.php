@@ -33,6 +33,17 @@ class SaleOrderControllerTest extends TestCase
         ];
     }
 
+    private function customerData(): array
+    {
+        return [
+            'external_id' => 'CUST-001',
+            'name' => 'Acme Buyer',
+            'email' => 'buyer@example.com',
+            'company_name' => 'Acme Inc',
+            'company_email' => 'orders@acme.test',
+        ];
+    }
+
     public function test_store_creates_sale_order_successfully(): void
     {
         $supplier = Supplier::factory()->create(['type' => 'internal']);
@@ -57,6 +68,7 @@ class SaleOrderControllerTest extends TestCase
 
         $data = [
             'order_number' => 'SO-2026-000001',
+            'customer' => $this->customerData(),
             'items' => [
                 [
                     'product_id' => $product->id,
@@ -128,6 +140,7 @@ class SaleOrderControllerTest extends TestCase
 
         $data = [
             'order_number' => 'SO-2026-000002',
+            'customer' => $this->customerData(),
             'items' => [
                 [
                     'product_id' => $product1->id,
@@ -287,6 +300,7 @@ class SaleOrderControllerTest extends TestCase
 
         $data = [
             'order_number' => 'SO-2026-000001',
+            'customer' => $this->customerData(),
             'items' => [
                 [
                     'product_id' => $product->id,
@@ -365,6 +379,7 @@ class SaleOrderControllerTest extends TestCase
 
         $data = [
             'order_number' => 'SO-2026-000001',
+            'customer' => $this->customerData(),
             'items' => [
                 [
                     'product_id' => $product->id,

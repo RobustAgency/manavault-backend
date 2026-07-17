@@ -25,29 +25,15 @@ class StoreSaleOrderRequest extends FormRequest
         return [
             'order_number' => ['required', 'string', 'max:255'],
             'source' => ['nullable', 'string', 'max:255'],
+            'customer' => ['required', 'array'],
+            'customer.external_id' => ['required', 'string', 'max:255'],
+            'customer.name' => ['required', 'string', 'max:255'],
+            'customer.email' => ['nullable', 'email', 'max:255'],
+            'customer.company_name' => ['nullable', 'string', 'max:255'],
+            'customer.company_email' => ['nullable', 'email', 'max:255'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
-        ];
-    }
-
-    /**
-     * Get custom messages for validation rules.
-     */
-    public function messages(): array
-    {
-        return [
-            'source.string' => 'Source must be a valid string.',
-            'source.max' => 'Source must not exceed 255 characters.',
-            'items.required' => 'At least one item is required.',
-            'items.array' => 'Items must be an array.',
-            'items.min' => 'At least one item must be provided.',
-            'items.*.product_id.required' => 'Product ID is required for each item.',
-            'items.*.product_id.integer' => 'Product ID must be an integer.',
-            'items.*.product_id.exists' => 'Selected product does not exist.',
-            'items.*.quantity.required' => 'Quantity is required for each item.',
-            'items.*.quantity.integer' => 'Quantity must be an integer.',
-            'items.*.quantity.min' => 'Quantity must be at least 1.',
         ];
     }
 
@@ -98,6 +84,11 @@ class StoreSaleOrderRequest extends FormRequest
         return [
             'currency' => 'currency',
             'source' => 'source',
+            'customer.external_id' => 'customer external ID',
+            'customer.name' => 'customer name',
+            'customer.email' => 'customer email',
+            'customer.company_name' => 'company name',
+            'customer.company_email' => 'company email',
             'items' => 'items',
             'items.*.product_id' => 'product ID',
             'items.*.quantity' => 'quantity',
