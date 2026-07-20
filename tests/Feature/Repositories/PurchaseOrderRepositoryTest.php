@@ -5,6 +5,8 @@ namespace Tests\Feature\Repositories;
 use Mockery;
 use Tests\TestCase;
 use App\Models\Product;
+use App\Models\Supplier;
+use App\Models\SaleOrder;
 use App\Models\PurchaseOrder;
 use Illuminate\Foundation\Testing\WithFaker;
 use App\Repositories\PurchaseOrderRepository;
@@ -328,5 +330,52 @@ class PurchaseOrderRepositoryTest extends TestCase
         $this->assertTrue($firstOrder->relationLoaded('supplier'));
         $this->assertNotNull($firstOrder->product);
         $this->assertNotNull($firstOrder->supplier);
+    }
+
+    public function test_it_can_filter_by_sale_order_number(): void
+    {
+        $saleOrder = SaleOrder::factory()->create(['order_number' => 'SO-2026-999888']);
+        $matchingOrder = PurchaseOrder::factory()->create(['sale_order_id' => $saleOrder->id]);
+
+        // Purchase order attached to a different sale order.
+        $otherSaleOrder = SaleOrder::factory()->create(['order_number' => 'SO-2026-111222']);
+        PurchaseOrder::factory()->create(['sale_order_id' => $otherSaleOrder->id]);
+
+        // Purchase order not attached to any sale order.
+        PurchaseOrder::factory()->create(['sale_order_id' => null]);
+
+        $this->repository = app(PurchaseOrderRepository::class);
+        $orders = $this->repository->getFilteredPurchaseOrders(['sale_order_number' => '999888']);
+
+        $this->assertEquals(1, $orders->total());
+        $this->assertEquals($matchingOrder->id, $orders->first()->id);
+    }
+
+    public function test_it_returns_purchase_order_with_its_attached_sale_order(): void
+    {
+        $saleOrder = SaleOrder::factory()->create(['order_number' => 'SO-2026-555444']);
+        $purchaseOrder = PurchaseOrder::factory()->create(['sale_order_id' => $saleOrder->id]);
+
+        $this->repository = app(PurchaseOrderRepository::class);
+        $orders = $this->repository->getFilteredPurchaseOrders(['sale_order_number' => 'SO-2026-555444']);
+
+        $this->assertEquals(1, $orders->total());
+
+        $result = $orders->first();
+        $this->assertEquals($purchaseOrder->id, $result->id);
+        $this->assertTrue($result->relationLoaded('saleOrder'));
+        $this->assertNotNull($result->saleOrder);
+        $this->assertEquals($saleOrder->id, $result->saleOrder->id);
+    }
+
+    public function test_it_excludes_purchase_orders_without_a_sale_order_when_filtering_by_sale_order_number(): void
+    {
+        // Purchase orders with no sale order attached should never match the filter.
+        PurchaseOrder::factory()->count(3)->create(['sale_order_id' => null]);
+
+        $this->repository = app(PurchaseOrderRepository::class);
+        $orders = $this->repository->getFilteredPurchaseOrders(['sale_order_number' => 'SO-2026-000000']);
+
+        $this->assertEquals(0, $orders->total());
     }
 }
