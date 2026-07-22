@@ -72,6 +72,7 @@ return [
 
     'manastore' => [
         'api_key' => env('MANASTORE_API_KEY'),
+        'base_url' => env('MANASTORE_BASE_URL'),
     ],
 
     'irewardify' => [
