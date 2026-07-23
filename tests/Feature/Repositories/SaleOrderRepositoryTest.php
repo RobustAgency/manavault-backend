@@ -3,6 +3,7 @@
 namespace Tests\Feature\Repositories;
 
 use Tests\TestCase;
+use App\Models\Customer;
 use App\Models\SaleOrder;
 use App\Enums\SaleOrderStatus;
 use App\Repositories\SaleOrderRepository;
@@ -113,6 +114,23 @@ class SaleOrderRepositoryTest extends TestCase
 
         $this->assertCount(1, $result->items());
         $this->assertEquals('SO-2026-000001', $result->items()[0]->order_number);
+    }
+
+    public function test_get_filtered_sale_orders_by_customer_id(): void
+    {
+        $customerA = Customer::factory()->create();
+        $customerB = Customer::factory()->create();
+
+        $orderA = SaleOrder::factory()->create(['customer_id' => $customerA->id]);
+        SaleOrder::factory()->create(['customer_id' => $customerB->id]);
+
+        $result = $this->repository->getFilteredSaleOrders([
+            'customer_id' => $customerA->id,
+        ]);
+
+        $this->assertCount(1, $result->items());
+        $this->assertEquals($orderA->id, $result->items()[0]->id);
+        $this->assertEquals($customerA->id, $result->items()[0]->customer_id);
     }
 
     public function test_get_sale_orders_by_status(): void

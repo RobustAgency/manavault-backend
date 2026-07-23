@@ -5,8 +5,6 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 use App\Console\Commands\UpdatePurchaseOrderItems;
 use App\Console\Commands\SyncSupplierProductsCommand;
-use App\Console\Commands\SyncIrewardifyProductsCommand;
-use App\Console\Commands\FetchIrewardifyVouchersCommand;
 use App\Console\Commands\PlacePendingPurchaseOrdersCommand;
 
 Artisan::command('inspire', function () {
@@ -26,14 +24,4 @@ Schedule::command(UpdatePurchaseOrderItems::class)
 Schedule::command(PlacePendingPurchaseOrdersCommand::class)
     ->everyMinute()
     ->withoutOverlapping(expiresAt: 120) // 2 minutes
-    ->runInBackground();
-
-Schedule::command(SyncIrewardifyProductsCommand::class)
-    ->hourly()
-    ->withoutOverlapping()
-    ->runInBackground();
-
-Schedule::command(FetchIrewardifyVouchersCommand::class)
-    ->everyMinute()
-    ->withoutOverlapping()
     ->runInBackground();

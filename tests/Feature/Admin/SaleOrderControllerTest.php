@@ -5,6 +5,7 @@ namespace Tests\Feature\Admin;
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Product;
+use App\Models\Customer;
 use App\Models\SaleOrder;
 use App\Models\SaleOrderItem;
 use App\Enums\SaleOrderStatus;
@@ -119,6 +120,55 @@ class SaleOrderControllerTest extends TestCase
         $this->assertTrue(
             collect($data['data'])->every(fn ($order) => $order['source'] === 'manastore')
         );
+    }
+
+    public function test_admin_can_filter_sale_orders_by_customer_id(): void
+    {
+        $customerA = Customer::factory()->create();
+        $customerB = Customer::factory()->create();
+
+        $orderA = SaleOrder::factory()->create(['customer_id' => $customerA->id]);
+        SaleOrder::factory()->create(['customer_id' => $customerB->id]);
+
+        $this->actingAs($this->admin);
+        $response = $this->getJson('/api/sale-orders?customer_id='.$customerA->id);
+
+        $response->assertStatus(200);
+        $data = $response->json('data');
+
+        $this->assertEquals(1, $data['total']);
+        $this->assertEquals($orderA->id, $data['data'][0]['id']);
+    }
+
+    public function test_show_includes_customer_resource(): void
+    {
+        $customer = Customer::factory()->create([
+            'name' => 'Acme Buyer',
+            'email' => 'buyer@acme.test',
+        ]);
+        $saleOrder = SaleOrder::factory()->create(['customer_id' => $customer->id]);
+
+        $this->actingAs($this->admin);
+        $response = $this->getJson("/api/sale-orders/{$saleOrder->id}");
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'data' => [
+                    'customer' => [
+                        'id',
+                        'external_id',
+                        'name',
+                        'email',
+                        'company_name',
+                        'company_email',
+                        'created_at',
+                        'updated_at',
+                    ],
+                ],
+            ])
+            ->assertJsonPath('data.customer.id', $customer->id)
+            ->assertJsonPath('data.customer.name', 'Acme Buyer')
+            ->assertJsonPath('data.customer.email', 'buyer@acme.test');
     }
 
     public function test_admin_can_navigate_paginated_results(): void

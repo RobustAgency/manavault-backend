@@ -4,12 +4,37 @@ namespace App\Clients\Irewardify;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\RequestException;
 
 class Client
 {
+    private const RETRY_ATTEMPTS = 3;
+
+    private const RETRY_DELAY_MS = 3000;
+
+    private const RATE_LIMIT_RETRY_DELAY_MS = 61000;
+
     public function getClient(): PendingRequest
     {
-        return Http::baseUrl(config('services.irewardify.url'));
+        return Http::baseUrl(config('services.irewardify.url'))
+            ->retry(
+                self::RETRY_ATTEMPTS,
+                function (int $attempt, \Exception $exception) {
+                    // Rate limited: honor Retry-After, otherwise wait out the one-minute window
+                    if ($exception instanceof RequestException && $exception->response->status() === 429) {
+                        $retryAfter = (int) $exception->response->header('Retry-After');
+
+                        return $retryAfter > 0 ? $retryAfter * 1000 : self::RATE_LIMIT_RETRY_DELAY_MS;
+                    }
+
+                    return self::RETRY_DELAY_MS;
+                },
+                function ($exception) {
+                    return $exception instanceof RequestException
+                        && ($exception->response->status() === 429 || $exception->response->status() >= 500);
+                },
+                throw: false,
+            );
     }
 
     public function getAccessToken(): string

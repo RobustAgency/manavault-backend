@@ -33,7 +33,7 @@ class SaleOrderController extends Controller
 
     public function show(SaleOrder $saleOrder): JsonResponse
     {
-        $saleOrder->load('items.product');
+        $saleOrder->load('items.product', 'customer');
 
         return response()->json([
             'error' => false,
