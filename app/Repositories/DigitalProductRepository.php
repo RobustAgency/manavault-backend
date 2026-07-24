@@ -27,7 +27,7 @@ class DigitalProductRepository
     {
         $query = DigitalProduct::query()->with('supplier');
 
-        $query->where('in_stock', true)->where('is_active', true);
+        $query->where('is_active', true);
 
         if (isset($filters['name'])) {
             $query->where('name', 'like', '%'.$filters['name'].'%');
