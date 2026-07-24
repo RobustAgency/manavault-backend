@@ -180,11 +180,29 @@ class ProductRepository
             return [];
         }
 
-        return Product::query()
-            ->whereHas('digitalProducts', fn ($q) => $q->whereIn('digital_products.id', $digitalProductIds)
-            )
-            ->pluck('id')
+        // Use the raw pivot (not the is_active-filtered digitalProducts relationship)
+        // so products whose digital product just went inactive are still found and re-synced.
+        return ProductSupplier::query()
+            ->whereIn('digital_product_id', $digitalProductIds)
+            ->pluck('product_id')
+            ->unique()
+            ->values()
             ->all();
+    }
+
+    /**
+     * Touch the given products so each recomputes its status (saving hook) and
+     * fires the Product `updated` event, funnelling into the single ManaStore sync.
+     *
+     * @param  array<int, int>  $ids
+     */
+    public function touchByIds(array $ids): void
+    {
+        if (empty($ids)) {
+            return;
+        }
+
+        Product::whereIn('id', $ids)->get()->each->touch();
     }
 
     public function getProductIdsByDigitalProductId(int $digitalProductId): array

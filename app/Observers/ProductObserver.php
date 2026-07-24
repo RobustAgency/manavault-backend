@@ -26,6 +26,23 @@ class ProductObserver
     public function updated(Product $product): void
     {
         $this->activityLogRepository->createActivityLog($product, $product->id, ActivityEvents::PRODUCT_UPDATED);
+    }
+
+    /**
+     * Handle the Product "saved" event.
+     *
+     * This is the single ManaStore sync point for product changes. Every
+     * product-affecting change funnels here by updating/touching the product.
+     * We use `saved` rather than `updated` because a `touch()` that does not
+     * advance the second-precision `updated_at` would be skipped by `updated`,
+     * whereas `saved` always fires. Brand-new products are synced by `created`.
+     */
+    public function saved(Product $product): void
+    {
+        if ($product->wasRecentlyCreated) {
+            return;
+        }
+
         $this->dispatchProductSyncWebhook->execute(ActivityEvents::PRODUCT_UPDATED, [$product->id]);
     }
 

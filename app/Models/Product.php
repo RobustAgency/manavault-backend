@@ -43,6 +43,15 @@ class Product extends Model
         'selling_price',
     ];
 
+    protected static function booted(): void
+    {
+        // Persist the effective status on every save so the stored column always
+        // matches what the API and ManaStore receive.
+        static::saving(function (Product $product): void {
+            $product->status = $product->resolveStatus();
+        });
+    }
+
     /**
      * @return BelongsToMany<DigitalProduct, $this, ProductSupplier>
      */
@@ -96,12 +105,19 @@ class Product extends Model
         return $digitalProduct ? (float) $digitalProduct->selling_price : 0.0;
     }
 
-    public function getStatusAttribute(?string $value): string
+    /**
+     * Derive the product's effective status.
+     *
+     * Without a valid, priced digital product the product is forced inactive.
+     * Otherwise the intended (admin-set) status is respected, so an admin can
+     * still disable a product that would otherwise be active.
+     */
+    public function resolveStatus(): string
     {
         if ($this->getSellingPriceAttribute() <= 0.0) {
             return Lifecycle::IN_ACTIVE->value;
         }
 
-        return $value;
+        return $this->status ?? Lifecycle::ACTIVE->value;
     }
 }

@@ -2,28 +2,14 @@
 
 namespace App\Listeners;
 
-use App\Actions\DispatchProductSyncWebhook;
 use App\Events\DigitalProductPriorityChange;
 
 class SyncPriceOnDigitalProductPriorityChange
 {
-    /**
-     * Create the event listener.
-     */
-    public function __construct(private DispatchProductSyncWebhook $dispatchProductSyncWebhooks)
-    {
-        //
-    }
-
-    /**
-     * Handle the event.
-     */
     public function handle(DigitalProductPriorityChange $event): void
     {
-        $product = $event->product;
-        $this->dispatchProductSyncWebhooks->execute(
-            'digital_product.priority_changed',
-            [$product->id]
-        );
+        // Priority changes which digital product (and price) resolves, so touch the
+        // product to recompute status and sync via the single SyncProductToManaStore listener.
+        $event->product->touch();
     }
 }

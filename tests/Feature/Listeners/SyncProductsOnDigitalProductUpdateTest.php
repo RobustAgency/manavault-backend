@@ -6,10 +6,10 @@ use Tests\TestCase;
 use App\Models\Product;
 use App\Models\DigitalProduct;
 use Illuminate\Support\Facades\Bus;
+use App\Constants\ActivityEvents;
 use Illuminate\Support\Facades\Config;
 use Spatie\WebhookServer\CallWebhookJob;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use App\Listeners\SyncProductsOnDigitalProductUpdate;
 
 class SyncProductsOnDigitalProductUpdateTest extends TestCase
 {
@@ -34,8 +34,9 @@ class SyncProductsOnDigitalProductUpdateTest extends TestCase
 
         $digitalProduct->update(['is_active' => false]);
 
+        // Touching the product funnels through the single Product `updated` sync.
         Bus::assertDispatched(CallWebhookJob::class, function (CallWebhookJob $job) use ($product) {
-            return $job->payload['event'] === SyncProductsOnDigitalProductUpdate::EVENT_NAME
+            return $job->payload['event'] === ActivityEvents::PRODUCT_UPDATED
                 && $job->payload['product_ids'] === [$product->id];
         });
     }
@@ -53,10 +54,13 @@ class SyncProductsOnDigitalProductUpdateTest extends TestCase
 
         $digitalProduct->update(['is_active' => false]);
 
-        Bus::assertDispatched(CallWebhookJob::class, function (CallWebhookJob $job) use ($productOne, $productTwo) {
-            return $job->payload['event'] === SyncProductsOnDigitalProductUpdate::EVENT_NAME
-                && $job->payload['product_ids'] === [$productOne->id, $productTwo->id];
-        });
+        // Each affected product is touched and syncs individually.
+        foreach ([$productOne, $productTwo] as $product) {
+            Bus::assertDispatched(CallWebhookJob::class, function (CallWebhookJob $job) use ($product) {
+                return $job->payload['event'] === ActivityEvents::PRODUCT_UPDATED
+                    && $job->payload['product_ids'] === [$product->id];
+            });
+        }
     }
 
     public function test_does_not_dispatch_sync_webhook_when_digital_product_has_no_assigned_products(): void

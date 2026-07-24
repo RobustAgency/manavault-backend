@@ -2,7 +2,9 @@
 
 namespace App\Repositories;
 
+use App\Models\Product;
 use App\Models\DigitalProduct;
+use App\Models\ProductSupplier;
 use Illuminate\Support\Collection;
 use App\Enums\PriceRule\ActionMode;
 use App\Services\ImageUploadService;
@@ -167,7 +169,7 @@ class DigitalProductRepository
      */
     public function getActiveProducts(): Collection
     {
-        return DigitalProduct::where('status', 'active')->get();
+        return DigitalProduct::where('is_active', true)->get();
     }
 
     public function createOrUpdate(array $attributes, array $values): DigitalProduct
@@ -183,10 +185,30 @@ class DigitalProductRepository
      */
     public function deactivateStaleBySupplierId(int $supplierId, array $activeSKUs): int
     {
-        return DigitalProduct::where('supplier_id', $supplierId)
+        $staleIds = DigitalProduct::where('supplier_id', $supplierId)
             ->whereNotIn('sku', $activeSKUs)
             ->where('is_active', true)
-            ->update(['is_active' => false]);
+            ->pluck('id')
+            ->all();
+
+        if (empty($staleIds)) {
+            return 0;
+        }
+
+        DigitalProduct::whereIn('id', $staleIds)->update(['is_active' => false]);
+
+        // The mass update above bypasses Eloquent model events, so the associated
+        // products would never re-sync and would stay "active" in ManaStore.
+        // Touch each affected product to recompute its status (now inactive) and
+        // fire the Product `updated` event handled by SyncProductToManaStore.
+        $productIds = ProductSupplier::whereIn('digital_product_id', $staleIds)
+            ->pluck('product_id')
+            ->unique()
+            ->all();
+
+        Product::whereIn('id', $productIds)->get()->each->touch();
+
+        return count($staleIds);
     }
 
     /**

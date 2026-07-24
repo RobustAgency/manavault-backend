@@ -73,10 +73,15 @@ class ProductControllerTest extends TestCase
         $digitalProduct = DigitalProduct::factory()->create(['currency' => 'usd']);
 
         $product1 = Product::factory()->create(['status' => 'active']);
-        $product2 = Product::factory()->create(['status' => 'inactive']);
+        $product2 = Product::factory()->create(['status' => 'in_active']);
 
         $product1->digitalProducts()->syncWithoutDetaching([$digitalProduct->id]);
         $product2->digitalProducts()->syncWithoutDetaching([$digitalProduct->id]);
+
+        // Persist status now that a valid digital product exists: product1 stays
+        // active (admin intent), product2 is admin-disabled.
+        $product1->update(['status' => 'active']);
+        $product2->update(['status' => 'in_active']);
 
         $response = $this->getJson('/api/products?status=active');
 

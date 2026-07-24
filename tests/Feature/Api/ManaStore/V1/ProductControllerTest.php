@@ -83,7 +83,7 @@ class ProductControllerTest extends TestCase
             'brand_id' => $brand->id,
             'name' => 'PlayStation 5',
             'face_value' => 100.00,
-            'status' => 1,
+            'status' => 'active',
         ]);
 
         $supplier = Supplier::factory()->create();
@@ -97,6 +97,8 @@ class ProductControllerTest extends TestCase
         ]);
 
         $product->digitalProducts()->attach($digitalProduct->id);
+        // Now that a valid digital product exists, the admin-set active status persists.
+        $product->update(['status' => 'active']);
 
         $response = $this->withHeader('x-api-key', $this->token)
             ->getJson($this->endpoint);
@@ -109,7 +111,7 @@ class ProductControllerTest extends TestCase
         $this->assertEquals('PlayStation 5', $product['name']);
         $this->assertEquals(100.00, (float) $product['face_value']);
         $this->assertEquals(117.60, (float) $product['selling_price']);
-        $this->assertEquals(1, $product['status']);
+        $this->assertEquals('active', $product['status']);
     }
 
     /**

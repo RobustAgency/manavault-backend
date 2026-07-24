@@ -50,7 +50,9 @@ class ProductRepositoryTest extends TestCase
             'sku' => $data['sku'],
             'brand_id' => $data['brand_id'],
             'description' => $data['description'],
-            'status' => $data['status'],
+            // Without a digital product the effective status is forced inactive,
+            // regardless of the requested status.
+            'status' => Lifecycle::IN_ACTIVE->value,
         ]);
     }
 
@@ -88,6 +90,11 @@ class ProductRepositoryTest extends TestCase
         $product1->digitalProducts()->save($digitalProduct);
         $product2->digitalProducts()->save($digitalProduct);
         $product3->digitalProducts()->save($digitalProduct);
+
+        // Persist the intended status now that a valid digital product exists.
+        $product1->update(['status' => Lifecycle::ACTIVE->value]);
+        $product2->update(['status' => Lifecycle::IN_ACTIVE->value]);
+        $product3->update(['status' => Lifecycle::ACTIVE->value]);
 
         $results = $this->repository->getFilteredProducts(['status' => Lifecycle::ACTIVE->value]);
 
