@@ -5,6 +5,7 @@ namespace App\Services\Ezcards;
 use App\Models\Supplier;
 use Illuminate\Support\Facades\Log;
 use App\Actions\Ezcards\GetProducts;
+use App\Events\DigitalProductsDeactivated;
 use App\Repositories\DigitalProductRepository;
 
 class SyncDigitalProduct
@@ -41,10 +42,11 @@ class SyncDigitalProduct
             $page++;
         } while ($page <= $totalPage);
 
-        $deactivated = $this->digitalProductRepository->deactivateStaleBySupplierId($supplier->id, $syncedSkus);
+        $deactivatedIds = $this->digitalProductRepository->deactivateStaleBySupplierId($supplier->id, $syncedSkus);
 
-        if ($deactivated > 0) {
-            Log::info("EZ Cards sync: deactivated {$deactivated} removed product(s) for supplier: {$supplier->slug}");
+        if (! empty($deactivatedIds)) {
+            Log::info('EZ Cards sync: deactivated '.count($deactivatedIds)." removed product(s) for supplier: {$supplier->slug}");
+            event(new DigitalProductsDeactivated($deactivatedIds));
         }
     }
 

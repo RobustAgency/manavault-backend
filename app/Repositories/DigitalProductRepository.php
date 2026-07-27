@@ -180,13 +180,23 @@ class DigitalProductRepository
      * Called after a sync to mark products removed by the supplier as inactive.
      *
      * @param  array<int, string>  $activeSKUs
+     * @return array<int, int> IDs of the digital products that were deactivated.
      */
-    public function deactivateStaleBySupplierId(int $supplierId, array $activeSKUs): int
+    public function deactivateStaleBySupplierId(int $supplierId, array $activeSKUs): array
     {
-        return DigitalProduct::where('supplier_id', $supplierId)
+        $staleDigitalProductIds = DigitalProduct::where('supplier_id', $supplierId)
             ->whereNotIn('sku', $activeSKUs)
             ->where('is_active', true)
-            ->update(['is_active' => false]);
+            ->pluck('id')
+            ->all();
+
+        if (empty($staleDigitalProductIds)) {
+            return [];
+        }
+
+        DigitalProduct::whereIn('id', $staleDigitalProductIds)->update(['is_active' => false]);
+
+        return $staleDigitalProductIds;
     }
 
     /**

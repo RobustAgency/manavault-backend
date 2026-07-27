@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Events\DigitalProductCreated;
 use App\Events\DigitalProductUpdated;
+use App\Events\DigitalProductDeleting;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -57,7 +59,9 @@ class DigitalProduct extends Model
     ];
 
     protected $dispatchesEvents = [
+        'created' => DigitalProductCreated::class,
         'updated' => DigitalProductUpdated::class,
+        'deleting' => DigitalProductDeleting::class,
     ];
 
     /**

@@ -5,6 +5,7 @@ namespace App\Services\Gift2Games;
 use App\Models\Supplier;
 use Illuminate\Support\Facades\Log;
 use App\Actions\Gift2Games\GetProducts;
+use App\Events\DigitalProductsDeactivated;
 use App\Repositories\DigitalProductRepository;
 
 class SyncDigitalProducts
@@ -75,10 +76,11 @@ class SyncDigitalProducts
             $syncedSkus[] = (string) $item['id'];
         }
 
-        $deactivated = $this->digitalProductRepository->deactivateStaleBySupplierId($supplier->id, $syncedSkus);
+        $deactivatedIds = $this->digitalProductRepository->deactivateStaleBySupplierId($supplier->id, $syncedSkus);
 
-        if ($deactivated > 0) {
-            Log::info("Gift2Games sync: deactivated {$deactivated} removed product(s) for supplier: {$supplierSlug}");
+        if (! empty($deactivatedIds)) {
+            Log::info('Gift2Games sync: deactivated '.count($deactivatedIds)." removed product(s) for supplier: {$supplierSlug}");
+            event(new DigitalProductsDeactivated($deactivatedIds));
         }
     }
 }
