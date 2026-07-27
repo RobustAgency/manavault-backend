@@ -196,6 +196,29 @@ class ProductRepository
     }
 
     /**
+     * Get product IDs linked to any of the given digital product IDs via the pivot table directly.
+     *
+     * Unlike getProductIdsByDigitalProductIds(), this does not go through the digitalProducts()
+     * relation and so is not filtered to active digital products. Use this when the digital
+     * products may already be inactive (e.g. products just deactivated by a stock sync).
+     *
+     * @param  array<int, int>  $digitalProductIds
+     * @return array<int, int>
+     */
+    public function getProductIdsByAnyDigitalProductIds(array $digitalProductIds): array
+    {
+        if (empty($digitalProductIds)) {
+            return [];
+        }
+
+        return ProductSupplier::query()
+            ->whereIn('digital_product_id', $digitalProductIds)
+            ->distinct()
+            ->pluck('product_id')
+            ->all();
+    }
+
+    /**
      * Get products by brand ID.
      *
      * @return \Illuminate\Database\Eloquent\Collection<int, Product>

@@ -169,4 +169,50 @@ class DigitalProductRepositoryTest extends TestCase
         $this->assertCount(3, $supplier1Products);
         $this->assertCount(2, $supplier2Products);
     }
+
+    public function test_deactivate_stale_by_supplier_id_returns_ids_of_deactivated_products(): void
+    {
+        $supplier = Supplier::factory()->create();
+
+        $stillActive = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier->id,
+            'sku' => 'KEEP-001',
+            'is_active' => true,
+        ]);
+
+        $stale = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier->id,
+            'sku' => 'STALE-001',
+            'is_active' => true,
+        ]);
+
+        $alreadyInactive = DigitalProduct::factory()->create([
+            'supplier_id' => $supplier->id,
+            'sku' => 'STALE-002',
+            'is_active' => false,
+        ]);
+
+        $deactivatedIds = $this->repository->deactivateStaleBySupplierId($supplier->id, ['KEEP-001']);
+
+        $this->assertEquals([$stale->id], $deactivatedIds);
+
+        $this->assertDatabaseHas('digital_products', ['id' => $stale->id, 'is_active' => false]);
+        $this->assertDatabaseHas('digital_products', ['id' => $stillActive->id, 'is_active' => true]);
+        $this->assertDatabaseHas('digital_products', ['id' => $alreadyInactive->id, 'is_active' => false]);
+    }
+
+    public function test_deactivate_stale_by_supplier_id_returns_empty_array_when_nothing_is_stale(): void
+    {
+        $supplier = Supplier::factory()->create();
+
+        DigitalProduct::factory()->create([
+            'supplier_id' => $supplier->id,
+            'sku' => 'KEEP-001',
+            'is_active' => true,
+        ]);
+
+        $deactivatedIds = $this->repository->deactivateStaleBySupplierId($supplier->id, ['KEEP-001']);
+
+        $this->assertSame([], $deactivatedIds);
+    }
 }

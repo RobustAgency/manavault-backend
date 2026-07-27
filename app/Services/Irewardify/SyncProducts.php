@@ -5,6 +5,7 @@ namespace App\Services\Irewardify;
 use App\Models\Supplier;
 use Illuminate\Support\Facades\Log;
 use App\Actions\Irewardify\GetProducts;
+use App\Events\DigitalProductsDeactivated;
 use App\Actions\Irewardify\GetProductDetails;
 use App\Repositories\DigitalProductRepository;
 
@@ -106,10 +107,11 @@ class SyncProducts
             }
         }
 
-        $deactivated = $this->digitalProductRepository->deactivateStaleBySupplierId($supplier->id, $syncedSkus);
+        $deactivatedIds = $this->digitalProductRepository->deactivateStaleBySupplierId($supplier->id, $syncedSkus);
 
-        if ($deactivated > 0) {
-            Log::info("Irewardify sync: deactivated {$deactivated} removed product(s).");
+        if (! empty($deactivatedIds)) {
+            Log::info('Irewardify sync: deactivated '.count($deactivatedIds).' removed product(s).');
+            event(new DigitalProductsDeactivated($deactivatedIds));
         }
     }
 }
