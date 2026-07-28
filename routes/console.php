@@ -13,15 +13,15 @@ Artisan::command('inspire', function () {
 
 Schedule::command(SyncSupplierProductsCommand::class)
     ->hourly()
-    ->withoutOverlapping()
+    ->withoutOverlapping(expiresAt: 2) // 2 minutes
     ->runInBackground();
 
 Schedule::command(UpdatePurchaseOrderItems::class)
     ->everyMinute()
-    ->withoutOverlapping()
+    ->withoutOverlapping(expiresAt: 5) // 5 minutes
     ->runInBackground();
 
 Schedule::command(PlacePendingPurchaseOrdersCommand::class)
     ->everyMinute()
-    ->withoutOverlapping(expiresAt: 120) // 2 minutes
+    ->withoutOverlapping(expiresAt: 5) // 5 minutes
     ->runInBackground();
