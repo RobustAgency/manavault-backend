@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use App\Actions\Gamezcode\PlaceOrder;
 use App\Actions\Gamezcode\GetProducts;
 use App\Enums\PurchaseOrderItemStatus;
+use App\Events\DigitalProductsDeactivated;
 use App\Contracts\SupplierIntegrationContract;
 use App\Repositories\DigitalProductRepository;
 use App\Services\Voucher\VoucherCipherService;
@@ -170,10 +171,11 @@ class Gamezcode implements SupplierIntegrationContract
             $skip += count($items);
         } while ($skip < $total);
 
-        $deactivated = $this->digitalProductRepository->deactivateStaleBySupplierId($supplier->id, $this->syncedSkus);
+        $deactivatedIds = $this->digitalProductRepository->deactivateStaleBySupplierId($supplier->id, $this->syncedSkus);
 
-        if ($deactivated > 0) {
-            Log::info("Gamezcode sync: deactivated {$deactivated} removed product(s)");
+        if (! empty($deactivatedIds)) {
+            Log::info('Gamezcode sync: deactivated '.count($deactivatedIds).' removed product(s)');
+            event(new DigitalProductsDeactivated($deactivatedIds));
         }
 
         Log::info('Gamezcode sync completed. Synced '.count($this->syncedSkus).' digital products.');
@@ -206,7 +208,6 @@ class Gamezcode implements SupplierIntegrationContract
                         'source' => 'api',
                         'last_synced_at' => now(),
                         'is_active' => ($item['status'] ?? null) === 'active',
-                        'in_stock' => true,
                     ]
                 );
 
