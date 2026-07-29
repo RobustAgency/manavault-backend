@@ -5,6 +5,7 @@ namespace App\Services\Tikkery;
 use App\Models\Supplier;
 use Illuminate\Support\Facades\Log;
 use App\Actions\Tikkery\GetProducts;
+use App\Events\DigitalProductsDeactivated;
 use App\Repositories\DigitalProductRepository;
 
 class SyncDigitalProducts
@@ -41,10 +42,11 @@ class SyncDigitalProducts
             $offset += count($items);
         } while ($offset < $total);
 
-        $deactivated = $this->digitalProductRepository->deactivateStaleBySupplierId($supplier->id, $this->syncedSkus);
+        $deactivatedIds = $this->digitalProductRepository->deactivateStaleBySupplierId($supplier->id, $this->syncedSkus);
 
-        if ($deactivated > 0) {
-            Log::info("Tikkery sync: deactivated {$deactivated} removed product(s)");
+        if (! empty($deactivatedIds)) {
+            Log::info('Tikkery sync: deactivated '.count($deactivatedIds).' removed product(s)');
+            event(new DigitalProductsDeactivated($deactivatedIds));
         }
 
         Log::info('Tikkery sync completed. Synced '.count($this->syncedSkus).' digital products.');
