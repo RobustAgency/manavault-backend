@@ -96,7 +96,6 @@ class SyncProducts
                             'source' => 'api',
                             'last_synced_at' => now(),
                             'is_active' => $isActive,
-                            'in_stock' => true,
                         ]
                     );
 

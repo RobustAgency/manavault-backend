@@ -40,6 +40,12 @@ class SyncProducts
         $syncedSkus = [];
 
         foreach ($products as $product) {
+            // Giftery returns several product types (voucher, recharge, recharge_fixed,
+            // e_sim); only vouchers are supported.
+            if (($product['type'] ?? null) !== 'voucher') {
+                continue;
+            }
+
             try {
                 $items = $product['items'] ?? [];
 
@@ -80,7 +86,6 @@ class SyncProducts
                                 'source' => 'api',
                                 'last_synced_at' => now(),
                                 'is_active' => true,
-                                'in_stock' => $item['inStock'] > 0,
                             ]
                         );
 

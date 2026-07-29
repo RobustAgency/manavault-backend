@@ -70,7 +70,6 @@ class SyncDigitalProducts
                 'source' => 'api',
                 'last_synced_at' => now(),
                 'is_active' => true,
-                'in_stock' => $item['inStock'] ?? false,
             ]);
 
             $syncedSkus[] = (string) $item['id'];
