@@ -5,6 +5,7 @@ namespace App\Services\Giftery;
 use App\Models\Supplier;
 use Illuminate\Support\Facades\Log;
 use App\Actions\Giftery\GetProductsAction;
+use App\Events\DigitalProductsDeactivated;
 use App\Repositories\DigitalProductRepository;
 
 class SyncProducts
@@ -100,10 +101,11 @@ class SyncProducts
         }
 
         // Deactivate products that are no longer in the API response
-        $deactivated = $this->digitalProductRepository->deactivateStaleBySupplierId($supplier->id, $syncedSkus);
+        $deactivatedIds = $this->digitalProductRepository->deactivateStaleBySupplierId($supplier->id, $syncedSkus);
 
-        if ($deactivated > 0) {
-            Log::info("Giftery sync: deactivated {$deactivated} removed product(s)");
+        if (! empty($deactivatedIds)) {
+            Log::info('Giftery sync: deactivated '.count($deactivatedIds).' removed product(s)');
+            event(new DigitalProductsDeactivated($deactivatedIds));
         }
 
         Log::info('Giftery sync completed successfully. Synced '.count($syncedSkus).' digital products.');
