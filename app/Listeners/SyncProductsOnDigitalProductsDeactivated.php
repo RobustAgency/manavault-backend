@@ -25,6 +25,8 @@ class SyncProductsOnDigitalProductsDeactivated
             return;
         }
 
-        $this->dispatchProductSyncWebhook->execute(self::EVENT_NAME, $productIds);
+        foreach ($productIds as $productId) {
+            $this->dispatchProductSyncWebhook->execute(self::EVENT_NAME, $productId);
+        }
     }
 }
