@@ -23,7 +23,7 @@ class SyncPriceOnDigitalProductPriorityChange
         $product = $event->product;
         $this->dispatchProductSyncWebhooks->execute(
             'digital_product.priority_changed',
-            [$product->id]
+            $product->id
         );
     }
 }

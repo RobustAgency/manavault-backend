@@ -17,7 +17,7 @@ class ProductObserver
     public function created(Product $product): void
     {
         $this->activityLogRepository->createActivityLog($product, $product->id, ActivityEvents::PRODUCT_CREATED);
-        $this->dispatchProductSyncWebhook->execute(ActivityEvents::PRODUCT_CREATED, [$product->id]);
+        $this->dispatchProductSyncWebhook->execute(ActivityEvents::PRODUCT_CREATED, $product->id);
     }
 
     /**
@@ -26,7 +26,7 @@ class ProductObserver
     public function updated(Product $product): void
     {
         $this->activityLogRepository->createActivityLog($product, $product->id, ActivityEvents::PRODUCT_UPDATED);
-        $this->dispatchProductSyncWebhook->execute(ActivityEvents::PRODUCT_UPDATED, [$product->id]);
+        $this->dispatchProductSyncWebhook->execute(ActivityEvents::PRODUCT_UPDATED, $product->id);
     }
 
     /**
@@ -35,6 +35,6 @@ class ProductObserver
     public function deleted(Product $product): void
     {
         $this->activityLogRepository->createActivityLog($product, $product->id, ActivityEvents::PRODUCT_DELETED);
-        $this->dispatchProductSyncWebhook->execute(ActivityEvents::PRODUCT_DELETED, [$product->id]);
+        $this->dispatchProductSyncWebhook->executeForDeletion(ActivityEvents::PRODUCT_DELETED, $product->id);
     }
 }

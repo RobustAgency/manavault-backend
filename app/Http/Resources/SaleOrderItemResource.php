@@ -23,6 +23,8 @@ class SaleOrderItemResource extends JsonResource
             'quantity' => $this->quantity,
             'unit_price' => $this->unit_price,
             'subtotal' => $this->subtotal,
+            'status' => $this->status->value,
+            'sale_order_number' => $this->whenLoaded('saleOrder', fn () => $this->saleOrder->order_number),
             'product' => new ProductResource($this->whenLoaded('product')),
         ];
     }

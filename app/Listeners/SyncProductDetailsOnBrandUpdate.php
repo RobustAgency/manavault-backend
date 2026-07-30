@@ -27,7 +27,8 @@ class SyncProductDetailsOnBrandUpdate
 
         $productIds = $this->productRepository->getProductsByBrandId($brand->id)->pluck('id')->all();
 
-        $this->dispatchProductSyncWebhooks->execute(self::EVENT_NAME, $productIds);
-
+        foreach ($productIds as $productId) {
+            $this->dispatchProductSyncWebhooks->execute(self::EVENT_NAME, $productId);
+        }
     }
 }
