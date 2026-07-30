@@ -18,7 +18,7 @@ class SyncProductOnDigitalProductAssignment
 
         $this->dispatchProductSyncWebhooks->execute(
             'digital_product.changed',
-            [$product->id]
+            $product->id
         );
     }
 }
