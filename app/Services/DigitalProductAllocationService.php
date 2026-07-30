@@ -6,6 +6,7 @@ use App\Models\Voucher;
 use App\Models\SaleOrderItem;
 use App\Models\DigitalProduct;
 use Illuminate\Support\Collection;
+use App\Enums\SaleOrderItemStatus;
 
 class DigitalProductAllocationService
 {
@@ -54,6 +55,30 @@ class DigitalProductAllocationService
             $remaining--;
         }
 
+        $this->markItemCompletedIfFulfilled($item);
+
         return $quantity - $remaining;
+    }
+
+    /**
+     * Promote the item to COMPLETED once its allocated vouchers cover the ordered quantity.
+     *
+     * This is the single place item status is derived, so every allocation path funnels
+     * through it. Only the pending → completed transition is written: a cancelled item is
+     * never resurrected, and an already-completed one is never rewritten (which is what
+     * keeps the outbound webhook firing exactly once per item, since the listener keys off
+     * wasChanged('status')).
+     */
+    private function markItemCompletedIfFulfilled(SaleOrderItem $item): void
+    {
+        if ($item->status !== SaleOrderItemStatus::PENDING) {
+            return;
+        }
+
+        $item->load('digitalProducts');
+
+        if ($item->isFullyFulfilled()) {
+            $item->update(['status' => SaleOrderItemStatus::COMPLETED->value]);
+        }
     }
 }

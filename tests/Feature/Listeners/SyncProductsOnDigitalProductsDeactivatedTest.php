@@ -42,9 +42,13 @@ class SyncProductsOnDigitalProductsDeactivatedTest extends TestCase
 
         event(new DigitalProductsDeactivated([$digitalProductOne->id, $digitalProductTwo->id]));
 
-        Bus::assertDispatched(CallWebhookJob::class, function (CallWebhookJob $job) use ($productOne, $productTwo) {
+        Bus::assertDispatched(CallWebhookJob::class, function (CallWebhookJob $job) use ($productOne) {
             return $job->payload['event'] === SyncProductsOnDigitalProductsDeactivated::EVENT_NAME
-                && $job->payload['product_ids'] === [$productOne->id, $productTwo->id];
+                && $job->payload['data']['id'] === $productOne->id;
+        });
+        Bus::assertDispatched(CallWebhookJob::class, function (CallWebhookJob $job) use ($productTwo) {
+            return $job->payload['event'] === SyncProductsOnDigitalProductsDeactivated::EVENT_NAME
+                && $job->payload['data']['id'] === $productTwo->id;
         });
     }
 

@@ -36,8 +36,12 @@ class SyncProductsOnDigitalProductUpdateTest extends TestCase
 
         Bus::assertDispatched(CallWebhookJob::class, function (CallWebhookJob $job) use ($product) {
             return $job->payload['event'] === SyncProductsOnDigitalProductUpdate::EVENT_NAME
-                && $job->payload['product_ids'] === [$product->id];
+                && $job->payload['data']['id'] === $product->id;
         });
+
+        $syncJobs = Bus::dispatched(CallWebhookJob::class, fn (CallWebhookJob $job) => $job->payload['event'] === SyncProductsOnDigitalProductUpdate::EVENT_NAME
+        );
+        $this->assertCount(1, $syncJobs);
     }
 
     public function test_dispatches_sync_webhook_for_all_products_linked_to_inactive_digital_product(): void
@@ -53,10 +57,18 @@ class SyncProductsOnDigitalProductUpdateTest extends TestCase
 
         $digitalProduct->update(['is_active' => false]);
 
-        Bus::assertDispatched(CallWebhookJob::class, function (CallWebhookJob $job) use ($productOne, $productTwo) {
+        Bus::assertDispatched(CallWebhookJob::class, function (CallWebhookJob $job) use ($productOne) {
             return $job->payload['event'] === SyncProductsOnDigitalProductUpdate::EVENT_NAME
-                && $job->payload['product_ids'] === [$productOne->id, $productTwo->id];
+                && $job->payload['data']['id'] === $productOne->id;
         });
+        Bus::assertDispatched(CallWebhookJob::class, function (CallWebhookJob $job) use ($productTwo) {
+            return $job->payload['event'] === SyncProductsOnDigitalProductUpdate::EVENT_NAME
+                && $job->payload['data']['id'] === $productTwo->id;
+        });
+
+        $syncJobs = Bus::dispatched(CallWebhookJob::class, fn (CallWebhookJob $job) => $job->payload['event'] === SyncProductsOnDigitalProductUpdate::EVENT_NAME
+        );
+        $this->assertCount(2, $syncJobs);
     }
 
     public function test_does_not_dispatch_sync_webhook_when_digital_product_has_no_assigned_products(): void

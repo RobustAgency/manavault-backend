@@ -10,7 +10,7 @@ class VoucherCodesResource
     /**
      * Format voucher codes grouped by product for a sale order.
      *
-     * @return array<int, array{title: string, status: string, codes: array}>
+     * @return array<int, array{id: int, title: string, status: string, progress: int, codes: array}>
      */
     public static function format(SaleOrder $saleOrder): array
     {
@@ -45,6 +45,7 @@ class VoucherCodesResource
                 'id' => $item->product_id,
                 'title' => $item->product->name,
                 'status' => $item->voucherFulfillmentStatus()->value,
+                'progress' => $item->fulfillmentProgress(),
                 'codes' => $codes,
             ];
         }
