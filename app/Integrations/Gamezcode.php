@@ -59,10 +59,6 @@ class Gamezcode implements SupplierIntegrationContract
         $quantity = $purchaseOrderItem->quantity;
         $currency = strtoupper($purchaseOrder->currency);
 
-        // Catalog unit price in minor units. For fixed products Kalixo requires
-        // this to match the catalog price, which we store as face_value.
-        $unitPrice = (int) round((float) $digitalProduct->face_value * self::MINOR_UNIT_DIVISOR);
-
         Log::info('Gamezcode placeOrder: creating order', [
             'purchase_order_item_id' => $purchaseOrderItem->id,
             'product_code' => $digitalProduct->sku,
@@ -76,10 +72,8 @@ class Gamezcode implements SupplierIntegrationContract
                 [
                     'productCode' => $digitalProduct->sku,
                     'quantity' => $quantity,
-                    'price' => $unitPrice,
                 ],
             ],
-            'price' => $unitPrice * $quantity,
         ]);
 
         $orderId = $response['orderId'] ?? null;
