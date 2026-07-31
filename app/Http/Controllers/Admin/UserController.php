@@ -2,9 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Models\Role;
 use App\Models\User;
-use App\Enums\UserRole;
 use App\Clients\SupabaseClient;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
@@ -97,34 +95,10 @@ class UserController extends Controller
 
     public function store(StoreUserRequest $request): JsonResponse
     {
-        $validated = $request->validated();
-
-        $role = Role::find($validated['role_id']);
-
-        $supabaseData = [
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'role' => $role->name ?? UserRole::USER->value,
-            'password' => $validated['password'],
-        ];
-
-        $supabaseClient = $this->supabaseClient->createUser($supabaseData);
-
-        $user = User::createFromSupabase([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'supabase_id' => $supabaseClient['id'],
-            'password' => bcrypt($validated['password']),
-            'role' => $role->name ?? UserRole::USER->value,
-        ]);
-
-        $user->assignRole($role);
-
         return response()->json([
-            'error' => false,
-            'message' => 'User created successfully',
-            'data' => new UserResource($user),
-        ], 201);
+            'error' => true,
+            'message' => 'Something went wrong.',
+        ], 500);
     }
 
     public function destroy(User $user): JsonResponse
