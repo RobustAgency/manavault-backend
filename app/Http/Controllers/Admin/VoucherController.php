@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Models\Voucher;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Auth;
 use App\Services\VoucherAuditService;
 use App\Http\Resources\VoucherResource;
 use App\Repositories\VoucherRepository;
@@ -61,18 +60,9 @@ class VoucherController extends Controller
 
     public function show(Voucher $voucher, ShowVoucherRequest $request): JsonResponse
     {
-        $user = Auth::user();
-        $validated = $request->validated();
-        $voucherCode = $this->voucherRepository->showVoucherCode($voucher);
-        $this->voucherAuditService->voucherViewLog($voucher, $user, $validated);
-
         return response()->json([
-            'error' => false,
-            'data' => [
-                'id' => $voucher->id,
-                'code' => $voucherCode,
-            ],
-            'message' => 'Voucher retrieved successfully.',
-        ]);
+            'error' => true,
+            'message' => 'Something went wrong.',
+        ], 500);
     }
 }
