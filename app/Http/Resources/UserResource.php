@@ -41,6 +41,10 @@ class UserResource extends JsonResource
         $grouped = [];
 
         foreach ($permissions as $permission) {
+            if (! $permission->module) {
+                continue;
+            }
+
             $moduleId = $permission->module_id;
             $moduleName = $permission->module->name;
             $moduleSlug = $permission->module->slug;
