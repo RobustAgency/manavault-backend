@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\SaleOrderItemStatus;
+use App\Events\SaleOrderItemUpdated;
 use App\Enums\VoucherFulfillmentStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -18,13 +20,19 @@ class SaleOrderItem extends Model
         'product_id',
         'digital_product_id',
         'quantity',
+        'status',
         'unit_price',
         'subtotal',
     ];
 
     protected $casts = [
+        'status' => SaleOrderItemStatus::class,
         'unit_price' => 'decimal:2',
         'subtotal' => 'decimal:2',
+    ];
+
+    protected $dispatchesEvents = [
+        'updated' => SaleOrderItemUpdated::class,
     ];
 
     /**
@@ -82,6 +90,19 @@ class SaleOrderItem extends Model
     public function isFullyFulfilled(): bool
     {
         return $this->allocatedVoucherCount() >= $this->quantity;
+    }
+
+    /**
+     * Allocation progress as a percentage (0-100) of vouchers allocated
+     * against the ordered quantity. E.g. 25 of 50 allocated => 50.
+     */
+    public function fulfillmentProgress(): int
+    {
+        if ($this->quantity <= 0) {
+            return 0;
+        }
+
+        return (int) min(100, round($this->allocatedVoucherCount() / $this->quantity * 100));
     }
 
     /**

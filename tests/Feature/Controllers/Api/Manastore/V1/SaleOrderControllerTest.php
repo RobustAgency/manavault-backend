@@ -342,6 +342,7 @@ class SaleOrderControllerTest extends TestCase
         $data = [
             'order_number' => 'SO-2026-000001',
             'source' => 'api',
+            'customer' => $this->customerData(),
             'items' => [
                 [
                     'product_id' => $product->id,
@@ -429,6 +430,7 @@ class SaleOrderControllerTest extends TestCase
         // Create sale order
         $data = [
             'order_number' => 'SO-2026-GET-VOUCHERS-1',
+            'customer' => $this->customerData(),
             'items' => [
                 [
                     'product_id' => $product->id,
@@ -558,6 +560,7 @@ class SaleOrderControllerTest extends TestCase
         // Create sale order with multiple products
         $data = [
             'order_number' => 'SO-2026-MULTI-PRODUCT',
+            'customer' => $this->customerData(),
             'items' => [
                 [
                     'product_id' => $product1->id,

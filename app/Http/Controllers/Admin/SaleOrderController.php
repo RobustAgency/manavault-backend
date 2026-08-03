@@ -44,27 +44,18 @@ class SaleOrderController extends Controller
 
     public function codes(SaleOrder $saleOrder): JsonResponse
     {
-        $groupedCodes = $this->manavaultOrderCodeService->listGroupedOrderCodes($saleOrder);
-
         return response()->json([
-            'error' => false,
-            'data' => $groupedCodes,
-            'message' => 'Sale order codes retrieved successfully.',
-        ]);
+            'error' => true,
+            'message' => 'Something went wrong.',
+        ], 500);
     }
 
     public function downloadOrderCodes(
         SaleOrder $saleOrder,
     ): JsonResponse|StreamedResponse {
-        $codes = $this->manavaultOrderCodeService->listOrderCodes($saleOrder);
-
-        if ($codes->isEmpty()) {
-            return response()->json([
-                'error' => true,
-                'message' => 'No code entries found for this sale order.',
-            ], 404);
-        }
-
-        return $this->downloadManavaultCodesZipArchive->execute($saleOrder, $codes);
+        return response()->json([
+            'error' => true,
+            'message' => 'Something went wrong.',
+        ], 500);
     }
 }

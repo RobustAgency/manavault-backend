@@ -3,16 +3,14 @@
 namespace App\Actions;
 
 use App\Models\SaleOrder;
-use App\Models\SaleOrderItem;
-use App\Models\DigitalProduct;
 use App\Enums\SaleOrderStatus;
 use Illuminate\Support\Facades\DB;
-use App\Services\VoucherAllocationService;
+use App\Services\DigitalProductAllocationService;
 
 class AssignVouchersToSaleOrderAction
 {
     public function __construct(
-        private VoucherAllocationService $voucherAllocationService,
+        private DigitalProductAllocationService $digitalProductAllocationService,
     ) {}
 
     public function execute(SaleOrder $saleOrder): array
@@ -48,7 +46,7 @@ class AssignVouchersToSaleOrderAction
                     continue;
                 }
 
-                $allocated = $this->allocate($item, $digitalProduct, $remaining);
+                $allocated = $this->digitalProductAllocationService->allocateFromGeneralStock($item, $digitalProduct, $remaining);
 
                 $status = $allocated >= $remaining
                     ? "Fulfilled ({$digitalProduct->sku})"
@@ -77,26 +75,5 @@ class AssignVouchersToSaleOrderAction
             DB::rollBack();
             throw $e;
         }
-    }
-
-    /**
-     * Allocate up to $remaining available (general-stock) vouchers of the given digital
-     * product to the item. Returns the number actually allocated.
-     */
-    private function allocate(SaleOrderItem $item, DigitalProduct $digitalProduct, int $remaining): int
-    {
-        $vouchers = $this->voucherAllocationService->getAvailableVouchers($digitalProduct->id);
-
-        $allocated = 0;
-        foreach ($vouchers as $voucher) {
-            if ($allocated >= $remaining) {
-                break;
-            }
-
-            $this->voucherAllocationService->allocateVoucher($item->id, $digitalProduct, $voucher);
-            $allocated++;
-        }
-
-        return $allocated;
     }
 }
