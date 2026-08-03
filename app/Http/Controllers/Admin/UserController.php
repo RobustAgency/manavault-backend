@@ -2,9 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Models\Role;
 use App\Models\User;
-use App\Enums\UserRole;
 use App\Clients\SupabaseClient;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
