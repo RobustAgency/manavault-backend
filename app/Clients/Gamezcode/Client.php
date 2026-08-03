@@ -2,7 +2,6 @@
 
 namespace App\Clients\Gamezcode;
 
-use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
@@ -36,20 +35,8 @@ class Client
         ])
             ->retry(self::RETRY_ATTEMPTS, self::RETRY_DELAY_MS, function ($exception) {
                 return $exception instanceof RequestException && $exception->response->status() >= 500;
-            })
+            }, throw: false)
             ->baseUrl($this->getBaseUrl());
-    }
-
-    /**
-     * Handle API response and extract data or throw exception.
-     */
-    protected function handleResponse(Response $response): array
-    {
-        if ($response->successful()) {
-            return $response->json();
-        }
-
-        throw new \Exception('Gamezcode API request failed: '.$response->body());
     }
 
     /**
@@ -57,12 +44,10 @@ class Client
      */
     public function getProducts(int $take = 20, int $skip = 0): array
     {
-        $response = $this->getClient()->get('/catalog/products', [
+        return $this->getClient()->get('/catalog/products', [
             'take' => $take,
             'skip' => $skip,
-        ]);
-
-        return $this->handleResponse($response);
+        ])->throw()->json();
     }
 
     /**
@@ -70,9 +55,7 @@ class Client
      */
     public function getProduct(string $productCode): array
     {
-        $response = $this->getClient()->get("/catalog/products/{$productCode}");
-
-        return $this->handleResponse($response);
+        return $this->getClient()->get("/catalog/products/{$productCode}")->throw()->json();
     }
 
     /**
@@ -80,18 +63,21 @@ class Client
      */
     public function placeOrder(array $orderData): array
     {
-        $response = $this->getClient()->post('/orders', $orderData);
-
-        return $this->handleResponse($response);
+        return $this->getClient()->post('/orders', $orderData)->throw()->json();
     }
 
     /**
-     * Retrieve an order by its reference.
+     * Retrieve an order by its reference (the placement orderId or your externalOrderCode).
+     * Returns null if no order matches the reference.
      */
-    public function getOrder(string $reference): array
+    public function getOrder(string $reference): ?array
     {
         $response = $this->getClient()->get("/orders/{$reference}");
 
-        return $this->handleResponse($response);
+        if ($response->status() === 404) {
+            return null;
+        }
+
+        return $response->throw()->json();
     }
 }

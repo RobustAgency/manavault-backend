@@ -50,6 +50,25 @@ class Gamezcode implements SupplierIntegrationContract
             return;
         }
 
+        $externalOrderCode = 'order_item_id_'.$purchaseOrderItem->id;
+
+        $existingOrder = $this->client->getOrder($externalOrderCode);
+
+        if ($existingOrder) {
+            Log::warning('Gamezcode placeOrder skipped: order already exists for external code', [
+                'purchase_order_item_id' => $purchaseOrderItem->id,
+                'external_order_code' => $externalOrderCode,
+                'order_id' => $existingOrder['orderId'] ?? null,
+            ]);
+
+            $purchaseOrderItem->update([
+                'transaction_id' => $existingOrder['orderId'] ?? null,
+                'status' => PurchaseOrderItemStatus::PROCESSING,
+            ]);
+
+            return;
+        }
+
         $purchaseOrder = $purchaseOrderItem->purchaseOrder;
         $digitalProduct = $purchaseOrderItem->digitalProduct;
         $quantity = $purchaseOrderItem->quantity;
@@ -62,7 +81,7 @@ class Gamezcode implements SupplierIntegrationContract
         ]);
 
         $response = $this->client->placeOrder([
-            'externalOrderCode' => 'order_item_id_'.$purchaseOrderItem->id,
+            'externalOrderCode' => $externalOrderCode,
             'currency' => $currency,
             'orderProducts' => [
                 [

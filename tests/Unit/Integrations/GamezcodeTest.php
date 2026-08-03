@@ -57,6 +57,7 @@ class GamezcodeTest extends TestCase
     private function placeOrderResponse(string $orderId = 'ORDER-UUID-1', string $status = 'processing'): array
     {
         return [
+            '*/orders/order_item_id_*' => Http::response([], 404),
             '*/orders' => Http::response([
                 'orderId' => $orderId,
                 'externalOrderCode' => 'order_item_id_'.$this->item->id,
@@ -146,15 +147,17 @@ class GamezcodeTest extends TestCase
         app(Gamezcode::class)->placeOrder($this->item);
 
         Http::assertSent(function ($r) {
+            if ($r->method() !== 'POST') {
+                return false;
+            }
+
             $body = $r->data();
 
             return $body['externalOrderCode'] === 'order_item_id_'.$this->item->id
                 && $body['currency'] === 'GBP'
-                && $body['price'] === 10000
                 && $body['orderProducts'][0]['productCode'] === '10020000213575'
                 && $body['orderProducts'][0]['quantity'] === 1
-                // face_value 100.00 -> 10000 minor units (not unit_cost)
-                && $body['orderProducts'][0]['price'] === 10000
+                && ! array_key_exists('price', $body['orderProducts'][0])
                 && ! array_key_exists('sku', $body['orderProducts'][0]);
         });
     }
@@ -169,6 +172,23 @@ class GamezcodeTest extends TestCase
 
         Http::assertNothingSent();
         $this->assertEquals('existing-order', $this->item->fresh()->transaction_id);
+    }
+
+    public function test_place_order_skips_and_syncs_state_when_order_already_exists_upstream(): void
+    {
+        Http::fake([
+            '*/orders/order_item_id_*' => Http::response([
+                'orderId' => 'EXISTING-ORDER-UUID',
+                'externalOrderCode' => 'order_item_id_'.$this->item->id,
+                'status' => 'processing',
+            ], 200),
+        ]);
+
+        app(Gamezcode::class)->placeOrder($this->item->fresh());
+
+        Http::assertNotSent(fn ($r) => $r->method() === 'POST');
+        $this->assertEquals('EXISTING-ORDER-UUID', $this->item->fresh()->transaction_id);
+        $this->assertEquals(PurchaseOrderItemStatus::PROCESSING, $this->item->fresh()->status);
     }
 
     public function test_place_order_does_not_store_vouchers(): void
