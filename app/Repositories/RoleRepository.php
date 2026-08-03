@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Enums\UserRole;
 use Spatie\Permission\Models\Role;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -14,7 +15,8 @@ class RoleRepository
      */
     public function getFilteredRoles(array $filters = []): LengthAwarePaginator
     {
-        $query = Role::with('permissions');
+        $query = Role::with('permissions')
+            ->where('name', '!=', UserRole::SUPER_ADMIN->value);
 
         if (isset($filters['name'])) {
             $query->where('name', 'like', '%'.$filters['name'].'%');

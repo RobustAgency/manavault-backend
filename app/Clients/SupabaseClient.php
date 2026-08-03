@@ -285,7 +285,6 @@ class SupabaseClient
             $userData['name'] = $payload->user_metadata->name ?? '';
             $userData['email'] = $payload->user_metadata->email ?? $payload->email;
             $userData['email_verified'] = $payload->user_metadata->email_verified ?? false;
-            $userData['role'] = $payload->role ?? UserRole::USER->value;
         }
 
         return $userData;
@@ -311,7 +310,6 @@ class SupabaseClient
                 'name' => $userData['name'],
                 'email' => $userData['email'],
                 'supabase_id' => $userData['supabase_id'],
-                'role' => $userData['role'],
             ]);
 
             Log::info('Created new user from Supabase', ['user_id' => $user->id]);

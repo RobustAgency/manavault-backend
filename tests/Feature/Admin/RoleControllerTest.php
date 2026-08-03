@@ -93,6 +93,24 @@ class RoleControllerTest extends TestCase
     }
 
     /**
+     * Test super_admin role is excluded from the listing
+     */
+    public function test_index_excludes_super_admin_role(): void
+    {
+        Role::create(['name' => 'super_admin', 'guard_name' => 'supabase']);
+        Role::create(['name' => 'admin', 'guard_name' => 'supabase']);
+        Role::create(['name' => 'user', 'guard_name' => 'supabase']);
+
+        $response = $this->actingAs($this->admin)->getJson('/api/roles');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.total', 2);
+
+        $names = collect($response->json('data.data'))->pluck('name');
+        $this->assertFalse($names->contains('super_admin'));
+    }
+
+    /**
      * Test filtering roles by guard_name
      */
     public function test_admin_can_filter_roles_by_guard_name(): void
