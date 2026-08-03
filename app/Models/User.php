@@ -76,7 +76,6 @@ class User extends Authenticatable
             'email' => $attributes['email'],
             'supabase_id' => $attributes['supabase_id'],
             'is_approved' => true,
-            'role' => $attributes['role'],
         ];
 
         $user = self::create($data);

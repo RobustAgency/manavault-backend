@@ -33,6 +33,29 @@ class UserControllerTest extends TestCase
         $this->assertArrayHasKey('data', $responseData);
     }
 
+    public function test_index_excludes_users_who_are_super_admin_by_legacy_role_or_spatie_role(): void
+    {
+        Notification::fake();
+        $admin = User::factory()->create(['role' => UserRole::SUPER_ADMIN->value]);
+
+        $regularUser = User::factory()->create(['role' => UserRole::USER->value]);
+        $legacySuperAdmin = User::factory()->create(['role' => UserRole::SUPER_ADMIN->value]);
+
+        $spatieSuperAdmin = User::factory()->create(['role' => UserRole::USER->value]);
+        $superAdminRole = Role::create(['name' => UserRole::SUPER_ADMIN->value]);
+        $spatieSuperAdmin->assignRole($superAdminRole);
+
+        $response = $this->actingAs($admin)->getJson('/api/users');
+        $response->assertOk();
+
+        $returnedIds = collect($response->json('data.data'))->pluck('id');
+
+        $this->assertTrue($returnedIds->contains($regularUser->id));
+        $this->assertFalse($returnedIds->contains($legacySuperAdmin->id));
+        $this->assertFalse($returnedIds->contains($spatieSuperAdmin->id));
+        $this->assertFalse($returnedIds->contains($admin->id));
+    }
+
     public function test_super_admin_can_view_user(): void
     {
         Notification::fake();
