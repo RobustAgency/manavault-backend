@@ -5,12 +5,10 @@ namespace App\Integrations;
 use App\Models\Voucher;
 use App\Models\Supplier;
 use App\Enums\VoucherCodeStatus;
+use App\Clients\Gamezcode\Client;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Support\Facades\DB;
-use App\Actions\Gamezcode\GetOrder;
 use Illuminate\Support\Facades\Log;
-use App\Actions\Gamezcode\PlaceOrder;
-use App\Actions\Gamezcode\GetProducts;
 use App\Enums\PurchaseOrderItemStatus;
 use App\Events\DigitalProductsDeactivated;
 use App\Contracts\SupplierIntegrationContract;
@@ -36,9 +34,7 @@ class Gamezcode implements SupplierIntegrationContract
     private array $syncedSkus = [];
 
     public function __construct(
-        private readonly GetProducts $getProducts,
-        private readonly PlaceOrder $placeOrder,
-        private readonly GetOrder $getOrder,
+        private readonly Client $client,
         private readonly DigitalProductRepository $digitalProductRepository,
         private readonly VoucherCipherService $voucherCipherService,
     ) {}
@@ -65,7 +61,7 @@ class Gamezcode implements SupplierIntegrationContract
             'quantity' => $quantity,
         ]);
 
-        $response = $this->placeOrder->execute([
+        $response = $this->client->placeOrder([
             'externalOrderCode' => 'order_item_id_'.$purchaseOrderItem->id,
             'currency' => $currency,
             'orderProducts' => [
@@ -100,7 +96,7 @@ class Gamezcode implements SupplierIntegrationContract
             return;
         }
 
-        $response = $this->getOrder->execute($purchaseOrderItem->transaction_id);
+        $response = $this->client->getOrder($purchaseOrderItem->transaction_id);
 
         $status = $response['status'] ?? null;
 
@@ -151,7 +147,7 @@ class Gamezcode implements SupplierIntegrationContract
         $skip = 0;
 
         do {
-            $response = $this->getProducts->execute(self::PAGE_SIZE, $skip);
+            $response = $this->client->getProducts(self::PAGE_SIZE, $skip);
 
             $total = $response['count'] ?? 0;
             $items = $response['products'] ?? [];
