@@ -88,6 +88,11 @@ return [
         'secret' => env('GIFTERY_SECRET_KEY'),
     ],
 
+    'gamezcode' => [
+        'base_url' => env('GAMEZCODE_BASE_URL'),
+        'api_key' => env('GAMEZCODE_API_KEY'),
+    ],
+
     'tikkery' => [
         'base_url' => env('TIKKERY_BASE_URL'),
         'auth_url' => env('TIKKERY_AUTH_URL'),
