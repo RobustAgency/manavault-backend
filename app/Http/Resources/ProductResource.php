@@ -46,7 +46,7 @@ class ProductResource extends JsonResource
             'updated_at' => $this->updated_at->toDateTimeString(),
             'digital_products' => DigitalProductResource::collection($this->getSortedDigitalProducts()),
             'digital_product' => $digitalProduct ? new DigitalProductResource($digitalProduct) : null,
-            'brand' => new BrandResource($this->whenLoaded('brand')),
+            'brand' => $this->whenLoaded('brand', fn () => $this->brand ? new BrandResource($this->brand) : null),
         ];
     }
 

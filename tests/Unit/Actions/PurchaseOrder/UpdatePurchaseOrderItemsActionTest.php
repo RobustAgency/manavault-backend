@@ -128,6 +128,42 @@ class UpdatePurchaseOrderItemsActionTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_continues_processing_other_items_when_one_supplier_call_throws(): void
+    {
+        $irewardifySupplier = Supplier::factory()->create(['slug' => 'irewardify']);
+        $irewardifyProduct = DigitalProduct::factory()->forSupplier($irewardifySupplier)->create();
+        PurchaseOrderSupplier::factory()->create([
+            'purchase_order_id' => $this->purchaseOrder->id,
+            'supplier_id' => $irewardifySupplier->id,
+            'status' => PurchaseOrderSupplierStatus::PROCESSING->value,
+        ]);
+        $failingItem = PurchaseOrderItem::factory()->create([
+            'purchase_order_id' => $this->purchaseOrder->id,
+            'supplier_id' => $irewardifySupplier->id,
+            'digital_product_id' => $irewardifyProduct->id,
+            'transaction_id' => 'FAILING-TXN',
+            'status' => PurchaseOrderItemStatus::PROCESSING->value,
+        ]);
+
+        $succeedingItem = $this->makeItem('9999');
+
+        Http::fake([
+            '*/order/delivery/FAILING-TXN' => Http::response(['message' => 'Order not found or not ready yet', 'success' => false], 404),
+            '*/v2/orders/9999/codes' => Http::response([
+                'data' => [[
+                    'codes' => [
+                        ['status' => 'COMPLETED', 'redeemCode' => 'CODE-9999', 'pinCode' => null, 'stockId' => null],
+                    ],
+                ]],
+            ], 200),
+        ]);
+
+        $this->action->execute();
+
+        $this->assertEquals(PurchaseOrderItemStatus::PROCESSING, $failingItem->fresh()->status);
+        $this->assertEquals(PurchaseOrderItemStatus::FULFILLED, $succeedingItem->fresh()->status);
+    }
+
     // -------------------------------------------------------------------------
     // Cascade: supplier status
     // -------------------------------------------------------------------------

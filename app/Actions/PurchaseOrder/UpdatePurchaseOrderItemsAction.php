@@ -36,7 +36,18 @@ class UpdatePurchaseOrderItemsAction
                 'purchase_order_id' => $item->purchase_order_id,
             ]);
 
-            $supplier->updateOrder($item);
+            try {
+                $supplier->updateOrder($item);
+            } catch (\Throwable $e) {
+                logger()->error('UpdatePurchaseOrderItemsAction: failed to update order for item, skipping', [
+                    'item_id' => $item->id,
+                    'supplier_id' => $item->supplier_id,
+                    'purchase_order_id' => $item->purchase_order_id,
+                    'error' => $e->getMessage(),
+                ]);
+
+                continue;
+            }
 
             if ($item->status === PurchaseOrderItemStatus::FULFILLED) {
                 $allCompleted = PurchaseOrderItem::where('supplier_id', $item->supplier_id)
