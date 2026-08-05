@@ -2,23 +2,23 @@
 
 namespace App\Listeners;
 
-use App\Events\DigitalProductUpdated;
 use App\Repositories\ProductRepository;
+use App\Events\DigitalProductsDeactivated;
 use App\Actions\DispatchProductSyncWebhook;
 
-class SyncProductsOnDigitalProductUpdate
+class SyncProductsOnDigitalProductsDeactivated
 {
-    const EVENT_NAME = 'digital_product.updated';
+    const EVENT_NAME = 'digital_product.deactivated';
 
     public function __construct(
         private ProductRepository $productRepository,
         private DispatchProductSyncWebhook $dispatchProductSyncWebhook,
     ) {}
 
-    public function handle(DigitalProductUpdated $event): void
+    public function handle(DigitalProductsDeactivated $event): void
     {
-        $productIds = $this->productRepository->getProductIdsByDigitalProductId(
-            $event->digitalProduct->id
+        $productIds = $this->productRepository->getProductIdsByAnyDigitalProductIds(
+            $event->digitalProductIds
         );
 
         if (empty($productIds)) {

@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\User;
+use App\Enums\UserRole;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class UserRepository
@@ -15,7 +16,11 @@ class UserRepository
     public function searchPaginated(array $filters = []): LengthAwarePaginator
     {
         $query = User::query()
-            ->with(['roles']);
+            ->with(['roles'])
+            ->where('role', '!=', UserRole::SUPER_ADMIN->value)
+            ->whereDoesntHave('roles', function ($q) {
+                $q->where('name', UserRole::SUPER_ADMIN->value);
+            });
 
         if ($term = $filters['term'] ?? null) {
             $query->where(function ($q) use ($term) {

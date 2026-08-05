@@ -408,10 +408,14 @@ class VoucherControllerTest extends TestCase
             'user_agent' => 'Mozilla/5.0 (Test Browser)',
         ]);
 
-        $response->assertStatus(500)
+        $response->assertStatus(200)
             ->assertJson([
-                'error' => true,
-                'message' => 'Something went wrong.',
+                'error' => false,
+                'message' => 'Voucher retrieved successfully.',
+                'data' => [
+                    'id' => $voucher->id,
+                    'code' => $plainCode, // Should be decrypted
+                ],
             ]);
     }
 
@@ -434,10 +438,14 @@ class VoucherControllerTest extends TestCase
             'user_agent' => 'Mozilla/5.0 (Test Browser)',
         ]);
 
-        $response->assertStatus(500)
+        $response->assertStatus(200)
             ->assertJson([
-                'error' => true,
-                'message' => 'Something went wrong.',
+                'error' => false,
+                'message' => 'Voucher retrieved successfully.',
+                'data' => [
+                    'id' => $voucher->id,
+                    'code' => $plainCode, // Should return as-is
+                ],
             ]);
     }
 

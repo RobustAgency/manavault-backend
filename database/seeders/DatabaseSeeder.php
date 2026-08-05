@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             TikkerySupplierSeeder::class,
             PermissionSeeder::class,
             IrewardifySupplierSeeder::class,
+            GamezcodeSupplierSeeder::class,
         ]);
     }
 }

@@ -27,6 +27,8 @@ class SyncProductsOnPriceRuleApplied
             return;
         }
 
-        $this->dispatchProductSyncWebhook->execute('price_rule.applied', $productIds);
+        foreach ($productIds as $productId) {
+            $this->dispatchProductSyncWebhook->execute('price_rule.applied', $productId);
+        }
     }
 }

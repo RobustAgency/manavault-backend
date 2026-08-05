@@ -27,7 +27,7 @@ class DigitalProductRepository
     {
         $query = DigitalProduct::query()->with('supplier');
 
-        $query->where('in_stock', true)->where('is_active', true);
+        $query->where('is_active', true);
 
         if (isset($filters['name'])) {
             $query->where('name', 'like', '%'.$filters['name'].'%');
@@ -179,14 +179,28 @@ class DigitalProductRepository
      * Deactivate all digital products for a supplier whose SKU is not in the provided list.
      * Called after a sync to mark products removed by the supplier as inactive.
      *
+     * Returns the IDs of the deactivated digital products so callers can notify
+     * downstream consumers (e.g. dispatch a product sync webhook) — a mass update
+     * like this bypasses Eloquent model events, so nothing fires automatically.
+     *
      * @param  array<int, string>  $activeSKUs
+     * @return array<int, int>
      */
-    public function deactivateStaleBySupplierId(int $supplierId, array $activeSKUs): int
+    public function deactivateStaleBySupplierId(int $supplierId, array $activeSKUs): array
     {
-        return DigitalProduct::where('supplier_id', $supplierId)
+        $staleIds = DigitalProduct::where('supplier_id', $supplierId)
             ->whereNotIn('sku', $activeSKUs)
             ->where('is_active', true)
-            ->update(['is_active' => false]);
+            ->pluck('id')
+            ->all();
+
+        if (empty($staleIds)) {
+            return [];
+        }
+
+        DigitalProduct::whereIn('id', $staleIds)->update(['is_active' => false]);
+
+        return $staleIds;
     }
 
     /**

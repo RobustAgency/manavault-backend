@@ -5,6 +5,7 @@ namespace App\Services\Giftery;
 use App\Models\Supplier;
 use Illuminate\Support\Facades\Log;
 use App\Actions\Giftery\GetProductsAction;
+use App\Events\DigitalProductsDeactivated;
 use App\Repositories\DigitalProductRepository;
 
 class SyncProducts
@@ -40,6 +41,12 @@ class SyncProducts
         $syncedSkus = [];
 
         foreach ($products as $product) {
+            // Giftery returns several product types (voucher, recharge, recharge_fixed,
+            // e_sim); only vouchers are supported.
+            if (($product['type'] ?? null) !== 'voucher') {
+                continue;
+            }
+
             try {
                 $items = $product['items'] ?? [];
 
@@ -80,7 +87,6 @@ class SyncProducts
                                 'source' => 'api',
                                 'last_synced_at' => now(),
                                 'is_active' => true,
-                                'in_stock' => $item['inStock'] > 0,
                             ]
                         );
 
@@ -95,10 +101,11 @@ class SyncProducts
         }
 
         // Deactivate products that are no longer in the API response
-        $deactivated = $this->digitalProductRepository->deactivateStaleBySupplierId($supplier->id, $syncedSkus);
+        $deactivatedIds = $this->digitalProductRepository->deactivateStaleBySupplierId($supplier->id, $syncedSkus);
 
-        if ($deactivated > 0) {
-            Log::info("Giftery sync: deactivated {$deactivated} removed product(s)");
+        if (! empty($deactivatedIds)) {
+            Log::info('Giftery sync: deactivated '.count($deactivatedIds).' removed product(s)');
+            event(new DigitalProductsDeactivated($deactivatedIds));
         }
 
         Log::info('Giftery sync completed successfully. Synced '.count($syncedSkus).' digital products.');

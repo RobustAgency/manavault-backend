@@ -4,6 +4,7 @@ namespace App\Actions;
 
 use App\Models\SaleOrder;
 use Spatie\WebhookServer\WebhookCall;
+use App\Http\Resources\ManaStore\V1\SaleOrderResource;
 
 class DispatchSaleOrderWebhook
 {
@@ -13,7 +14,7 @@ class DispatchSaleOrderWebhook
             ->url(config('webhook-server.webhook_url'))
             ->payload([
                 'event' => $event,
-                'sale_order_number' => $saleOrder->order_number,
+                'data' => (new SaleOrderResource($saleOrder))->toArray(request()),
             ])
             ->useSecret(config('webhook-server.webhook_secret'))
             ->dispatch();
