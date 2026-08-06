@@ -96,6 +96,20 @@ class Client extends BaseApiClient
         return $this->handleResponse($response);
     }
 
+    /**
+     * Fetch a single product by its Gift2Games product id.
+     *
+     * Mirrors: POST /products with form body `ids[]=<id>`.
+     */
+    public function getProduct(int|string $productId): array
+    {
+        $response = $this->getFormClient()->post('products', [
+            'ids' => [$productId],
+        ]);
+
+        return $this->handleResponse($response);
+    }
+
     public function checkBalance(): array
     {
         $response = $this->getClient()->get('check_balance');
