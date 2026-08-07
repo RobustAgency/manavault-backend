@@ -161,200 +161,34 @@ class LoginLogsControllerTest extends TestCase
         $response->assertJsonValidationErrors(['per_page']);
     }
 
-    public function test_can_create_login_log(): void
-    {
-        Notification::fake();
-        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
-
-        $loginLogData = [
-            'email' => 'newuser@example.com',
-            'ip_address' => '203.0.113.45',
-            'user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-            'activity' => 'login',
-            'logged_in_at' => now()->toDateTimeString(),
-        ];
-
-        $response = $this->actingAs($admin)->postJson('/api/login-logs', $loginLogData);
-
-        $response->assertOk();
-        $response->assertJsonStructure([
-            'message',
-            'error',
-        ]);
-
-        $responseData = $response->json();
-        $this->assertFalse($responseData['error']);
-        $this->assertEquals('Login log created successfully.', $responseData['message']);
-
-        $this->assertDatabaseHas('login_logs', [
-            'email' => 'newuser@example.com',
-            'ip_address' => '203.0.113.45',
-            'activity' => 'login',
-        ]);
-    }
-
-    public function test_create_login_log_requires_email(): void
-    {
-        Notification::fake();
-        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
-
-        $loginLogData = [
-            'ip_address' => '203.0.113.45',
-            'activity' => 'login',
-        ];
-
-        $response = $this->actingAs($admin)->postJson('/api/login-logs', $loginLogData);
-
-        $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['email']);
-    }
-
-    public function test_create_login_log_requires_valid_email(): void
-    {
-        Notification::fake();
-        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
-
-        $loginLogData = [
-            'email' => 'not-an-email',
-            'ip_address' => '203.0.113.45',
-            'activity' => 'login',
-        ];
-
-        $response = $this->actingAs($admin)->postJson('/api/login-logs', $loginLogData);
-
-        $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['email']);
-    }
-
-    public function test_create_login_log_requires_ip_address(): void
-    {
-        Notification::fake();
-        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
-
-        $loginLogData = [
-            'email' => 'user@example.com',
-            'activity' => 'login',
-        ];
-
-        $response = $this->actingAs($admin)->postJson('/api/login-logs', $loginLogData);
-
-        $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['ip_address']);
-    }
-
-    public function test_create_login_log_requires_valid_ip_address(): void
-    {
-        Notification::fake();
-        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
-
-        $loginLogData = [
-            'email' => 'user@example.com',
-            'ip_address' => 'not-an-ip',
-            'activity' => 'login',
-        ];
-
-        $response = $this->actingAs($admin)->postJson('/api/login-logs', $loginLogData);
-
-        $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['ip_address']);
-    }
-
-    public function test_create_login_log_requires_activity(): void
-    {
-        Notification::fake();
-        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
-
-        $loginLogData = [
-            'email' => 'user@example.com',
-            'ip_address' => '203.0.113.45',
-        ];
-
-        $response = $this->actingAs($admin)->postJson('/api/login-logs', $loginLogData);
-
-        $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['activity']);
-    }
-
-    public function test_create_login_log_validates_logged_out_at_after_logged_in_at(): void
-    {
-        Notification::fake();
-        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
-
-        $loggedInAt = now();
-        $loggedOutAt = now()->subHour(); // Before logged_in_at
-
-        $loginLogData = [
-            'email' => 'user@example.com',
-            'ip_address' => '203.0.113.45',
-            'activity' => 'logout',
-            'logged_in_at' => $loggedInAt->toDateTimeString(),
-            'logged_out_at' => $loggedOutAt->toDateTimeString(),
-        ];
-
-        $response = $this->actingAs($admin)->postJson('/api/login-logs', $loginLogData);
-
-        $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['logged_out_at']);
-    }
-
-    public function test_create_login_log_with_complete_data(): void
-    {
-        Notification::fake();
-        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
-
-        $loggedInAt = now()->subHour();
-        $loggedOutAt = now();
-
-        $loginLogData = [
-            'email' => 'complete@example.com',
-            'ip_address' => '198.51.100.42',
-            'user_agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
-            'activity' => 'logout',
-            'logged_in_at' => $loggedInAt->toDateTimeString(),
-            'logged_out_at' => $loggedOutAt->toDateTimeString(),
-        ];
-
-        $response = $this->actingAs($admin)->postJson('/api/login-logs', $loginLogData);
-
-        $response->assertOk();
-
-        $this->assertDatabaseHas('login_logs', [
-            'email' => 'complete@example.com',
-            'ip_address' => '198.51.100.42',
-            'user_agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
-            'activity' => 'logout',
-        ]);
-    }
-
-    public function test_guest_user_can_access_login_logs(): void
+    public function test_guest_user_cannot_access_login_logs(): void
     {
         LoginLog::factory()->count(5)->create();
 
         $response = $this->getJson('/api/login-logs');
 
-        $response->assertOk();
-        $response->assertJsonStructure([
-            'data',
-            'message',
-            'error',
-        ]);
+        $response->assertUnauthorized();
     }
 
-    public function test_guest_user_can_create_login_logs(): void
+    public function test_unapproved_user_cannot_access_login_logs(): void
     {
-        $loginLogData = [
-            'email' => 'guest@example.com',
-            'ip_address' => '203.0.113.45',
-            'activity' => 'login',
-        ];
+        Notification::fake();
+        $user = User::factory()->create(['role' => UserRole::USER, 'is_approved' => false]);
 
-        $response = $this->postJson('/api/login-logs', $loginLogData);
+        $response = $this->actingAs($user)->getJson('/api/login-logs');
 
-        $response->assertOk();
-        $this->assertDatabaseHas('login_logs', [
-            'email' => 'guest@example.com',
+        $response->assertForbidden();
+    }
+
+    public function test_login_logs_cannot_be_created_over_http(): void
+    {
+        $response = $this->postJson('/api/login-logs', [
+            'email' => 'spoofed@example.com',
             'ip_address' => '203.0.113.45',
             'activity' => 'login',
         ]);
+
+        $response->assertStatus(405);
+        $this->assertDatabaseMissing('login_logs', ['email' => 'spoofed@example.com']);
     }
 }

@@ -2,6 +2,7 @@
 
 use Illuminate\Foundation\Application;
 use App\Http\Middleware\VerifyUserRole;
+use App\Http\Middleware\LogLoginActivity;
 use App\Http\Middleware\EnsureUserIsApproved;
 use App\Http\Middleware\VerifyManaStoreApiKey;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -24,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'user.approved' => EnsureUserIsApproved::class,
             'role' => VerifyUserRole::class,
             'manastore.auth' => VerifyManaStoreApiKey::class,
+            'login.log' => LogLoginActivity::class,
             'permission' => PermissionMiddleware::class,
         ]);
     })

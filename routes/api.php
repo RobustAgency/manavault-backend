@@ -5,10 +5,11 @@ use App\Http\Controllers\SupabaseController;
 use App\Http\Controllers\LoginLogsController;
 use App\Http\Controllers\Api\IrewardifyWebhookController;
 
-Route::post('/auth/login', [SupabaseController::class, 'login']);
+Route::post('/auth/login', [SupabaseController::class, 'login'])->middleware('login.log');
 
-Route::get('/login-logs', [LoginLogsController::class, 'index']);
-Route::post('/login-logs', [LoginLogsController::class, 'store']);
+Route::middleware(['auth:supabase', 'user.approved'])->group(function () {
+    Route::get('/login-logs', [LoginLogsController::class, 'index']);
+});
 
 Route::post('/webhooks/irewardify', [IrewardifyWebhookController::class, 'handle']);
 

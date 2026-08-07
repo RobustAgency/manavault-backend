@@ -2,11 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\LoginLog;
 use Illuminate\Http\JsonResponse;
 use App\Repositories\LoginLogsRepository;
 use App\Http\Requests\ListLoginLogsRequest;
-use App\Http\Requests\StoreLoginLogsRequest;
 
 class LoginLogsController extends Controller
 {
@@ -20,18 +18,6 @@ class LoginLogsController extends Controller
         return response()->json([
             'data' => $loginLogs,
             'message' => 'Login logs retrieved successfully.',
-            'error' => false,
-        ]);
-    }
-
-    public function store(StoreLoginLogsRequest $request): JsonResponse
-    {
-        $validatedData = $request->validated();
-
-        LoginLog::create($validatedData);
-
-        return response()->json([
-            'message' => 'Login log created successfully.',
             'error' => false,
         ]);
     }
