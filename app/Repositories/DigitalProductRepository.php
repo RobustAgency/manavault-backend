@@ -7,6 +7,7 @@ use Illuminate\Support\Collection;
 use App\Enums\PriceRule\ActionMode;
 use App\Services\ImageUploadService;
 use App\Enums\PriceRule\ActionOperator;
+use Illuminate\Database\Eloquent\Builder;
 use App\Enums\PriceRuleCondition\Operator;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -19,11 +20,13 @@ class DigitalProductRepository
     ) {}
 
     /**
-     * Get paginated digital products filtered by the provided criteria.
+     * Build the digital product query for the provided filter criteria.
      *
-     * @return LengthAwarePaginator<int, DigitalProduct>
+     * Shared by the paginated listing and the CSV export so both stay in sync.
+     *
+     * @return Builder<DigitalProduct>
      */
-    public function getFilteredDigitalProducts(array $filters = []): LengthAwarePaginator
+    public function buildFilteredQuery(array $filters = []): Builder
     {
         $query = DigitalProduct::query()->with('supplier');
 
@@ -49,11 +52,19 @@ class DigitalProductRepository
             $query->where('region', 'like', '%'.$filters['region'].'%');
         }
 
+        return $query->orderBy('created_at', 'desc');
+    }
+
+    /**
+     * Get paginated digital products filtered by the provided criteria.
+     *
+     * @return LengthAwarePaginator<int, DigitalProduct>
+     */
+    public function getFilteredDigitalProducts(array $filters = []): LengthAwarePaginator
+    {
         $per_page = $filters['per_page'] ?? 10;
 
-        $query->orderBy('created_at', 'desc');
-
-        return $query->paginate($per_page);
+        return $this->buildFilteredQuery($filters)->paginate($per_page);
     }
 
     /**

@@ -1016,6 +1016,92 @@ class DigitalProductControllerTest extends TestCase
             ]);
     }
 
+    public function test_export_digital_products_requires_supplier_id(): void
+    {
+        $this->actingAs($this->admin);
+
+        $response = $this->getJson('/api/digital-products/export');
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors('supplier_id');
+    }
+
+    public function test_export_digital_products_returns_csv_scoped_to_supplier(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create();
+        $otherSupplier = Supplier::factory()->create();
+
+        $digitalProduct = DigitalProduct::factory()->forSupplier($supplier)->create([
+            'name' => 'Exported Product',
+            'brand' => 'Export Brand',
+            'region' => 'US',
+            'face_value' => 100.00,
+            'cost_price' => 80.00,
+            'selling_price' => 95.00,
+            'selling_discount' => 10,
+            'is_active' => true,
+        ]);
+
+        $inactive = DigitalProduct::factory()->forSupplier($supplier)->create([
+            'name' => 'Inactive Product',
+            'is_active' => false,
+        ]);
+
+        $otherProduct = DigitalProduct::factory()->forSupplier($otherSupplier)->create([
+            'name' => 'Other Supplier Product',
+        ]);
+
+        $response = $this->get("/api/digital-products/export?supplier_id={$supplier->id}");
+
+        $response->assertStatus(200);
+        $this->assertStringContainsString('text/csv', (string) $response->headers->get('Content-Type'));
+
+        $csv = $response->streamedContent();
+        $lines = array_values(array_filter(explode("\n", trim($csv))));
+
+        $this->assertStringContainsString('"Sr no.","Digital Product ID","Digital Product Name",Brand,Region,"Face Value","Cost Price","Discount Price","Discount Percentage",Status', $lines[0]);
+        $this->assertCount(2, $lines);
+        // Discount price/percentage are the gap between face value and cost price:
+        // 100.00 - 80.00 = 20.00, which is 20% off face value.
+        $this->assertStringContainsString("1,{$digitalProduct->id},\"Exported Product\",\"Export Brand\",US,100.00,80.00,20.00,20,Active", $lines[1]);
+
+        // Inactive products and other suppliers' products are excluded, matching the index filters.
+        $this->assertStringNotContainsString($inactive->name, $csv);
+        $this->assertStringNotContainsString($otherProduct->name, $csv);
+    }
+
+    public function test_export_digital_products_applies_index_filters(): void
+    {
+        $this->actingAs($this->admin);
+
+        $supplier = Supplier::factory()->create();
+
+        $matching = DigitalProduct::factory()->forSupplier($supplier)->create([
+            'name' => 'Steam Wallet Code',
+            'brand' => 'Steam',
+            'region' => 'US',
+            'currency' => 'usd',
+        ]);
+
+        $nonMatching = DigitalProduct::factory()->forSupplier($supplier)->create([
+            'name' => 'Xbox Gift Card',
+            'brand' => 'Xbox',
+            'region' => 'EU',
+            'currency' => 'usd',
+        ]);
+
+        $response = $this->get("/api/digital-products/export?supplier_id={$supplier->id}&name=Steam&brand=Steam&region=US&currency=usd");
+
+        $response->assertStatus(200);
+
+        $csv = $response->streamedContent();
+
+        $this->assertStringContainsString($matching->name, $csv);
+        $this->assertStringNotContainsString($nonMatching->name, $csv);
+    }
+
     /**
      * Helper method to create a temporary file with specific content and extension
      */

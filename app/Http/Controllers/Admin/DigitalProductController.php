@@ -8,8 +8,11 @@ use App\Http\Controllers\Controller;
 use App\Services\DigitalProductImportService;
 use App\Http\Resources\DigitalProductResource;
 use App\Repositories\DigitalProductRepository;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Actions\DigitalProduct\ExportDigitalProductsCsv;
 use App\Http\Requests\DigitalProduct\ListDigitalProductRequest;
 use App\Http\Requests\DigitalProduct\StoreDigitalProductRequest;
+use App\Http\Requests\DigitalProduct\ExportDigitalProductRequest;
 use App\Http\Requests\DigitalProduct\UpdateDigitalProductRequest;
 use App\Http\Requests\DigitalProduct\BatchImportDigitalProductRequest;
 
@@ -18,6 +21,7 @@ class DigitalProductController extends Controller
     public function __construct(
         private DigitalProductRepository $repository,
         private DigitalProductImportService $importService,
+        private ExportDigitalProductsCsv $exportDigitalProductsCsv,
     ) {}
 
     /**
@@ -33,6 +37,14 @@ class DigitalProductController extends Controller
             'data' => $digitalProducts,
             'message' => 'Digital products retrieved successfully.',
         ]);
+    }
+
+    /**
+     * Export digital products for a supplier as a CSV file.
+     */
+    public function export(ExportDigitalProductRequest $request): StreamedResponse
+    {
+        return $this->exportDigitalProductsCsv->execute($request->validated());
     }
 
     /**

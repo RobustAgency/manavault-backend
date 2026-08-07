@@ -65,6 +65,7 @@ Route::middleware(['auth:supabase', 'user.approved'])->group(function () {
         Route::get('', 'index')->middleware('permission:view_digital_stock');
         Route::post('', 'store')->middleware('permission:create_digital_stock');
         Route::post('/batch-import', 'batchImport')->middleware('permission:create_digital_stock');
+        Route::get('/export', 'export')->middleware('permission:view_digital_stock');
         Route::get('/{digitalProduct}', 'show')->middleware('permission:view_digital_stock');
         Route::post('/{digitalProduct}', 'update')->middleware('permission:edit_digital_stock');
         Route::delete('/{digitalProduct}', 'destroy')->middleware('permission:delete_digital_stock');
